@@ -1,0 +1,71 @@
+name: TripPlanner
+options:
+  bundleIdPrefix: com.skysurfer
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    TARGETED_DEVICE_FAMILY: "1"
+    CODE_SIGN_STYLE: Automatic
+    # Set your team in Xcode (Signing & Capabilities) or put the team ID here.
+    DEVELOPMENT_TEAM: ""
+targets:
+  TripPlanner:
+    type: application
+    platform: iOS
+    sources:
+      - path: TripPlanner
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.skysurfer.TripPlanner
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+    info:
+      path: Config/App-Info.plist
+      properties:
+        CFBundleDisplayName: Trip Planner
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSLocationWhenInUseUsageDescription: Trip Planner uses your location to show directions to your next stop and to find restaurants nearby.
+        NSSupportsLiveActivities: true
+    dependencies:
+      - target: TripPlannerWidgets
+  TripPlannerWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: TripPlannerWidgets
+      - path: TripPlanner/Shared/TripActivityAttributes.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.skysurfer.TripPlanner.Widgets
+    info:
+      path: Config/Widgets-Info.plist
+      properties:
+        CFBundleDisplayName: Trip Planner
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+  TripPlannerTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: TripPlannerTests
+    dependencies:
+      - target: TripPlanner
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.skysurfer.TripPlannerTests
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  TripPlanner:
+    build:
+      targets:
+        TripPlanner: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - TripPlannerTests

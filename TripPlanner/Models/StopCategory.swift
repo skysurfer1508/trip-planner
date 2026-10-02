@@ -1,0 +1,65 @@
+import SwiftUI
+import MapKit
+
+enum StopCategory: String, CaseIterable, Identifiable, Codable {
+    case sight, food, cafe, hotel, transport, other
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .sight: "Sight"
+        case .food: "Food"
+        case .cafe: "Café"
+        case .hotel: "Hotel"
+        case .transport: "Transport"
+        case .other: "Other"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .sight: "camera.fill"
+        case .food: "fork.knife"
+        case .cafe: "cup.and.saucer.fill"
+        case .hotel: "bed.double.fill"
+        case .transport: "tram.fill"
+        case .other: "mappin"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .sight: .blue
+        case .food: .orange
+        case .cafe: .brown
+        case .hotel: .indigo
+        case .transport: .gray
+        case .other: .teal
+        }
+    }
+
+    /// Used for the rain warning in the weather chip.
+    var isOutdoor: Bool { self == .sight }
+
+    init(poi: MKPointOfInterestCategory?) {
+        guard let poi else {
+            self = .other
+            return
+        }
+        switch poi {
+        case .restaurant, .foodMarket, .brewery, .winery, .nightlife:
+            self = .food
+        case .cafe, .bakery:
+            self = .cafe
+        case .hotel:
+            self = .hotel
+        case .airport, .publicTransport, .parking, .evCharger:
+            self = .transport
+        case .museum, .park, .beach, .nationalPark, .zoo, .aquarium, .amusementPark, .theater, .stadium:
+            self = .sight
+        default:
+            self = .other
+        }
+    }
+}

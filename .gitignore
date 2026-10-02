@@ -1,0 +1,7 @@
+*.xcodeproj
+Config/*.plist
+DerivedData/
+build/
+xcuserdata/
+.DS_Store
+.build/
