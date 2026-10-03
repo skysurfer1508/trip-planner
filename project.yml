@@ -30,8 +30,11 @@ targets:
           - UIInterfaceOrientationPortrait
         NSLocationWhenInUseUsageDescription: Trip Planner uses your location to show directions to your next stop and to find restaurants nearby.
         NSSupportsLiveActivities: true
-    dependencies:
-      - target: TripPlannerWidgets
+    # The Live Activity widget needs its own App ID. Free Apple accounts are limited to 10 new App IDs
+    # per 7 days, so it isn't embedded by default. To enable it: uncomment the dependency below,
+    # set AppFeatures.liveActivities = true, and run xcodegen again.
+    # dependencies:
+    #   - target: TripPlannerWidgets
   TripPlannerWidgets:
     type: app-extension
     platform: iOS

@@ -283,7 +283,9 @@ struct TodayView: View {
                 Button("Add expense", systemImage: "creditcard") { showExpense = true }
                 Section("Smart features") {
                     Toggle("Departure reminders (walking)", isOn: nudgeBinding)
-                    Toggle("Lock screen countdown", isOn: $liveActivityEnabled)
+                    if AppFeatures.liveActivities {
+                        Toggle("Lock screen countdown", isOn: $liveActivityEnabled)
+                    }
                 }
             } label: {
                 Image(systemName: "ellipsis.circle")
@@ -347,7 +349,7 @@ struct TodayView: View {
             await NudgeService.cancelAll()
         }
 
-        if liveActivityEnabled && isToday {
+        if AppFeatures.liveActivities && liveActivityEnabled && isToday {
             await LiveActivityManager.sync(tripName: trip.name, next: nextStop, stopsLeft: remaining.count)
         } else {
             await LiveActivityManager.end()
