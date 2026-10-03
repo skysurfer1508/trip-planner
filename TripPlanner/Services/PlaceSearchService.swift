@@ -44,9 +44,9 @@ enum PlaceSearchService {
             request.resultTypes = .pointOfInterest
             items = try await MKLocalSearch(request: request).start().mapItems
         } else {
-            let request = MKLocalPointOfInterestRequest(center: center, radius: radius)
+            let request = MKLocalPointsOfInterestRequest(center: center, radius: radius)
             request.pointOfInterestFilter = filter
-            items = try await MKLocalSearch(request: request).start().mapItems
+            items = try await MKLocalSearch(pointsOfInterest: request).start().mapItems
         }
 
         let origin = CLLocation(latitude: center.latitude, longitude: center.longitude)
