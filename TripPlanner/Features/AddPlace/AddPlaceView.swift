@@ -16,10 +16,19 @@ struct AddPlaceView: View {
         return "\(item.name ?? "")-\(c.latitude)-\(c.longitude)"
     }
 
+    /// True when the day already has this place (same name, within 100 m).
+    private func isInPlan(_ item: MKMapItem) -> Bool {
+        let name = (item.name ?? "").lowercased()
+        return day.stops.contains { stop in
+            stop.name.lowercased() == name
+                && RoutingService.straightLine(from: stop.coordinate, to: item.placemark.coordinate) < 100
+        }
+    }
+
     var body: some View {
         NavigationStack {
             List(results, id: \.self) { item in
-                let added = addedKeys.contains(key(item))
+                let added = addedKeys.contains(key(item)) || isInPlan(item)
                 Button {
                     add(item)
                 } label: {

@@ -93,14 +93,11 @@ enum SuggestionService {
         async let ta = fetchTripadvisor(kind: kind, center: center, radius: radiusMeters, key: keys.tripadvisor)
         let (otmResult, taResult) = await (otm, ta)
 
-        var notices = [otmResult.notice, taResult.notice].compactMap { $0 }
+        let notices = [otmResult.notice, taResult.notice].compactMap { $0 }
         var places = merge([otmResult.places, taResult.places])
 
         if places.isEmpty && notices.isEmpty {
             places = await fetchApple(kind: kind, center: center, radius: radiusMeters)
-            if keys.openTripMap.isEmpty && keys.tripadvisor.isEmpty {
-                notices.append("Showing Apple Maps results. Add an OpenTripMap or Tripadvisor key in Settings for popularity ranking.")
-            }
         }
         for index in places.indices {
             places[index].score = score(places[index])

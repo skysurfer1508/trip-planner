@@ -17,7 +17,7 @@ In Xcode: select the **TripPlanner** and **TripPlannerWidgets** targets, then un
 `com.skysurfer.TripPlanner` is taken, change `PRODUCT_BUNDLE_IDENTIFIER` in `project.yml`
 (keep the widget's ID prefixed with the app's) and re-run `xcodegen`.
 
-Run tests with Cmd+U (`ScheduleServiceTests`, `ItineraryParserTests`).
+Run tests with Cmd+U (`ScheduleServiceTests`, `ItineraryParserTests`, `RouteOptimizerTests`).
 
 ## Features
 
@@ -27,7 +27,12 @@ Run tests with Cmd+U (`ScheduleServiceTests`, `ItineraryParserTests`).
   Discover and Trip Mode.
 
 **Plan tab**
-- Days, map with numbered pins and route, place search, reorder, time/stay/notes/estimated cost.
+- Days, map with numbered pins and route, place search, reorder, time/stay/notes/estimated cost,
+  phone and website of a place.
+- Travel time between consecutive stops and a day summary (stops, time, distance, cost).
+- **Optimize route** (shortest walk, first stop stays first) and **Sort by time**.
+- **Saved places**: bookmark ideas from Discover and move them to a day later.
+- **Share & export**: itinerary as text, or timed stops as calendar events (.ics).
 - **Import program**: PDF, Word (.docx), a photo/screenshot, or text. Scanned pages are read with
   on-device OCR. Stops are found either on the device (free) or with Claude (optional key), matched to
   real places in Apple Maps, and shown for review before anything is added. A copy of the file can be
@@ -47,7 +52,9 @@ to-do list.
 **Documents tab**: tickets, bookings and ID scans stored on the device and viewable offline.
 
 **Trip Mode** (location arrow in the trip toolbar)
-- Today's plan, next stop with walk/transit/drive ETA, Navigate in Apple Maps, tick stops off.
+- Today's plan with progress, next stop with walk/transit/drive ETA and a "Leave by" countdown,
+  Navigate in Apple Maps, tick stops off.
+- Quick lookups: coffee, ATM, pharmacy, restrooms.
 - **I'm hungry**: nearby food with cuisine, takeaway, vegetarian and distance filters; *Top rated*
   (Tripadvisor) when a key is set.
 - Departure reminders, "you're behind schedule" re-flow, weather and rain warnings, lock screen countdown.

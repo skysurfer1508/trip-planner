@@ -4,12 +4,15 @@ struct SuggestionDetailView: View {
     let place: SuggestedPlace
     let trip: Trip
     let day: Day?
+    let isSaved: Bool
     let onAdd: () -> Void
+    let onSave: () -> Void
 
     @Environment(\.dismiss) private var dismiss
     @Environment(Secrets.self) private var secrets
     @State private var detail: OTMDetail?
     @State private var added = false
+    @State private var saved = false
 
     var body: some View {
         NavigationStack {
@@ -75,6 +78,18 @@ struct SuggestionDetailView: View {
                         .disabled(added || day == nil)
 
                         Button {
+                            onSave()
+                            saved = true
+                        } label: {
+                            Label(saved ? "Saved for later" : "Save for later",
+                                  systemImage: saved ? "bookmark.fill" : "bookmark")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                        .disabled(saved)
+
+                        Button {
                             RoutingService.openInMaps(name: place.name, coordinate: place.coordinate, mode: .walk)
                         } label: {
                             Label("Directions", systemImage: "arrow.triangle.turn.up.right.diamond.fill")
@@ -109,6 +124,7 @@ struct SuggestionDetailView: View {
                     Button("Done") { dismiss() }
                 }
             }
+            .onAppear { saved = isSaved }
             .task {
                 if let xid = place.otmXid, secrets.hasOpenTripMap {
                     detail = await OpenTripMapService.detail(xid: xid, key: secrets.keys.openTripMap)

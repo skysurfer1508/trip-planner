@@ -44,6 +44,17 @@ struct StopDetailView: View {
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
+                    if !stop.phone.isEmpty,
+                       let url = URL(string: "tel:" + stop.phone.filter { $0.isNumber || $0 == "+" }) {
+                        Link(destination: url) {
+                            Label(stop.phone, systemImage: "phone.fill")
+                        }
+                    }
+                    if !stop.website.isEmpty, let url = URL(string: stop.website) {
+                        Link(destination: url) {
+                            Label("Website", systemImage: "safari")
+                        }
+                    }
                 }
 
                 Section("Schedule") {

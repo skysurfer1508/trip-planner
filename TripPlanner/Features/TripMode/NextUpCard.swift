@@ -62,6 +62,8 @@ struct NextUpCard: View {
                 }
             }
 
+            leaveBy
+
             HStack(spacing: 12) {
                 Button {
                     RoutingService.openInMaps(name: stop.name, coordinate: stop.coordinate, mode: mode)
@@ -81,5 +83,28 @@ struct NextUpCard: View {
         }
         .padding()
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+    }
+
+    /// "Leave by 14:35 (in 22 min)", turning red when it's time to go.
+    @ViewBuilder
+    private var leaveBy: some View {
+        if let planned = stop.plannedTime,
+           Calendar.current.isDateInToday(planned),
+           let eta = etas[mode] {
+            TimelineView(.periodic(from: .now, by: 30)) { context in
+                let leave = planned.addingTimeInterval(-(eta + 5 * 60))
+                let minutes = Int((leave.timeIntervalSince(context.date) / 60).rounded(.down))
+                if minutes > 0 {
+                    Label("Leave by \(Format.time(leave)) · in \(Format.minutes(minutes))", systemImage: "alarm")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(minutes <= 10 ? Color.orange : Color.primary)
+                } else {
+                    Label(minutes == 0 ? "Time to leave" : "You're \(Format.minutes(-minutes)) behind",
+                          systemImage: "exclamationmark.alarm")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.red)
+                }
+            }
+        }
     }
 }

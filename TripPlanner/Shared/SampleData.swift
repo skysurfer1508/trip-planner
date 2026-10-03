@@ -7,7 +7,7 @@ enum SampleData {
     @MainActor
     static let container: ModelContainer = {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try! ModelContainer(for: Trip.self, Day.self, Stop.self, Expense.self, ChecklistItem.self, TripDocument.self, configurations: config)
+        let container = try! ModelContainer(for: Trip.self, Day.self, Stop.self, Expense.self, ChecklistItem.self, TripDocument.self, SavedPlace.self, configurations: config)
         let context = container.mainContext
 
         let calendar = Calendar.current

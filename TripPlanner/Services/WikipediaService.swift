@@ -5,6 +5,13 @@ struct WikiSummary {
     let extract: String
     let thumbnail: URL?
     let pageURL: URL?
+
+    /// Wikipedia thumbnails are 320px wide; the same URL with a bigger size works for banners.
+    var hero: URL? {
+        guard let thumbnail else { return nil }
+        let large = thumbnail.absoluteString.replacingOccurrences(of: "/320px-", with: "/960px-")
+        return URL(string: large) ?? thumbnail
+    }
 }
 
 /// Short descriptions and photos from Wikipedia. Free, no key.

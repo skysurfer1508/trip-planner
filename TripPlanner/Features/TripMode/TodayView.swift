@@ -17,6 +17,7 @@ struct TodayView: View {
     @State private var dismissedReflow = false
     @State private var editingStop: Stop?
     @State private var showExpense = false
+    @State private var nearbyKind: NearbyKind?
 
     // MARK: Derived state
 
@@ -38,6 +39,10 @@ struct TodayView: View {
     }
 
     private var nextStop: Stop? { remaining.first }
+
+    private var doneCount: Int {
+        day?.stops.filter(\.isDone).count ?? 0
+    }
 
     /// Your position, but only when you're actually at the trip's destination (within 100 km).
     private var userCoordinate: CLLocationCoordinate2D? {
@@ -83,6 +88,8 @@ struct TodayView: View {
             if let day {
                 VStack(spacing: 16) {
                     header(for: day)
+
+                    quickActions
 
                     if location.isDenied {
                         Label("Location is off. Enable it in Settings for travel times and nearby search.",
@@ -160,6 +167,12 @@ struct TodayView: View {
         .sheet(item: $editingStop) { stop in
             StopDetailView(stop: stop)
         }
+        .sheet(item: $nearbyKind) { kind in
+            if let day {
+                NearbyView(kind: kind, origin: searchOrigin, day: day)
+            }
+        }
+        .sensoryFeedback(.success, trigger: doneCount)
         .sheet(isPresented: $showExpense) {
             ExpenseEditView(trip: trip, expense: nil, defaultDate: isToday ? Date() : (day?.date ?? Date()))
         }
@@ -172,14 +185,44 @@ struct TodayView: View {
 
     private func header(for day: Day) -> some View {
         let index = (days.firstIndex(where: { $0.persistentModelID == day.persistentModelID }) ?? 0) + 1
-        return VStack(alignment: .leading, spacing: 2) {
+        let total = day.stops.count
+        return VStack(alignment: .leading, spacing: 6) {
             Text(isToday ? "Today" : day.date.formatted(.dateTime.weekday(.wide)))
                 .font(.largeTitle.bold())
             Text("\(trip.name) · Day \(index) of \(days.count) · \(day.date.formatted(date: .abbreviated, time: .omitted))")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+            if total > 0 {
+                HStack(spacing: 10) {
+                    ProgressView(value: Double(doneCount), total: Double(total))
+                    Text("\(doneCount)/\(total) done")
+                        .font(.caption.bold())
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.top, 2)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// One-tap lookups for things you need on the road.
+    private var quickActions: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(NearbyKind.allCases) { kind in
+                    Button {
+                        nearbyKind = kind
+                    } label: {
+                        Label(kind.title, systemImage: kind.symbol)
+                            .font(.subheadline)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(Color(.secondarySystemBackground), in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
     }
 
     @ViewBuilder

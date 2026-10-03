@@ -18,6 +18,7 @@ final class Trip {
     @Relationship(deleteRule: .cascade, inverse: \Expense.trip) var expenses: [Expense] = []
     @Relationship(deleteRule: .cascade, inverse: \ChecklistItem.trip) var checklist: [ChecklistItem] = []
     @Relationship(deleteRule: .cascade, inverse: \TripDocument.trip) var documents: [TripDocument] = []
+    @Relationship(deleteRule: .cascade, inverse: \SavedPlace.trip) var savedPlaces: [SavedPlace] = []
 
     init(name: String, destination: String, startDate: Date, endDate: Date) {
         self.name = name
@@ -35,6 +36,11 @@ final class Trip {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         return calendar.startOfDay(for: startDate) <= today && today <= calendar.startOfDay(for: endDate)
+    }
+
+    var isPast: Bool {
+        let calendar = Calendar.current
+        return calendar.startOfDay(for: endDate) < calendar.startOfDay(for: Date())
     }
 
     var todayDay: Day? {

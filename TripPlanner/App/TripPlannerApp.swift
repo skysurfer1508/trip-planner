@@ -12,6 +12,6 @@ struct TripPlannerApp: App {
                 .environment(location)
                 .environment(secrets)
         }
-        .modelContainer(for: [Trip.self, Day.self, Stop.self, Expense.self, ChecklistItem.self, TripDocument.self])
+        .modelContainer(for: [Trip.self, Day.self, Stop.self, Expense.self, ChecklistItem.self, TripDocument.self, SavedPlace.self])
     }
 }

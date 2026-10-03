@@ -6,6 +6,7 @@ struct DiscoverView: View {
     @Bindable var trip: Trip
 
     @Environment(Secrets.self) private var secrets
+    @Environment(\.modelContext) private var context
     @Environment(LocationService.self) private var location
 
     private enum SortOrder: String, CaseIterable, Identifiable {
@@ -22,6 +23,8 @@ struct DiscoverView: View {
     @State private var targetIndex = 0
     @State private var addedIDs: Set<String> = []
     @State private var selected: SuggestedPlace?
+    @State private var showSettings = false
+    @State private var saveFeedback = 0
 
     private var center: CLLocationCoordinate2D? {
         trip.destinationCoordinate ?? location.coordinate ?? trip.anyCoordinate
@@ -69,10 +72,17 @@ struct DiscoverView: View {
             }
         }
         .sheet(item: $selected) { place in
-            SuggestionDetailView(place: place, trip: trip, day: targetDay) {
-                add(place)
-            }
+            SuggestionDetailView(place: place,
+                                 trip: trip,
+                                 day: targetDay,
+                                 isSaved: isSaved(place),
+                                 onAdd: { add(place) },
+                                 onSave: { save(place) })
         }
+        .sheet(isPresented: $showSettings) {
+            SettingsView()
+        }
+        .sensoryFeedback(.success, trigger: saveFeedback)
         .task(id: loadKey) { await load() }
     }
 
@@ -120,6 +130,21 @@ struct DiscoverView: View {
     @ViewBuilder
     private var list: some View {
         List {
+            if !secrets.hasOpenTripMap && !secrets.hasTripadvisor {
+                Section {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label("Rank places by popularity", systemImage: "star.leadinghalf.filled")
+                            .font(.headline)
+                        Text("These are plain Apple Maps results. Add a free OpenTripMap key (and optionally Tripadvisor) to see the most popular and best-rated places first.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        Button("Add API keys") { showSettings = true }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
             ForEach(result.notices, id: \.self) { notice in
                 Label(notice, systemImage: "info.circle")
                     .font(.footnote)
@@ -129,9 +154,11 @@ struct DiscoverView: View {
                 Button {
                     selected = place
                 } label: {
-                    SuggestionRow(place: place, isAdded: addedIDs.contains(place.id)) {
-                        add(place)
-                    }
+                    SuggestionRow(place: place,
+                                  isAdded: addedIDs.contains(place.id),
+                                  isSaved: isSaved(place),
+                                  onAdd: { add(place) },
+                                  onSave: { save(place) })
                 }
                 .buttonStyle(.plain)
             }
@@ -165,6 +192,22 @@ struct DiscoverView: View {
         result = loaded
     }
 
+    private func isSaved(_ place: SuggestedPlace) -> Bool {
+        trip.savedPlaces.contains { $0.name == place.name }
+    }
+
+    private func save(_ place: SuggestedPlace) {
+        guard !isSaved(place) else { return }
+        let saved = SavedPlace(name: place.name,
+                               latitude: place.coordinate.latitude,
+                               longitude: place.coordinate.longitude,
+                               address: place.address ?? "",
+                               category: place.kind.stopCategory)
+        context.insert(saved)
+        saved.trip = trip
+        saveFeedback += 1
+    }
+
     private func add(_ place: SuggestedPlace) {
         guard let day = targetDay, !addedIDs.contains(place.id) else { return }
         let stop = Stop(name: place.name,
@@ -180,7 +223,9 @@ struct DiscoverView: View {
 private struct SuggestionRow: View {
     let place: SuggestedPlace
     let isAdded: Bool
+    let isSaved: Bool
     let onAdd: () -> Void
+    let onSave: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
@@ -217,6 +262,14 @@ private struct SuggestionRow: View {
                 }
             }
             Spacer(minLength: 0)
+            Button(action: onSave) {
+                Image(systemName: isSaved ? "bookmark.fill" : "bookmark")
+                    .font(.title3)
+            }
+            .buttonStyle(.borderless)
+            .disabled(isSaved)
+            .accessibilityLabel(isSaved ? "Saved" : "Save \(place.name) for later")
+
             Button(action: onAdd) {
                 Image(systemName: isAdded ? "checkmark.circle.fill" : "plus.circle")
                     .font(.title2)
@@ -224,6 +277,7 @@ private struct SuggestionRow: View {
             }
             .buttonStyle(.borderless)
             .disabled(isAdded)
+            .accessibilityLabel(isAdded ? "Added" : "Add \(place.name) to the plan")
         }
         .padding(.vertical, 2)
         .contentShape(Rectangle())

@@ -9,66 +9,115 @@ struct DayStopListView: View {
     @Environment(\.modelContext) private var context
 
     var body: some View {
-        List {
-            if day.stops.isEmpty {
-                ContentUnavailableView("No stops yet", systemImage: "mappin.slash",
-                                       description: Text("Tap + to add places to this day."))
-                    .listRowBackground(Color.clear)
-            }
+        let stops = day.sortedStops
 
-            ForEach(Array(day.sortedStops.enumerated()), id: \.element.persistentModelID) { index, stop in
-                Button {
-                    onSelect(stop)
-                } label: {
-                    StopRow(stop: stop, number: index + 1)
+        List {
+            if stops.isEmpty {
+                ContentUnavailableView("No stops yet", systemImage: "mappin.slash",
+                                       description: Text("Tap + to add places, import a program, or pick from Discover."))
+                    .listRowBackground(Color.clear)
+            } else {
+                Section {
+                    ForEach(Array(stops.enumerated()), id: \.element.persistentModelID) { index, stop in
+                        Button {
+                            onSelect(stop)
+                        } label: {
+                            StopRow(stop: stop,
+                                    number: index + 1,
+                                    next: index + 1 < stops.count ? stops[index + 1] : nil)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .onMove { offsets, destination in
+                        var ordered = day.sortedStops
+                        ordered.move(fromOffsets: offsets, toOffset: destination)
+                        day.renumber(ordered)
+                    }
+                    .onDelete { offsets in
+                        var ordered = day.sortedStops
+                        let removed = offsets.map { ordered[$0] }
+                        ordered.remove(atOffsets: offsets)
+                        removed.forEach { context.delete($0) }
+                        day.renumber(ordered)
+                    }
+                } header: {
+                    DaySummary(stops: stops)
                 }
-                .buttonStyle(.plain)
-            }
-            .onMove { offsets, destination in
-                var ordered = day.sortedStops
-                ordered.move(fromOffsets: offsets, toOffset: destination)
-                day.renumber(ordered)
-            }
-            .onDelete { offsets in
-                var ordered = day.sortedStops
-                let removed = offsets.map { ordered[$0] }
-                ordered.remove(atOffsets: offsets)
-                removed.forEach { context.delete($0) }
-                day.renumber(ordered)
             }
         }
         .listStyle(.plain)
     }
 }
 
+private struct DaySummary: View {
+    let stops: [Stop]
+
+    var body: some View {
+        let stay = stops.reduce(0) { $0 + $1.durationMinutes }
+        let route = RouteOptimizer.length(stops.map(\.coordinate)) * 1.25
+        let cost = stops.reduce(0) { $0 + $1.estimatedCost }
+
+        HStack(spacing: 10) {
+            Label("\(stops.count) \(stops.count == 1 ? "stop" : "stops")", systemImage: "mappin")
+            Label(Format.minutes(stay), systemImage: "clock")
+            if stops.count > 1 {
+                Label(Format.distance(route), systemImage: "point.topleft.down.to.point.bottomright.curvepath")
+            }
+            if cost > 0 {
+                Label(cost.formatted(.number.precision(.fractionLength(0))), systemImage: "creditcard")
+            }
+        }
+        .font(.caption)
+        .textCase(nil)
+    }
+}
+
 struct StopRow: View {
     let stop: Stop
     let number: Int
+    var next: Stop?
+
+    private var legMode: TravelMode {
+        guard let next else { return .walk }
+        return RoutingService.straightLine(from: stop.coordinate, to: next.coordinate) > 2_500 ? .drive : .walk
+    }
 
     var body: some View {
-        HStack(spacing: 12) {
-            StopPin(number: number, category: stop.category, isDone: stop.isDone)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 12) {
+                StopPin(number: number, category: stop.category, isDone: stop.isDone)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(stop.name)
-                    .font(.body)
-                    .strikethrough(stop.isDone)
-                    .foregroundStyle(stop.isDone ? .secondary : .primary)
-                HStack(spacing: 6) {
-                    Image(systemName: stop.category.symbol)
-                    if let time = stop.plannedTime {
-                        Text(Format.time(time))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(stop.name)
+                        .font(.body)
+                        .strikethrough(stop.isDone)
+                        .foregroundStyle(stop.isDone ? .secondary : .primary)
+                    HStack(spacing: 6) {
+                        Image(systemName: stop.category.symbol)
+                        if let time = stop.plannedTime {
+                            Text(Format.time(time))
+                        }
+                        Text(Format.minutes(stop.durationMinutes))
                     }
-                    Text(Format.minutes(stop.durationMinutes))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 }
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
             }
-            Spacer()
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+
+            if let next {
+                let distance = RoutingService.straightLine(from: stop.coordinate, to: next.coordinate)
+                let time = RoutingService.estimate(from: stop.coordinate, to: next.coordinate, mode: legMode)
+                Label("\(Format.duration(time)) · \(Format.distance(distance * 1.25))", systemImage: legMode.symbol)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .padding(.leading, 36)
+            }
         }
         .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
     }
 }

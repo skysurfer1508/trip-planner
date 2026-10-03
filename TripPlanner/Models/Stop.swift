@@ -17,6 +17,8 @@ final class Stop {
     var isDone: Bool = false
     /// Planned cost in the trip's currency, used by the budget.
     var estimatedCost: Double = 0
+    var phone: String = ""
+    var website: String = ""
     var day: Day?
 
     init(name: String,
@@ -44,10 +46,13 @@ final class Stop {
     /// so the trip keeps working offline.
     static func from(_ item: MKMapItem) -> Stop {
         let coordinate = item.placemark.coordinate
-        return Stop(name: item.name ?? "Place",
-                    latitude: coordinate.latitude,
-                    longitude: coordinate.longitude,
-                    address: item.placemark.title ?? "",
-                    category: StopCategory(poi: item.pointOfInterestCategory))
+        let stop = Stop(name: item.name ?? "Place",
+                        latitude: coordinate.latitude,
+                        longitude: coordinate.longitude,
+                        address: item.placemark.title ?? "",
+                        category: StopCategory(poi: item.pointOfInterestCategory))
+        stop.phone = item.phoneNumber ?? ""
+        stop.website = item.url?.absoluteString ?? ""
+        return stop
     }
 }
