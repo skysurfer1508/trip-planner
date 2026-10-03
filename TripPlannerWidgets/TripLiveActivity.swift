@@ -3,7 +3,7 @@ import SwiftUI
 import WidgetKit
 
 @main
-struct TripPlannerWidgets: WidgetBundle {
+struct TripWidgetBundle: WidgetBundle {
     var body: some Widget {
         TripLiveActivity()
     }
