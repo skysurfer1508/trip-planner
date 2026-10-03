@@ -12,8 +12,12 @@ xcodegen            # generates TripPlanner.xcodeproj from project.yml
 open TripPlanner.xcodeproj
 ```
 
-In Xcode: select the **TripPlanner** and **TripPlannerWidgets** targets, then under
-*Signing & Capabilities* choose your Apple ID team (a free personal team works). If the bundle ID
+In Xcode: select the **TripPlanner** target, then under *Signing & Capabilities* choose your Apple ID
+team (a free personal team works).
+
+The lock screen countdown (Live Activity) needs a second App ID for its widget extension. Free Apple
+accounts can only create 10 App IDs per 7 days, so it is off by default. To turn it on later, follow the
+comment in `project.yml` and set `AppFeatures.liveActivities = true`. If the bundle ID
 `com.skysurfer.TripPlanner` is taken, change `PRODUCT_BUNDLE_IDENTIFIER` in `project.yml`
 (keep the widget's ID prefixed with the app's) and re-run `xcodegen`.
 
