@@ -6,8 +6,13 @@ struct HungryView: View {
     let origin: CLLocationCoordinate2D?
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(Secrets.self) private var secrets
     @State private var model = HungryViewModel()
     @State private var addedIDs: Set<UUID> = []
+
+    private var taskKey: String {
+        "\(model.searchKey)-\(secrets.hasTripadvisor)"
+    }
 
     var body: some View {
         NavigationStack {
@@ -24,8 +29,8 @@ struct HungryView: View {
                     Button("Done") { dismiss() }
                 }
             }
-            .task(id: model.searchKey) {
-                await model.search(origin: origin)
+            .task(id: taskKey) {
+                await model.search(origin: origin, tripadvisorKey: secrets.keys.tripadvisor)
             }
         }
         .presentationDetents([.medium, .large])
@@ -35,6 +40,14 @@ struct HungryView: View {
 
     private var filters: some View {
         VStack(alignment: .leading, spacing: 10) {
+            if secrets.hasTripadvisor {
+                Picker("Source", selection: $model.source) {
+                    ForEach(HungrySource.allCases) { Text($0.rawValue).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal)
+            }
+
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     FilterChip(title: "All", isOn: model.cuisine == nil) {
@@ -50,11 +63,13 @@ struct HungryView: View {
             }
 
             HStack(spacing: 8) {
-                FilterChip(title: "Takeaway", symbol: "bag.fill", isOn: model.takeaway) {
-                    model.takeaway.toggle()
-                }
-                FilterChip(title: "Vegetarian", symbol: "leaf.fill", isOn: model.vegetarian) {
-                    model.vegetarian.toggle()
+                if model.source == .nearby || !secrets.hasTripadvisor {
+                    FilterChip(title: "Takeaway", symbol: "bag.fill", isOn: model.takeaway) {
+                        model.takeaway.toggle()
+                    }
+                    FilterChip(title: "Vegetarian", symbol: "leaf.fill", isOn: model.vegetarian) {
+                        model.vegetarian.toggle()
+                    }
                 }
                 Spacer()
                 Picker("Distance", selection: $model.radius) {
@@ -79,19 +94,30 @@ struct HungryView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if model.failed {
             ContentUnavailableView("Search failed", systemImage: "wifi.slash",
-                                   description: Text("Check your connection and try again."))
+                                   description: Text(model.errorMessage ?? "Check your connection and try again."))
         } else if model.results.isEmpty {
             ContentUnavailableView("Nothing found", systemImage: "fork.knife",
                                    description: Text("Try a bigger distance or fewer filters."))
         } else {
-            List(model.results) { result in
-                ResultRow(result: result, isAdded: addedIDs.contains(result.id)) {
-                    day.append(Stop.from(result.item))
-                    addedIDs.insert(result.id)
-                } onNavigate: {
-                    RoutingService.openInMaps(name: result.name,
-                                              coordinate: result.item.placemark.coordinate,
-                                              mode: .walk)
+            List {
+                ForEach(model.results) { result in
+                    ResultRow(result: result, isAdded: addedIDs.contains(result.id)) {
+                        let stop = Stop(name: result.name,
+                                        latitude: result.coordinate.latitude,
+                                        longitude: result.coordinate.longitude,
+                                        address: result.address,
+                                        category: result.category)
+                        day.append(stop)
+                        addedIDs.insert(result.id)
+                    } onNavigate: {
+                        RoutingService.openInMaps(name: result.name, coordinate: result.coordinate, mode: .walk)
+                    }
+                }
+                if model.results.contains(where: { $0.rating != nil }) {
+                    Text("Ratings by Tripadvisor")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .listRowBackground(Color.clear)
                 }
             }
             .listStyle(.plain)
@@ -110,20 +136,46 @@ private struct ResultRow: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(result.name)
                     .font(.headline)
+                if let rating = result.rating {
+                    HStack(spacing: 6) {
+                        Label(String(format: "%.1f", rating), systemImage: "star.fill")
+                            .foregroundStyle(.orange)
+                        if let reviews = result.reviews {
+                            Text("(\(reviews.formatted()))")
+                        }
+                        if !result.cuisines.isEmpty {
+                            Text(result.cuisines.prefix(2).joined(separator: ", "))
+                        }
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
                 HStack(spacing: 6) {
                     Image(systemName: "figure.walk")
                     Text("\(result.walkMinutes) min · \(Format.distance(result.distance))")
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                if let address = result.item.placemark.title {
-                    Text(address)
+                if let ranking = result.ranking {
+                    Text(ranking)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                } else if !result.address.isEmpty {
+                    Text(result.address)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
             }
             Spacer()
+            if let url = result.url {
+                Link(destination: url) {
+                    Image(systemName: "arrow.up.right.square")
+                        .font(.title3)
+                }
+                .buttonStyle(.borderless)
+            }
             Button(action: onNavigate) {
                 Image(systemName: "arrow.triangle.turn.up.right.diamond.fill")
                     .font(.title3)

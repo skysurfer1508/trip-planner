@@ -67,7 +67,11 @@ struct AddPlaceView: View {
                 }
             }
             .task {
-                region = await PlaceSearchService.region(for: day.trip?.destination ?? "")
+                if let stored = day.trip?.searchRegion {
+                    region = stored
+                } else {
+                    region = await PlaceSearchService.region(for: day.trip?.destination ?? "")
+                }
             }
             .task(id: query) {
                 await runSearch()

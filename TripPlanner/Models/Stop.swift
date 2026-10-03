@@ -15,6 +15,8 @@ final class Stop {
     var notes: String = ""
     var order: Int = 0
     var isDone: Bool = false
+    /// Planned cost in the trip's currency, used by the budget.
+    var estimatedCost: Double = 0
     var day: Day?
 
     init(name: String,

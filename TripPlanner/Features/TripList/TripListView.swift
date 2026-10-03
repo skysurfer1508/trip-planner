@@ -6,6 +6,7 @@ struct TripListView: View {
     @Query(sort: \Trip.startDate) private var trips: [Trip]
 
     @State private var showNewTrip = false
+    @State private var showSettings = false
     @State private var tripToEdit: Trip?
 
     var body: some View {
@@ -43,12 +44,18 @@ struct TripListView: View {
             }
             .navigationTitle("Trips")
             .navigationDestination(for: Trip.self) { trip in
-                PlannerView(trip: trip)
+                TripHubView(trip: trip)
             }
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Settings", systemImage: "gearshape") { showSettings = true }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("New trip", systemImage: "plus") { showNewTrip = true }
                 }
+            }
+            .sheet(isPresented: $showSettings) {
+                SettingsView()
             }
             .sheet(isPresented: $showNewTrip) {
                 TripEditView(trip: nil)
@@ -82,7 +89,7 @@ private struct TripRow: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
-            Text(Format.dateRange(trip.startDate, trip.endDate))
+            Text("\(Format.dateRange(trip.startDate, trip.endDate)) · \(trip.statusText)")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
         }
@@ -94,6 +101,7 @@ private struct TripRow: View {
 #Preview {
     TripListView()
         .environment(LocationService())
+        .environment(Secrets())
         .modelContainer(SampleData.container)
 }
 #endif

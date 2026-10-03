@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 import CoreLocation
+import MapKit
 
 @Model
 final class Trip {
@@ -8,13 +9,22 @@ final class Trip {
     var destination: String = ""
     var startDate: Date = Date()
     var endDate: Date = Date()
+    var destinationLatitude: Double = 0
+    var destinationLongitude: Double = 0
+    var hasDestinationCoordinate: Bool = false
+    var budget: Double = 0
+    var currencyCode: String = "EUR"
     @Relationship(deleteRule: .cascade, inverse: \Day.trip) var days: [Day] = []
+    @Relationship(deleteRule: .cascade, inverse: \Expense.trip) var expenses: [Expense] = []
+    @Relationship(deleteRule: .cascade, inverse: \ChecklistItem.trip) var checklist: [ChecklistItem] = []
+    @Relationship(deleteRule: .cascade, inverse: \TripDocument.trip) var documents: [TripDocument] = []
 
     init(name: String, destination: String, startDate: Date, endDate: Date) {
         self.name = name
         self.destination = destination
         self.startDate = startDate
         self.endDate = endDate
+        self.currencyCode = Locale.current.currency?.identifier ?? "EUR"
     }
 
     var sortedDays: [Day] {
@@ -31,10 +41,55 @@ final class Trip {
         days.first { Calendar.current.isDateInToday($0.date) }
     }
 
-    /// Any known coordinate of the trip, used to look up weather.
-    var anyCoordinate: CLLocationCoordinate2D? {
-        sortedDays.lazy.flatMap { $0.sortedStops }.first?.coordinate
+    /// "in 12 days", "Day 2 of 5" or "Ended", for the trip list and hub.
+    var statusText: String {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let start = calendar.startOfDay(for: startDate)
+        let end = calendar.startOfDay(for: endDate)
+        if today < start {
+            let n = calendar.dateComponents([.day], from: today, to: start).day ?? 0
+            return n == 1 ? "Starts tomorrow" : "In \(n) days"
+        }
+        if today <= end {
+            let day = (calendar.dateComponents([.day], from: start, to: today).day ?? 0) + 1
+            let total = (calendar.dateComponents([.day], from: start, to: end).day ?? 0) + 1
+            return "Day \(day) of \(total)"
+        }
+        return "Ended"
     }
+
+    // MARK: Destination
+
+    var destinationCoordinate: CLLocationCoordinate2D? {
+        hasDestinationCoordinate
+            ? CLLocationCoordinate2D(latitude: destinationLatitude, longitude: destinationLongitude)
+            : nil
+    }
+
+    /// Region around the destination, used to bias place search.
+    var searchRegion: MKCoordinateRegion? {
+        guard let center = destinationCoordinate else { return nil }
+        return MKCoordinateRegion(center: center, latitudinalMeters: 40_000, longitudinalMeters: 40_000)
+    }
+
+    func setDestination(name: String, coordinate: CLLocationCoordinate2D?) {
+        destination = name
+        if let coordinate {
+            destinationLatitude = coordinate.latitude
+            destinationLongitude = coordinate.longitude
+            hasDestinationCoordinate = true
+        } else {
+            hasDestinationCoordinate = false
+        }
+    }
+
+    /// Best known coordinate of the trip: the destination, else the first planned stop.
+    var anyCoordinate: CLLocationCoordinate2D? {
+        destinationCoordinate ?? sortedDays.lazy.flatMap { $0.sortedStops }.first?.coordinate
+    }
+
+    // MARK: Days
 
     /// Makes `days` match the start/end dates. Days that still have stops are never deleted.
     /// The trip has to be inserted into a context before calling this.

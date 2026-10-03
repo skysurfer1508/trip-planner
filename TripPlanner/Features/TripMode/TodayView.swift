@@ -16,6 +16,7 @@ struct TodayView: View {
     @State private var showHungry = false
     @State private var dismissedReflow = false
     @State private var editingStop: Stop?
+    @State private var showExpense = false
 
     // MARK: Derived state
 
@@ -38,21 +39,32 @@ struct TodayView: View {
 
     private var nextStop: Stop? { remaining.first }
 
+    /// Your position, but only when you're actually at the trip's destination (within 100 km).
+    private var userCoordinate: CLLocationCoordinate2D? {
+        guard let user = location.coordinate else { return nil }
+        guard let destination = trip.destinationCoordinate else { return user }
+        return RoutingService.straightLine(from: user, to: destination) < 100_000 ? user : nil
+    }
+
+    private var isAwayFromDestination: Bool {
+        location.coordinate != nil && userCoordinate == nil
+    }
+
     private var distanceToNext: CLLocationDistance? {
-        guard let from = location.coordinate, let to = nextStop?.coordinate else { return nil }
+        guard let from = userCoordinate, let to = nextStop?.coordinate else { return nil }
         return RoutingService.straightLine(from: from, to: to)
     }
 
     /// Where "hungry" searches start: you, or failing that the next stop.
     private var searchOrigin: CLLocationCoordinate2D? {
-        location.coordinate ?? nextStop?.coordinate ?? trip.anyCoordinate
+        userCoordinate ?? nextStop?.coordinate ?? trip.anyCoordinate
     }
 
     /// Changes when the next stop or the user's position (roughly 100 m) changes.
     private var etaKey: String {
         let id = nextStop.map { "\($0.persistentModelID.hashValue)" } ?? "none"
-        let lat = location.coordinate.map { String(format: "%.3f", $0.latitude) } ?? "-"
-        let lon = location.coordinate.map { String(format: "%.3f", $0.longitude) } ?? "-"
+        let lat = userCoordinate.map { String(format: "%.3f", $0.latitude) } ?? "-"
+        let lon = userCoordinate.map { String(format: "%.3f", $0.longitude) } ?? "-"
         return "\(id)-\(lat)-\(lon)"
     }
 
@@ -81,6 +93,15 @@ struct TodayView: View {
                             .background(Color.orange.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
                     }
 
+                    if isAwayFromDestination {
+                        Label("You're not at \(trip.destination.isEmpty ? "your destination" : trip.destination) yet. Travel times and nearby search use the trip's destination.",
+                              systemImage: "airplane")
+                            .font(.footnote)
+                            .padding(10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.blue.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+                    }
+
                     StopsMapView(stops: day.sortedStops, showsUser: true, highlighted: nextStop)
                         .frame(height: 220)
                         .clipShape(RoundedRectangle(cornerRadius: 16))
@@ -102,7 +123,7 @@ struct TodayView: View {
                     }
 
                     WeatherChip(date: day.date,
-                                coordinate: location.coordinate ?? day.sortedStops.first?.coordinate ?? trip.anyCoordinate,
+                                coordinate: userCoordinate ?? day.sortedStops.first?.coordinate ?? trip.anyCoordinate,
                                 outdoorStops: remaining.filter { $0.category.isOutdoor }.count)
 
                     DayTimelineView(stops: day.sortedStops) { editingStop = $0 }
@@ -138,6 +159,9 @@ struct TodayView: View {
         }
         .sheet(item: $editingStop) { stop in
             StopDetailView(stop: stop)
+        }
+        .sheet(isPresented: $showExpense) {
+            ExpenseEditView(trip: trip, expense: nil, defaultDate: isToday ? Date() : (day?.date ?? Date()))
         }
         .onAppear { location.start() }
         .task(id: etaKey) { await loadETAs() }
@@ -213,6 +237,7 @@ struct TodayView: View {
                         }
                     }
                 }
+                Button("Add expense", systemImage: "creditcard") { showExpense = true }
                 Section("Smart features") {
                     Toggle("Departure reminders (walking)", isOn: nudgeBinding)
                     Toggle("Lock screen countdown", isOn: $liveActivityEnabled)
@@ -239,7 +264,7 @@ struct TodayView: View {
     // MARK: Actions
 
     private func loadETAs() async {
-        guard let from = location.coordinate, let to = nextStop?.coordinate else {
+        guard let from = userCoordinate, let to = nextStop?.coordinate else {
             etas = [:]
             return
         }
@@ -274,7 +299,7 @@ struct TodayView: View {
                 guard let planned = stop.plannedTime, planned > Date() else { return nil }
                 return NudgeService.Input(title: stop.name, planned: planned, coordinate: stop.coordinate)
             }
-            await NudgeService.reschedule(inputs, origin: location.coordinate)
+            await NudgeService.reschedule(inputs, origin: userCoordinate)
         } else {
             await NudgeService.cancelAll()
         }

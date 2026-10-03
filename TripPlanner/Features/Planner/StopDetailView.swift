@@ -56,6 +56,19 @@ struct StopDetailView: View {
                     Toggle("Done", isOn: $stop.isDone)
                 }
 
+                Section("Budget") {
+                    HStack {
+                        Text("Estimated cost")
+                        Spacer()
+                        TextField("0", value: $stop.estimatedCost, format: .number)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(maxWidth: 120)
+                        Text(stop.day?.trip?.currencyCode ?? "")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
                 Section("Notes") {
                     TextField("Tickets, tips, reservation number…", text: $stop.notes, axis: .vertical)
                         .lineLimit(3...8)

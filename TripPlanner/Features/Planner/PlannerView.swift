@@ -6,6 +6,7 @@ struct PlannerView: View {
 
     @State private var selectedIndex = 0
     @State private var showAddPlace = false
+    @State private var showImport = false
     @State private var editingStop: Stop?
 
     private var days: [Day] { trip.sortedDays }
@@ -40,19 +41,22 @@ struct PlannerView: View {
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 EditButton()
-                NavigationLink {
-                    TodayView(trip: trip)
+                Menu {
+                    Button("Add place", systemImage: "mappin.and.ellipse") { showAddPlace = true }
+                        .disabled(selectedDay == nil)
+                    Button("Import program (PDF, Word, photo)", systemImage: "doc.viewfinder") { showImport = true }
                 } label: {
-                    Label("Trip Mode", systemImage: "location.fill")
+                    Image(systemName: "plus")
                 }
-                Button("Add place", systemImage: "plus") { showAddPlace = true }
-                    .disabled(selectedDay == nil)
             }
         }
         .sheet(isPresented: $showAddPlace) {
             if let day = selectedDay {
                 AddPlaceView(day: day)
             }
+        }
+        .sheet(isPresented: $showImport) {
+            ImportFlowView(trip: trip)
         }
         .sheet(item: $editingStop) { stop in
             StopDetailView(stop: stop)
