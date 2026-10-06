@@ -6,6 +6,8 @@ struct ExportView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var icsURL: URL?
+    @State private var tripFileURL: URL?
+    @State private var includeDocuments = false
     @State private var loaded = false
 
     var body: some View {
@@ -17,6 +19,19 @@ struct ExportView: View {
                     }
                 } footer: {
                     Text("Day-by-day list with times, places and notes. Works in Messages, Mail, Notes and more.")
+                }
+
+                Section {
+                    if let tripFileURL {
+                        ShareLink(item: tripFileURL) {
+                            Label("Send the trip file", systemImage: "paperplane")
+                        }
+                    } else {
+                        ProgressView()
+                    }
+                    Toggle("Include documents (tickets, bookings)", isOn: $includeDocuments)
+                } footer: {
+                    Text("A .tripplanner file with everything: days, stops, budget and packing list. Friends with the app can open it from Messages, AirDrop or Files and get their own copy. It also works as a backup.")
                 }
 
                 Section {
@@ -45,7 +60,10 @@ struct ExportView: View {
                 icsURL = ItineraryExporter.icsFile(for: trip)
                 loaded = true
             }
+            .task(id: includeDocuments) {
+                tripFileURL = try? TripArchiver.writeFile(for: [trip], includeDocuments: includeDocuments)
+            }
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.medium, .large])
     }
 }

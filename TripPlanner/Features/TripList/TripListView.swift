@@ -10,6 +10,7 @@ struct TripListView: View {
     @State private var tripToEdit: Trip?
     @State private var tripToDelete: Trip?
     @State private var path: [Trip] = []
+    @State private var openMessage: String?
     @State private var startActions: [PersistentIdentifier: TripStartAction] = [:]
 
     /// Running and upcoming trips first, finished ones last.
@@ -73,6 +74,22 @@ struct TripListView: View {
             }
             .sheet(isPresented: $showSettings) {
                 SettingsView()
+            }
+            .onOpenURL { url in
+                do {
+                    let added = try TripArchiver.importFile(at: url, into: context)
+                    openMessage = added.count == 1
+                        ? "Added the trip \"\(added[0].name)\"."
+                        : "Added \(added.count) trips."
+                } catch {
+                    openMessage = error.localizedDescription
+                }
+            }
+            .alert("Trip file",
+                   isPresented: Binding(get: { openMessage != nil }, set: { if !$0 { openMessage = nil } })) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(openMessage ?? "")
             }
             .sheet(isPresented: $showNewTrip) {
                 NewTripWizard { trip, action in

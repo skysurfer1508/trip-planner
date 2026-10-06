@@ -30,6 +30,21 @@ targets:
           - UIInterfaceOrientationPortrait
         NSLocationWhenInUseUsageDescription: Trip Planner uses your location to show directions to your next stop and to find restaurants nearby.
         NSSupportsLiveActivities: true
+        UTExportedTypeDeclarations:
+          - UTTypeIdentifier: com.skysurfer.tripplanner.trip
+            UTTypeDescription: Trip Planner trip
+            UTTypeConformsTo:
+              - public.json
+              - public.data
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - tripplanner
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Trip Planner trip
+            CFBundleTypeRole: Editor
+            LSHandlerRank: Owner
+            LSItemContentTypes:
+              - com.skysurfer.tripplanner.trip
     # The Live Activity widget needs its own App ID. Free Apple accounts are limited to 10 new App IDs
     # per 7 days, so it isn't embedded by default. To enable it: uncomment the dependency below,
     # set AppFeatures.liveActivities = true, and run xcodegen again.

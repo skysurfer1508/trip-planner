@@ -1,8 +1,14 @@
 import SwiftUI
+import SwiftData
 
 /// API keys. They are stored in the Keychain on this device only.
 struct SettingsView: View {
     @Environment(Secrets.self) private var secrets
+    @Environment(\.modelContext) private var context
+    @Query(sort: \Trip.startDate) private var trips: [Trip]
+    @State private var backupURL: URL?
+    @State private var showRestore = false
+    @State private var restoreMessage: String?
     @Environment(\.dismiss) private var dismiss
     @AppStorage(AIMode.storageKey) private var aiModeRaw = AIMode.automatic.rawValue
 
@@ -48,6 +54,33 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    if trips.isEmpty {
+                        Text("No trips to back up yet.")
+                            .foregroundStyle(.secondary)
+                    } else if let backupURL {
+                        ShareLink(item: backupURL) {
+                            Label("Back up all trips", systemImage: "externaldrive.badge.plus")
+                        }
+                    } else {
+                        ProgressView()
+                    }
+                    Button {
+                        showRestore = true
+                    } label: {
+                        Label("Restore from a trip file", systemImage: "square.and.arrow.down")
+                    }
+                    if let restoreMessage {
+                        Text(restoreMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                } header: {
+                    Text("Backup")
+                } footer: {
+                    Text("Trips are stored only on this iPhone. Reinstalling an app that was signed with a free Apple account, or deleting it, erases them, so save a backup to Files or iCloud Drive now and then. Restoring adds copies; it never overwrites existing trips.")
+                }
+
+                Section {
                     Text("Keys never leave this iPhone except in requests to the service they belong to.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
@@ -58,6 +91,23 @@ struct SettingsView: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
+                }
+            }
+            .task(id: trips.count) {
+                backupURL = trips.isEmpty ? nil : try? TripArchiver.writeFile(for: trips, includeDocuments: true,
+                                                                              name: "Trip Planner backup")
+            }
+            .fileImporter(isPresented: $showRestore, allowedContentTypes: [.tripPlanner, .json]) { result in
+                switch result {
+                case .success(let url):
+                    do {
+                        let added = try TripArchiver.importFile(at: url, into: context)
+                        restoreMessage = "Added \(added.count) \(added.count == 1 ? "trip" : "trips")."
+                    } catch {
+                        restoreMessage = error.localizedDescription
+                    }
+                case .failure(let error):
+                    restoreMessage = error.localizedDescription
                 }
             }
             .onChange(of: secrets.openTripMapKey) { secrets.persist() }
