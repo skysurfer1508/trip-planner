@@ -3,7 +3,7 @@ import NaturalLanguage
 
 /// On-device itinerary parsing: finds day headers, times and short place-like lines.
 /// It handles the common layouts ("Day 2", "Monday, June 5", "10:00 Louvre", bullet lists,
-/// table rows). Messy documents are better served by the Claude option.
+/// table rows). Messy documents are better served by an AI engine (see `AIRouter`).
 enum ItineraryParser {
     static func parse(_ text: String, tripRange: ClosedRange<Date>?) -> ParsedItinerary {
         var days: [ParsedDay] = []

@@ -38,7 +38,7 @@ Run tests with Cmd+U (`ScheduleServiceTests`, `ItineraryParserTests`, `RouteOpti
 - **Saved places**: bookmark ideas from Discover and move them to a day later.
 - **Share & export**: itinerary as text, or timed stops as calendar events (.ics).
 - **Import program**: PDF, Word (.docx), a photo/screenshot, or text. Scanned pages are read with
-  on-device OCR. Stops are found either on the device (free) or with Claude (optional key), matched to
+  on-device OCR. Stops are found with basic on-device reading or with an AI engine, matched to
   real places in Apple Maps, and shown for review before anything is added. A copy of the file can be
   kept in Documents.
 
@@ -72,7 +72,7 @@ Keys are stored in the iOS Keychain on the device. Nothing is in the repo.
 |---|---|---|
 | [OpenTripMap](https://opentripmap.io/product) | Popularity ranking of sights | Free |
 | [Tripadvisor Content API](https://www.tripadvisor.com/developers) | Ratings, reviews, rankings | Free monthly allowance, key required |
-| [Anthropic](https://console.anthropic.com/settings/keys) | "Claude" option in Import program | Pay per use, cents per document |
+| [Gemini (Google AI Studio)](https://aistudio.google.com/apikey) | AI import, trip planner, tips (only if Apple Intelligence isn't available) | Free tier, no card |
 
 Tripadvisor terms: results show "Ratings by Tripadvisor" with a link back, and are only cached in
 memory for the session. Each Discover load uses about 11 Tripadvisor calls (1 search + up to 10 details).
@@ -86,7 +86,7 @@ memory for the session. Each Discover load uses about 11 Tripadvisor calls (1 se
   notes, budget, packing list and documents are stored on the device and work offline.
 - Transit ETAs aren't available in every city; the app falls back to an estimate.
 - On-device import works best with day headings ("Day 2", "Monday, June 5"), times ("10:00") and one
-  place per line. For anything messier, use the Claude option.
+  place per line. For anything messier, turn on an AI engine (Settings → AI).
 
 ## Testing in the simulator
 

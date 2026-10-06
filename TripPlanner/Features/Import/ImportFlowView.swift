@@ -27,7 +27,7 @@ struct ImportFlowView: View {
     }
 
     @State private var phase: Phase = .pick
-    @State private var useClaude = false
+    @State private var useAI = true
     @State private var saveCopy = true
     @State private var showFilePicker = false
     @State private var photoItem: PhotosPickerItem?
@@ -103,20 +103,22 @@ struct ImportFlowView: View {
             }
 
             Section {
-                Picker("Find stops with", selection: $useClaude) {
-                    Text("On this device").tag(false)
-                    Text("Claude").tag(true)
+                let engine = AIRouter.current(geminiKey: secrets.keys.gemini)
+                Picker("Find stops with", selection: $useAI) {
+                    Text("Basic").tag(false)
+                    Text(engine?.label ?? "AI (not set up)").tag(true)
                 }
                 .pickerStyle(.segmented)
-                if useClaude && !secrets.hasAnthropic {
-                    Label("Add your Anthropic API key in Settings first.", systemImage: "key.fill")
+                if useAI && engine == nil {
+                    Label("No AI available. Turn on Apple Intelligence, or add a free Gemini key in Settings.",
+                          systemImage: "key.fill")
                         .font(.footnote)
                         .foregroundStyle(.orange)
                 }
             } footer: {
-                Text(useClaude
-                     ? "Claude understands almost any layout and language. The document text is sent to Anthropic for this import."
-                     : "Free and private. Works best with clear day headings, times and one place per line.")
+                Text(useAI
+                     ? "AI reads almost any layout and language. With Gemini, the document text is sent to Google for this import; Apple Intelligence stays on the phone."
+                     : "Free and fully on the phone. Works best with clear day headings, times and one place per line.")
             }
 
             Section {
@@ -236,24 +238,29 @@ struct ImportFlowView: View {
         let range = trip.startDate...max(trip.endDate, trip.startDate)
         var itinerary = ItineraryParser.parse(text, tripRange: range)
 
-        if useClaude {
-            if secrets.hasAnthropic {
+        if useAI {
+            if let engine = AIRouter.current(geminiKey: secrets.keys.gemini) {
+                phase = .working("Reading with \(engine.label)…")
                 do {
-                    let dates = Format.dateRange(trip.startDate, trip.endDate)
-                    itinerary = try await ClaudeItineraryService.parse(text: text,
-                                                                       destination: trip.destination,
-                                                                       dates: dates,
-                                                                       apiKey: secrets.keys.anthropic)
+                    let context = AIContext(destination: trip.destination,
+                                            dates: Format.dateRange(trip.startDate, trip.endDate))
+                    let aiResult = try await engine.extractItinerary(text: text, context: context)
+                    if aiResult.stopCount > 0 {
+                        itinerary = aiResult
+                        notice = "Read with \(engine.label)."
+                    } else {
+                        notice = "\(engine.label) found no stops. Used basic reading instead."
+                    }
                 } catch {
-                    notice = "\(error.localizedDescription) Used on-device reading instead."
+                    notice = "\(error.localizedDescription) Used basic reading instead."
                 }
             } else {
-                notice = "No Anthropic key set. Used on-device reading instead."
+                notice = "No AI available. Used basic reading instead."
             }
         }
 
         guard itinerary.stopCount > 0 else {
-            phase = .failed("No stops were found in this document. If it's a free-form text, try the Claude option.")
+            phase = .failed("No stops were found in this document. For free-form text, turn on an AI engine in Settings.")
             return
         }
 

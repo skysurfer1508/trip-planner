@@ -4,6 +4,7 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(Secrets.self) private var secrets
     @Environment(\.dismiss) private var dismiss
+    @AppStorage(AIMode.storageKey) private var aiModeRaw = AIMode.automatic.rawValue
 
     var body: some View {
         @Bindable var secrets = secrets
@@ -29,12 +30,21 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    SecureField("Anthropic API key", text: $secrets.anthropicKey)
-                    Link("Get an API key", destination: URL(string: "https://console.anthropic.com/settings/keys")!)
+                    Picker("AI engine", selection: $aiModeRaw) {
+                        ForEach(AIMode.allCases) { Text($0.title).tag($0.rawValue) }
+                    }
+                    Label(AIRouter.onDeviceAvailable
+                          ? "Apple Intelligence is available on this iPhone."
+                          : "Apple Intelligence isn't available here (needs iOS 26 and a supported iPhone with Apple Intelligence turned on).",
+                          systemImage: AIRouter.onDeviceAvailable ? "checkmark.seal.fill" : "info.circle")
+                        .font(.footnote)
+                        .foregroundStyle(AIRouter.onDeviceAvailable ? Color.green : Color.secondary)
+                    SecureField("Gemini API key (optional)", text: $secrets.geminiKey)
+                    Link("Get a free Gemini key", destination: URL(string: "https://aistudio.google.com/apikey")!)
                 } header: {
-                    Text("Smart import (Claude)")
+                    Text("AI (import, trip planner, tips)")
                 } footer: {
-                    Text("Optional. Lets Import program read any layout or language. Costs a few cents per document. The document text is sent to Anthropic only when you pick Claude for an import.")
+                    Text("Automatic uses Apple Intelligence on the phone when it can (free, private, offline). Otherwise it uses Gemini if you add a key. Gemini's free tier is free of charge, but Google may use free-tier prompts to improve its products, so documents are only sent to Gemini when it is the engine in use. Turn the engine off to keep everything on the phone.")
                 }
 
                 Section {
@@ -52,7 +62,7 @@ struct SettingsView: View {
             }
             .onChange(of: secrets.openTripMapKey) { secrets.persist() }
             .onChange(of: secrets.tripadvisorKey) { secrets.persist() }
-            .onChange(of: secrets.anthropicKey) { secrets.persist() }
+            .onChange(of: secrets.geminiKey) { secrets.persist() }
         }
     }
 }
