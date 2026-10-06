@@ -22,6 +22,8 @@ struct OverviewView: View {
                     upcomingCard
                 }
 
+                logisticsCard
+
                 WeatherChip(date: trip.isActiveToday ? Date() : trip.startDate,
                             coordinate: trip.anyCoordinate)
 
@@ -127,6 +129,64 @@ struct OverviewView: View {
             }
         }
         .card()
+    }
+
+    /// Arrival, hotel and departure at a glance, with how long until the next one.
+    @ViewBuilder
+    private var logisticsCard: some View {
+        let upcoming = trip.bookings
+            .filter { $0.keyDate > Date().addingTimeInterval(-6 * 3600) }
+            .sorted { $0.keyDate < $1.keyDate }
+
+        if !upcoming.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("FLIGHTS & HOTEL")
+                        .font(.caption.bold())
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Manage") { perform(.bookings) }
+                        .font(.caption.bold())
+                }
+                ForEach(upcoming.prefix(4)) { booking in
+                    HStack(spacing: 12) {
+                        Image(systemName: booking.kind.symbol)
+                            .frame(width: 24)
+                            .foregroundStyle(.tint)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(headline(for: booking))
+                                .font(.subheadline.bold())
+                            Text(subline(for: booking))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+            .card()
+        }
+    }
+
+    private func headline(for booking: Booking) -> String {
+        let name = booking.title.isEmpty ? booking.kind.shortTitle : booking.title
+        switch booking.kind {
+        case .arrivalFlight: return "Land \(name) · \(booking.endDate.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated).hour().minute()))"
+        case .departureFlight: return "\(name) takes off · \(booking.startDate.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated).hour().minute()))"
+        case .hotel: return "\(name) · check-in \(booking.startDate.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated).hour().minute()))"
+        }
+    }
+
+    private func subline(for booking: Booking) -> String {
+        switch booking.kind {
+        case .arrivalFlight:
+            let ready = booking.endDate.addingTimeInterval(TimeInterval(booking.bufferMinutes * 60))
+            return "Day 1 can start around \(Format.time(ready))"
+        case .departureFlight:
+            let leave = booking.startDate.addingTimeInterval(-TimeInterval(booking.bufferMinutes * 60))
+            return "Leave for the airport by \(Format.time(leave))"
+        case .hotel:
+            return "Check-out \(booking.endDate.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated).hour().minute()))"
+        }
     }
 
     private var statsRow: some View {

@@ -6,7 +6,7 @@ import SwiftData
 final class TripArchiveTests: XCTestCase {
     private func makeContainer() throws -> ModelContainer {
         try ModelContainer(for: Trip.self, Day.self, Stop.self, Expense.self,
-                           ChecklistItem.self, TripDocument.self, SavedPlace.self,
+                           ChecklistItem.self, TripDocument.self, SavedPlace.self, Booking.self,
                            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
     }
 

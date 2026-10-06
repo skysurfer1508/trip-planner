@@ -33,6 +33,24 @@ struct TripDTO: Codable {
     var savedPlaces: [SavedPlaceDTO]
     var documents: [DocumentDTO]
     var planPreferences: Data?
+    var bookings: [BookingDTO]?
+}
+
+struct BookingDTO: Codable {
+    var kindRaw: String
+    var title: String
+    var startDate: Date
+    var endDate: Date
+    var placeName: String
+    var otherEnd: String
+    var address: String
+    var latitude: Double
+    var longitude: Double
+    var hasCoordinate: Bool
+    var reference: String
+    var notes: String
+    var bufferMinutes: Int
+    var remind: Bool
 }
 
 struct DayDTO: Codable {
@@ -147,7 +165,14 @@ enum TripArchiver {
                                 note: $0.note, addedAt: $0.addedAt, data: $0.data)
                 }
                 : [],
-            planPreferences: trip.planPreferences
+            planPreferences: trip.planPreferences,
+            bookings: trip.bookings.map {
+                BookingDTO(kindRaw: $0.kindRaw, title: $0.title, startDate: $0.startDate, endDate: $0.endDate,
+                           placeName: $0.placeName, otherEnd: $0.otherEnd, address: $0.address,
+                           latitude: $0.latitude, longitude: $0.longitude, hasCoordinate: $0.hasCoordinate,
+                           reference: $0.reference, notes: $0.notes, bufferMinutes: $0.bufferMinutes,
+                           remind: $0.remind)
+            }
         )
     }
 
@@ -241,6 +266,22 @@ enum TripArchiver {
                 context.insert(place)
                 place.savedAt = p.savedAt
                 place.trip = trip
+            }
+            for b in dto.bookings ?? [] {
+                let booking = Booking(kind: BookingKind(rawValue: b.kindRaw) ?? .hotel, title: b.title,
+                                      startDate: b.startDate, endDate: b.endDate)
+                context.insert(booking)
+                booking.placeName = b.placeName
+                booking.otherEnd = b.otherEnd
+                booking.address = b.address
+                booking.latitude = b.latitude
+                booking.longitude = b.longitude
+                booking.hasCoordinate = b.hasCoordinate
+                booking.reference = b.reference
+                booking.notes = b.notes
+                booking.bufferMinutes = b.bufferMinutes
+                booking.remind = b.remind
+                booking.trip = trip
             }
             for d in dto.documents {
                 guard let data = d.data else { continue }

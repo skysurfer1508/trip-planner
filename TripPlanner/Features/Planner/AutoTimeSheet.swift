@@ -7,6 +7,7 @@ struct AutoTimeSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var start = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
+    @State private var windowNote: String?
 
     private var stops: [Stop] { day.sortedStops }
 
@@ -17,6 +18,13 @@ struct AutoTimeSheet: View {
                     DatePicker("First stop at", selection: $start, displayedComponents: .hourAndMinute)
                 } footer: {
                     Text("Each stop starts after the previous one ends, plus travel time (walking, or driving for longer hops) and 5 minutes of slack. This replaces existing times for this day.")
+                }
+
+                if let windowNote {
+                    Section {
+                        Label(windowNote, systemImage: "airplane")
+                            .font(.footnote)
+                    }
                 }
 
                 Section("Preview") {
@@ -50,8 +58,27 @@ struct AutoTimeSheet: View {
                     .disabled(stops.isEmpty)
                 }
             }
+            .onAppear(perform: applyWindow)
         }
         .presentationDetents([.medium, .large])
+    }
+
+    /// After a flight lands the day can't start at 9:00; start from the time you're ready instead.
+    private func applyWindow() {
+        guard let window = day.trip?.window(for: day.date) else { return }
+        var notes: [String] = []
+        if let minute = window.startMinute {
+            let ready = minute
+            let current = Calendar.current.dateComponents([.hour, .minute], from: start)
+            if (current.hour ?? 0) * 60 + (current.minute ?? 0) < ready {
+                start = Calendar.current.date(bySettingHour: ready / 60, minute: ready % 60, second: 0, of: start) ?? start
+            }
+            notes.append("Starts at \(TripLogistics.timeText(ready)), after you land.")
+        }
+        if let end = window.endMinute {
+            notes.append("You have to leave for your flight by \(TripLogistics.timeText(end)).")
+        }
+        windowNote = notes.isEmpty ? nil : notes.joined(separator: " ")
     }
 
     private func schedule() -> [Date] {

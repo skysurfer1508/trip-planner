@@ -7,7 +7,7 @@ final class PlanningTests: XCTestCase {
     private func makeTrip() throws -> (ModelContainer, Trip) {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: Trip.self, Day.self, Stop.self, Expense.self,
-                                           ChecklistItem.self, TripDocument.self, SavedPlace.self,
+                                           ChecklistItem.self, TripDocument.self, SavedPlace.self, Booking.self,
                                            configurations: config)
         let start = Calendar.current.startOfDay(for: Date())
         let end = Calendar.current.date(byAdding: .day, value: 1, to: start)!

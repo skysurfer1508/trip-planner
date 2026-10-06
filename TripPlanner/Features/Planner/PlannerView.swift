@@ -71,7 +71,7 @@ struct PlannerView: View {
                         Button("Optimize route", systemImage: "point.topleft.down.to.point.bottomright.curvepath") {
                             if let day = selectedDay { optimize(day) }
                         }
-                        .disabled((selectedDay?.stops.count ?? 0) < 3)
+                        .disabled((selectedDay?.stops.count ?? 0) < 2)
                         Button("Sort by time", systemImage: "clock.arrow.2.circlepath") {
                             if let day = selectedDay { sortByTime(day) }
                         }
@@ -168,27 +168,22 @@ struct PlannerView: View {
         }
     }
 
-    /// Shortest walking order, keeping the first stop first.
+    /// Shortest walking order. With a hotel the route starts from it, otherwise the first stop stays first.
     private func optimize(_ day: Day) {
         let stops = day.sortedStops
-        guard stops.count > 2 else { return }
-        let order = RouteOptimizer.order(stops.map(\.coordinate))
-        day.renumber(order.map { stops[$0] })
+        guard stops.count > 2 || (trip.hotelCoordinate(on: day.date) != nil && stops.count > 1) else { return }
+        let coordinates = stops.map(\.coordinate)
+        if let hotel = trip.hotelCoordinate(on: day.date) {
+            let order = RouteOptimizer.order([hotel] + coordinates).dropFirst().map { $0 - 1 }
+            day.renumber(order.map { stops[$0] })
+        } else {
+            day.renumber(RouteOptimizer.order(coordinates).map { stops[$0] })
+        }
         feedback += 1
     }
 
-    /// Stops with a time first (earliest first), the others keep their relative order after them.
     private func sortByTime(_ day: Day) {
-        let indexed = Array(day.sortedStops.enumerated())
-        let sorted = indexed.sorted { a, b in
-            switch (a.element.plannedTime, b.element.plannedTime) {
-            case let (x?, y?): return x != y ? x < y : a.offset < b.offset
-            case (_?, nil): return true
-            case (nil, _?): return false
-            default: return a.offset < b.offset
-            }
-        }
-        day.renumber(sorted.map(\.element))
+        day.sortByTime()
         feedback += 1
     }
 }

@@ -7,7 +7,7 @@ final class TripSetupProgressTests: XCTestCase {
     private func makeTrip() throws -> (ModelContainer, Trip) {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: Trip.self, Day.self, Stop.self, Expense.self,
-                                           ChecklistItem.self, TripDocument.self, SavedPlace.self,
+                                           ChecklistItem.self, TripDocument.self, SavedPlace.self, Booking.self,
                                            configurations: config)
         let start = Calendar.current.startOfDay(for: Date())
         let trip = Trip(name: "Test", destination: "", startDate: start, endDate: start)
@@ -20,7 +20,7 @@ final class TripSetupProgressTests: XCTestCase {
         let (container, trip) = try makeTrip()
         _ = container
         XCTAssertEqual(TripSetupProgress.completed(for: trip), 0)
-        XCTAssertEqual(TripSetupProgress.steps(for: trip).count, 5)
+        XCTAssertEqual(TripSetupProgress.steps(for: trip).count, 6)
     }
 
     func testStepsCompleteAsDataIsAdded() throws {
@@ -36,6 +36,12 @@ final class TripSetupProgressTests: XCTestCase {
         context.insert(doc)
         doc.trip = trip
 
+        for kind in [BookingKind.hotel, .arrivalFlight] {
+            let booking = Booking(kind: kind, startDate: Date(), endDate: Date())
+            context.insert(booking)
+            booking.trip = trip
+        }
+
         let day = trip.sortedDays[0]
         for name in ["A", "B", "C"] {
             day.append(Stop(name: name, latitude: 0, longitude: 0))
@@ -47,6 +53,7 @@ final class TripSetupProgressTests: XCTestCase {
         XCTAssertEqual(done["bookings"], true)
         XCTAssertEqual(done["budget"], true)
         XCTAssertEqual(done["packing"], true)
+        XCTAssertEqual(done["logistics"], true)
     }
 
     func testTwoStopsAreNotEnough() throws {

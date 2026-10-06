@@ -92,6 +92,8 @@ struct TodayView: View {
 
                     quickActions
 
+                    logisticsToday(for: day)
+
                     if location.isDenied {
                         Label("Location is off. Enable it in Settings for travel times and nearby search.",
                               systemImage: "location.slash")
@@ -209,6 +211,45 @@ struct TodayView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Landing, check-in/out and the time to leave for the airport, when they fall on this day.
+    @ViewBuilder
+    private func logisticsToday(for day: Day) -> some View {
+        let window = trip.window(for: day.date)
+        if !window.items.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("TRAVEL TODAY")
+                    .font(.caption.bold())
+                    .foregroundStyle(.secondary)
+                ForEach(window.items) { item in
+                    HStack(spacing: 12) {
+                        Image(systemName: item.symbol)
+                            .frame(width: 24)
+                            .foregroundStyle(.tint)
+                        Text(TripLogistics.timeText(item.minute))
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                        Text(item.text)
+                    }
+                    .font(.subheadline)
+                }
+                if let flight = trip.bookings.first(where: {
+                    $0.kind == .departureFlight && $0.hasCoordinate
+                        && Calendar.current.isDate($0.startDate, inSameDayAs: day.date)
+                }), let airport = flight.coordinate {
+                    Button {
+                        RoutingService.openInMaps(name: flight.placeName.isEmpty ? "Airport" : flight.placeName,
+                                                  coordinate: airport,
+                                                  mode: .transit)
+                    } label: {
+                        Label("Directions to the airport", systemImage: "arrow.triangle.turn.up.right.diamond.fill")
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+            .card()
+        }
     }
 
     /// One-tap lookups for things you need on the road.

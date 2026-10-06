@@ -159,4 +159,42 @@ final class AutoPlannerTests: XCTestCase {
         let decoded = try JSONDecoder().decode(TripPreferences.self, from: data)
         XCTAssertEqual(decoded, settings)
     }
+
+    // MARK: Flights and hotel
+
+    private func planWithWindows(_ settings: TripPreferences, _ windows: [DayWindow]) -> [PlannedDay] {
+        var rng = SplitMix64(seed: 7)
+        return AutoPlanner.generate(candidates: pool(), prefs: settings, center: center, variation: 0,
+                                    windows: windows, using: &rng)
+    }
+
+    func testArrivalDayStartsAfterTheWindowAndSkipsAnAfternoonLunch() {
+        var arrival = DayWindow()
+        arrival.startMinute = 16 * 60 + 30
+        let days = planWithWindows(prefs(), [arrival, DayWindow(), DayWindow()])
+
+        XCTAssertTrue(days[0].stops.allSatisfy { $0.startMinute >= 16 * 60 + 30 })
+        XCTAssertFalse(days[0].stops.contains { $0.slot == .lunch }, "no lunch at 5 pm")
+        XCTAssertTrue(days[0].stops.contains { $0.slot == .dinner })
+        XCTAssertEqual(days[1].stops.first.map { $0.startMinute < 12 * 60 }, true)
+    }
+
+    func testDepartureDayEndsBeforeLeavingForTheAirport() {
+        var departure = DayWindow()
+        departure.endMinute = 15 * 60 + 20
+        let days = planWithWindows(prefs(), [DayWindow(), DayWindow(), departure])
+
+        XCTAssertTrue(days[2].stops.allSatisfy { $0.startMinute < 15 * 60 + 20 })
+        XCTAssertFalse(days[2].stops.contains { $0.slot == .dinner })
+    }
+
+    func testHotelAnchorAddsTravelBeforeTheFirstStop() {
+        var window = DayWindow()
+        window.anchor = CLLocationCoordinate2D(latitude: center.latitude + 0.03, longitude: center.longitude)
+        let settings = prefs()
+        let days = planWithWindows(settings, [window, DayWindow(), DayWindow()])
+
+        // 3 km from the hotel: the first stop can't start at the day start itself.
+        XCTAssertGreaterThan(days[0].stops[0].startMinute, settings.dayStart.minutes)
+    }
 }

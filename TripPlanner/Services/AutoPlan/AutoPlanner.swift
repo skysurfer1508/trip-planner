@@ -60,6 +60,7 @@ enum AutoPlanner {
                                                    prefs: TripPreferences,
                                                    center: CLLocationCoordinate2D,
                                                    variation: Double,
+                                                   windows: [DayWindow] = [],
                                                    using rng: inout G) -> [PlannedDay] {
         let dayCount = max(prefs.days, 1)
         let pool = dedupe(candidates)
@@ -112,7 +113,9 @@ enum AutoPlanner {
 
         var days: [PlannedDay] = []
         for dayIndex in 0..<dayCount {
-            var current = centres[dayIndex]
+            let window = windows.indices.contains(dayIndex) ? windows[dayIndex] : DayWindow()
+            // Start from the hotel when there is one; otherwise from the day's area.
+            var current = window.anchor ?? centres[dayIndex]
             var slots: [(place: PlanCandidate, slot: PlanSlot)] = []
             var kindCursor = dayIndex
 
@@ -144,7 +147,11 @@ enum AutoPlanner {
             if prefs.includeDinner { add(pick(kind: .food, near: current, rng: &rng), .dinner) }
             if prefs.wantsNightlife { add(pick(kind: .nightlife, near: current, rng: &rng), .nightlife) }
 
-            let stops = schedule(slots, prefs: prefs)
+            let stops = schedule(slots,
+                                 prefs: prefs,
+                                 from: window.anchor,
+                                 startMinute: max(prefs.dayStart.minutes, window.startMinute ?? 0),
+                                 limit: min(prefs.endLimitMinutes, window.endMinute ?? Int.max))
             days.append(PlannedDay(stops: stops, theme: theme(for: stops)))
         }
         return days
@@ -261,11 +268,15 @@ enum AutoPlanner {
 
     /// Times from the day start: stay, then travel plus slack. Meals wait for their usual hour;
     /// anything that no longer fits before the end of the day is dropped.
-    static func schedule(_ slots: [(place: PlanCandidate, slot: PlanSlot)], prefs: TripPreferences) -> [PlannedStop] {
+    static func schedule(_ slots: [(place: PlanCandidate, slot: PlanSlot)],
+                         prefs: TripPreferences,
+                         from anchor: CLLocationCoordinate2D? = nil,
+                         startMinute: Int? = nil,
+                         limit: Int? = nil) -> [PlannedStop] {
         var result: [PlannedStop] = []
-        var cursor = prefs.dayStart.minutes
-        var previous: CLLocationCoordinate2D?
-        let limit = prefs.endLimitMinutes
+        var cursor = startMinute ?? prefs.dayStart.minutes
+        var previous: CLLocationCoordinate2D? = anchor
+        let limit = limit ?? prefs.endLimitMinutes
 
         for entry in slots {
             var start = cursor
@@ -273,6 +284,8 @@ enum AutoPlanner {
                 start += travelMinutes(from: previous, to: entry.place.coordinate, transport: prefs.transport) + 5
             }
             start = (start + 4) / 5 * 5
+            // A late start (after a flight) leaves no room for a lunch at 5 pm.
+            if entry.slot == .lunch && start > 15 * 60 { continue }
             switch entry.slot {
             case .lunch: start = max(start, 12 * 60 + 15)
             case .dinner: start = max(start, prefs.isFamily ? 18 * 60 : 18 * 60 + 45)

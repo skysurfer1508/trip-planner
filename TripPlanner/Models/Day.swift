@@ -30,6 +30,20 @@ final class Day {
         }
     }
 
+    /// Stops with a time first (earliest first); the others keep their relative order after them.
+    func sortByTime() {
+        let indexed = Array(sortedStops.enumerated())
+        let sorted = indexed.sorted { a, b in
+            switch (a.element.plannedTime, b.element.plannedTime) {
+            case let (x?, y?): return x != y ? x < y : a.offset < b.offset
+            case (_?, nil): return true
+            case (nil, _?): return false
+            default: return a.offset < b.offset
+            }
+        }
+        renumber(sorted.map(\.element))
+    }
+
     /// Moves a stop of this day to another day, keeping its time of day.
     func move(_ stop: Stop, to target: Day) {
         guard target.persistentModelID != persistentModelID else { return }

@@ -21,6 +21,7 @@ final class Trip {
     @Relationship(deleteRule: .cascade, inverse: \ChecklistItem.trip) var checklist: [ChecklistItem] = []
     @Relationship(deleteRule: .cascade, inverse: \TripDocument.trip) var documents: [TripDocument] = []
     @Relationship(deleteRule: .cascade, inverse: \SavedPlace.trip) var savedPlaces: [SavedPlace] = []
+    @Relationship(deleteRule: .cascade, inverse: \Booking.trip) var bookings: [Booking] = []
 
     init(name: String, destination: String, startDate: Date, endDate: Date) {
         self.name = name

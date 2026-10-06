@@ -14,6 +14,7 @@ enum AutoPlanService {
                       center: CLLocationCoordinate2D,
                       mustSees: [MKMapItem],
                       keys: APIKeys,
+                      windows: [DayWindow] = [],
                       variation: Double = 0.3) async -> Output {
         var candidates: [PlanCandidate] = []
         var notices: [String] = []
@@ -89,6 +90,7 @@ enum AutoPlanService {
                                         prefs: prefs,
                                         center: center,
                                         variation: variation,
+                                        windows: windows,
                                         using: &generator)
         return Output(days: days, notices: Array(Set(notices)).sorted(), candidateCount: candidates.count)
     }

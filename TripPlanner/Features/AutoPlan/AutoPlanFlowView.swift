@@ -391,10 +391,26 @@ struct AutoPlanFlowView: View {
         }
 
         phase = .working("Finding the best places…")
+        // Flights and hotel: when each day can start and has to end, and where it starts from.
+        let tripDays = trip.sortedDays
+        let windows = (0..<prefs.days).map { index in
+            tripDays.indices.contains(index) ? trip.window(for: tripDays[index].date) : DayWindow()
+        }
+        var logisticsNotes: [String] = []
+        for (index, window) in windows.enumerated() {
+            if let start = window.startMinute {
+                logisticsNotes.append("Day \(index + 1) starts at \(TripLogistics.timeText(start)), after you land.")
+            }
+            if let end = window.endMinute {
+                logisticsNotes.append("Day \(index + 1) ends by \(TripLogistics.timeText(end)) for your flight.")
+            }
+        }
+
         let output = await AutoPlanService.build(prefs: prefs,
                                                  center: center,
                                                  mustSees: mustSees,
-                                                 keys: secrets.keys)
+                                                 keys: secrets.keys,
+                                                 windows: windows)
         guard output.days.contains(where: { !$0.stops.isEmpty }) else {
             phase = .failed("Not enough places were found around \(trip.destination.isEmpty ? "the destination" : trip.destination). Check your connection, or choose a wider way of getting around.")
             return
@@ -414,7 +430,8 @@ struct AutoPlanFlowView: View {
 
         draft = ImportDraft()
         draft.load(plan: output.days, themes: themes, tripDays: trip.sortedDays)
-        notice = output.notices.isEmpty ? nil : output.notices.joined(separator: " ")
+        let notes = logisticsNotes + output.notices
+        notice = notes.isEmpty ? nil : notes.joined(separator: " ")
         phase = .review
     }
 

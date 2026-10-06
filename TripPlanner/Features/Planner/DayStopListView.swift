@@ -22,10 +22,47 @@ struct DayStopListView: View {
             .map { OtherDay(number: $0.offset + 1, day: $0.element) }
     }
 
+    /// Why a stop's time doesn't fit the flights, if it doesn't.
+    private func warning(for stop: Stop, window: DayWindow) -> String? {
+        guard let time = stop.plannedTime else { return nil }
+        let parts = Calendar.current.dateComponents([.hour, .minute], from: time)
+        let minute = (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
+        if let ready = window.startMinute, minute < ready {
+            return "Before you're ready after landing (\(TripLogistics.timeText(ready)))"
+        }
+        if let leave = window.endMinute, minute >= leave {
+            return "After you have to leave for the airport (\(TripLogistics.timeText(leave)))"
+        }
+        return nil
+    }
+
     var body: some View {
         let stops = day.sortedStops
+        let window = day.trip?.window(for: day.date) ?? DayWindow()
 
         List {
+            if !window.items.isEmpty {
+                Section {
+                    ForEach(window.items) { item in
+                        HStack(spacing: 12) {
+                            Image(systemName: item.symbol)
+                                .frame(width: 24)
+                                .foregroundStyle(.tint)
+                            Text(TripLogistics.timeText(item.minute))
+                                .monospacedDigit()
+                                .foregroundStyle(.secondary)
+                            Text(item.text)
+                                .lineLimit(1)
+                        }
+                        .font(.subheadline)
+                    }
+                } header: {
+                    Text("Travel")
+                        .textCase(nil)
+                        .font(.caption)
+                }
+            }
+
             if stops.isEmpty {
                 ContentUnavailableView("No stops yet", systemImage: "mappin.slash",
                                        description: Text("Tap + to add places, import a program, or pick from Discover."))
@@ -38,7 +75,8 @@ struct DayStopListView: View {
                         } label: {
                             StopRow(stop: stop,
                                     number: index + 1,
-                                    next: index + 1 < stops.count ? stops[index + 1] : nil)
+                                    next: index + 1 < stops.count ? stops[index + 1] : nil,
+                                    warning: warning(for: stop, window: window))
                         }
                         .buttonStyle(.plain)
                         .contextMenu {
@@ -113,6 +151,7 @@ struct StopRow: View {
     let stop: Stop
     let number: Int
     var next: Stop?
+    var warning: String?
 
     private var legMode: TravelMode {
         guard let next else { return .walk }
@@ -143,6 +182,13 @@ struct StopRow: View {
                 Image(systemName: "chevron.right")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
+            }
+
+            if let warning {
+                Label(warning, systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+                    .padding(.leading, 36)
             }
 
             if let next {

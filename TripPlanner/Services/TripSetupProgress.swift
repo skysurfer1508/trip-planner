@@ -1,7 +1,7 @@
 import Foundation
 
 enum SetupAction {
-    case editTrip, addPlaces, importProgram, autoPlan, documents, packing, budget
+    case editTrip, addPlaces, importProgram, autoPlan, documents, packing, budget, bookings
 }
 
 struct SetupStep: Identifiable {
@@ -26,6 +26,13 @@ enum TripSetupProgress {
                       isDone: trip.hasDestinationCoordinate,
                       action: .editTrip,
                       actionTitle: "Set"),
+            SetupStep(id: "logistics",
+                      title: "Add flights and hotel",
+                      detail: "So plans respect when you arrive and when you must leave.",
+                      isDone: trip.bookings.contains { $0.kind == .hotel }
+                          && trip.bookings.contains { $0.kind != .hotel },
+                      action: .bookings,
+                      actionTitle: "Add"),
             SetupStep(id: "stops",
                       title: "Plan some stops",
                       detail: "Add places, import your program or let Auto plan build it.",

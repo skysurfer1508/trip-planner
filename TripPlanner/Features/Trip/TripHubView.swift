@@ -15,6 +15,7 @@ struct TripHubView: View {
     @State private var showImport = false
     @State private var showAutoPlan = false
     @State private var showDocuments = false
+    @State private var showBookings = false
     @State private var showPacking = false
 
     var body: some View {
@@ -53,6 +54,9 @@ struct TripHubView: View {
         .sheet(isPresented: $showAutoPlan) {
             AutoPlanFlowView(trip: trip)
         }
+        .sheet(isPresented: $showBookings) {
+            ToolSheet { BookingsView(trip: trip) }
+        }
         .sheet(isPresented: $showDocuments) {
             ToolSheet { DocumentsView(trip: trip) }
         }
@@ -77,6 +81,7 @@ struct TripHubView: View {
         case .addPlaces: tab = .plan
         case .importProgram: showImport = true
         case .autoPlan: showAutoPlan = true
+        case .bookings: showBookings = true
         case .documents: showDocuments = true
         case .packing: showPacking = true
         case .budget: tab = .budget

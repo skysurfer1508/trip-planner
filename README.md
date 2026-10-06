@@ -38,6 +38,13 @@ Each trip has five tabs:
 | **Budget** | Budget, expenses in any currency (converted with free rates), totals and charts. |
 | **More** | Packing & to-do, Documents (offline), Saved places, Share & export, edit trip, Settings. |
 
+**Flights & hotel** (Overview → Get ready, or More): add your arrival flight, hotel and flight home. Pick the airport
+or hotel on the map and enter the times from your booking. The app then knows: the first day starts after you land
+(plus a buffer you set for the airport and the way to the hotel), the last day ends in time to get to the airport,
+the hotel is where every day starts from (Auto plan and Optimize route), stops outside those limits get a warning, and
+Trip Mode shows landing, check-in/out and when to leave for the airport. One tap adds landing, check-in/out, leaving
+for the airport and take-off to the plan, and you get reminders (evening before a flight, time to leave, check-out).
+
 **Trip Mode** (location arrow in the toolbar): today's plan with progress, next stop with walk/transit/drive ETA
 and a "Leave by" countdown, Navigate in Apple Maps, quick lookups (coffee, ATM, pharmacy, restrooms),
 **I'm hungry** (cuisine/takeaway/vegetarian filters, Tripadvisor "Top rated"), **What now?** (AI ranks real

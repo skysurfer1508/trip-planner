@@ -13,6 +13,11 @@ struct MoreView: View {
         List {
             Section("Trip tools") {
                 NavigationLink {
+                    BookingsView(trip: trip)
+                } label: {
+                    row("Flights & hotel", symbol: "airplane", detail: trip.bookings.isEmpty ? nil : "\(trip.bookings.count)")
+                }
+                NavigationLink {
                     ChecklistView(trip: trip)
                 } label: {
                     row("Packing & to-do", symbol: "checklist", detail: checklistDetail)
