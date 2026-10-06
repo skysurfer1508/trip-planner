@@ -30,6 +30,41 @@ final class Day {
         }
     }
 
+    /// Moves a stop of this day to another day, keeping its time of day.
+    func move(_ stop: Stop, to target: Day) {
+        guard target.persistentModelID != persistentModelID else { return }
+        stops.removeAll { $0 === stop }
+        if let time = stop.plannedTime {
+            stop.plannedTime = target.combine(time: time)
+        }
+        target.append(stop)
+        renumber(sortedStops)
+    }
+
+    /// Adds a copy of `stop` right after it.
+    func duplicate(_ stop: Stop) {
+        let copy = stop.clone()
+        modelContext?.insert(copy)
+        stops.append(copy)
+        var ordered = sortedStops.filter { $0 !== copy }
+        let index = ordered.firstIndex { $0 === stop } ?? (ordered.count - 1)
+        ordered.insert(copy, at: min(index + 1, ordered.count))
+        renumber(ordered)
+    }
+
+    /// Appends copies of all stops of this day to `target`, shifting times to that day.
+    func copyStops(to target: Day) {
+        guard target.persistentModelID != persistentModelID else { return }
+        for stop in sortedStops {
+            let copy = stop.clone()
+            copy.isDone = false
+            if let time = copy.plannedTime {
+                copy.plannedTime = target.combine(time: time)
+            }
+            target.append(copy)
+        }
+    }
+
     /// Returns this day's date with the hour and minute of `time`.
     func combine(time: Date) -> Date {
         let calendar = Calendar.current

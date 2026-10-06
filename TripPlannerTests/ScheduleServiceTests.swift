@@ -54,4 +54,19 @@ final class ScheduleServiceTests: XCTestCase {
         let rounded = ScheduleService.roundUp(date(10, 41))
         XCTAssertEqual(rounded, date(10, 45))
     }
+
+    func testAutoScheduleAddsTravelAndSlack() {
+        let items = [
+            ScheduleService.AutoItem(durationMinutes: 60, travelMinutes: 0),
+            ScheduleService.AutoItem(durationMinutes: 30, travelMinutes: 12),
+            ScheduleService.AutoItem(durationMinutes: 45, travelMinutes: 20),
+        ]
+        let times = ScheduleService.autoSchedule(items: items, start: date(9, 0))
+        // 9:00 + 60 = 10:00; + 12 travel + 5 slack = 10:17 -> 10:20; + 30 = 10:50; + 25 = 11:15.
+        XCTAssertEqual(times, [date(9, 0), date(10, 20), date(11, 15)])
+    }
+
+    func testAutoScheduleEmpty() {
+        XCTAssertEqual(ScheduleService.autoSchedule(items: [], start: date(9, 0)), [])
+    }
 }

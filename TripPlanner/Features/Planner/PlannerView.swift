@@ -9,6 +9,8 @@ struct PlannerView: View {
     @State private var showImport = false
     @State private var showSaved = false
     @State private var showExport = false
+    @State private var showMap = false
+    @State private var showTimes = false
     @State private var editingStop: Stop?
     @State private var feedback = 0
 
@@ -26,6 +28,18 @@ struct PlannerView: View {
                 StopsMapView(stops: day.sortedStops)
                     .id(day.persistentModelID)
                     .frame(height: 220)
+                    .overlay(alignment: .topTrailing) {
+                        Button {
+                            showMap = true
+                        } label: {
+                            Image(systemName: "arrow.up.left.and.arrow.down.right")
+                                .font(.subheadline.bold())
+                                .padding(9)
+                                .background(.thinMaterial, in: Circle())
+                        }
+                        .padding(10)
+                        .accessibilityLabel("Open full-screen map")
+                    }
 
                 WeatherChip(date: day.date,
                             coordinate: day.sortedStops.first?.coordinate ?? trip.anyCoordinate,
@@ -60,6 +74,19 @@ struct PlannerView: View {
                             if let day = selectedDay { sortByTime(day) }
                         }
                         .disabled((selectedDay?.stops.count ?? 0) < 2)
+                        Button("Set times…", systemImage: "clock.badge.checkmark") { showTimes = true }
+                            .disabled((selectedDay?.stops.count ?? 0) < 1)
+                        Menu("Copy day to…", systemImage: "doc.on.doc") {
+                            ForEach(Array(days.enumerated()), id: \.element.persistentModelID) { index, target in
+                                if target.persistentModelID != selectedDay?.persistentModelID {
+                                    Button("Day \(index + 1) · \(Format.dayChip(target.date))") {
+                                        selectedDay?.copyStops(to: target)
+                                        feedback += 1
+                                    }
+                                }
+                            }
+                        }
+                        .disabled((selectedDay?.stops.count ?? 0) < 1 || days.count < 2)
                     }
                     Section {
                         Button("Share & export", systemImage: "square.and.arrow.up") { showExport = true }
@@ -83,6 +110,14 @@ struct PlannerView: View {
         }
         .sheet(isPresented: $showExport) {
             ExportView(trip: trip)
+        }
+        .sheet(isPresented: $showTimes) {
+            if let day = selectedDay {
+                AutoTimeSheet(day: day)
+            }
+        }
+        .fullScreenCover(isPresented: $showMap) {
+            DayMapView(trip: trip, initialIndex: selectedIndex)
         }
         .sheet(item: $editingStop) { stop in
             StopDetailView(stop: stop)

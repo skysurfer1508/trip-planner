@@ -19,6 +19,8 @@ final class Stop {
     var estimatedCost: Double = 0
     var phone: String = ""
     var website: String = ""
+    /// Short AI-written tips, cached so they work offline.
+    var aiTips: String = ""
     var day: Day?
 
     init(name: String,
@@ -40,6 +42,19 @@ final class Stop {
 
     var coordinate: CLLocationCoordinate2D {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+    }
+
+    /// A copy that is not attached to any day yet.
+    func clone() -> Stop {
+        let copy = Stop(name: name, latitude: latitude, longitude: longitude, address: address, category: category)
+        copy.plannedTime = plannedTime
+        copy.durationMinutes = durationMinutes
+        copy.notes = notes
+        copy.estimatedCost = estimatedCost
+        copy.phone = phone
+        copy.website = website
+        copy.aiTips = aiTips
+        return copy
     }
 
     /// Builds a stop from an Apple Maps search result. The name and coordinate are copied,

@@ -8,6 +8,20 @@ struct DayStopListView: View {
 
     @Environment(\.modelContext) private var context
 
+    private struct OtherDay: Identifiable {
+        let number: Int
+        let day: Day
+        var id: PersistentIdentifier { day.persistentModelID }
+    }
+
+    /// The trip's other days, numbered by their position in the trip.
+    private var otherDays: [OtherDay] {
+        let all = day.trip?.sortedDays ?? []
+        return all.enumerated()
+            .filter { $0.element.persistentModelID != day.persistentModelID }
+            .map { OtherDay(number: $0.offset + 1, day: $0.element) }
+    }
+
     var body: some View {
         let stops = day.sortedStops
 
@@ -27,6 +41,29 @@ struct DayStopListView: View {
                                     next: index + 1 < stops.count ? stops[index + 1] : nil)
                         }
                         .buttonStyle(.plain)
+                        .contextMenu {
+                            Menu("Move to day", systemImage: "arrow.right.circle") {
+                                ForEach(otherDays) { entry in
+                                    Button("Day \(entry.number) · \(Format.dayChip(entry.day.date))") {
+                                        day.move(stop, to: entry.day)
+                                    }
+                                }
+                            }
+                            .disabled(otherDays.isEmpty)
+                            Button("Duplicate", systemImage: "plus.square.on.square") {
+                                day.duplicate(stop)
+                            }
+                            Button("Delete", systemImage: "trash", role: .destructive) {
+                                context.delete(stop)
+                                day.renumber(day.sortedStops.filter { $0 !== stop })
+                            }
+                        }
+                        .swipeActions(edge: .leading) {
+                            Button("Duplicate", systemImage: "plus.square.on.square") {
+                                day.duplicate(stop)
+                            }
+                            .tint(.indigo)
+                        }
                     }
                     .onMove { offsets, destination in
                         var ordered = day.sortedStops

@@ -41,13 +41,14 @@ struct StopPin: View {
     let category: StopCategory
     var isDone = false
     var isHighlighted = false
+    var tint: Color?
 
     var body: some View {
         Text("\(number)")
             .font(.caption.bold())
             .foregroundStyle(.white)
             .frame(width: isHighlighted ? 32 : 24, height: isHighlighted ? 32 : 24)
-            .background(isDone ? Color.gray : category.color, in: Circle())
+            .background(isDone ? Color.gray : (tint ?? category.color), in: Circle())
             .overlay(Circle().stroke(.white, lineWidth: 2))
             .shadow(radius: 2)
     }

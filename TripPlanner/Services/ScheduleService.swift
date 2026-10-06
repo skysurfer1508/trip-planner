@@ -45,6 +45,27 @@ enum ScheduleService {
         return proposals
     }
 
+    struct AutoItem: Equatable {
+        var durationMinutes: Int
+        /// Travel time from the previous stop in minutes (ignored for the first stop).
+        var travelMinutes: Int
+    }
+
+    /// Lays stops out one after another from `start`: stay length, then travel time plus a little slack.
+    /// Times are rounded up to 5 minutes. Returns one start time per item.
+    static func autoSchedule(items: [AutoItem], start: Date, slackMinutes: Int = 5) -> [Date] {
+        var times: [Date] = []
+        var cursor = roundUp(start)
+        for (index, item) in items.enumerated() {
+            if index > 0 {
+                cursor = roundUp(cursor.addingTimeInterval(TimeInterval((item.travelMinutes + slackMinutes) * 60)))
+            }
+            times.append(cursor)
+            cursor = cursor.addingTimeInterval(TimeInterval(max(item.durationMinutes, 5) * 60))
+        }
+        return times
+    }
+
     /// Rounds up to the next 5 minutes.
     static func roundUp(_ date: Date, minutes: Int = 5) -> Date {
         let step = TimeInterval(minutes * 60)
