@@ -25,7 +25,7 @@ Run tests with Cmd+U.
 ## How the app is organised
 
 **Trips list**: hero-photo cards. **New trip** is a 3-step wizard (where, when, how to start: empty,
-import a program, or draft with AI). Destination autocomplete sets the trip's location; *Browse
+import a program, or Auto plan). Destination autocomplete sets the trip's location; *Browse
 destination ideas* shows curated cities with Wikipedia photos.
 
 Each trip has five tabs:
@@ -43,6 +43,17 @@ and a "Leave by" countdown, Navigate in Apple Maps, quick lookups (coffee, ATM, 
 **I'm hungry** (cuisine/takeaway/vegetarian filters, Tripadvisor "Top rated"), **What now?** (AI ranks real
 nearby places and your remaining stops for the time and weather), departure reminders, re-flow when you run late.
 
+## Auto plan
+
+Overview → Auto plan (also in the Plan menu and the new-trip wizard). It asks a few questions: who's going
+(solo, couple, friends, family with kids, group), days and pace, what you like (sights, museums, food, cafés,
+nature, beaches, shopping, nightlife, family activities, adventure, hidden gems), food and cuisines, nightlife style,
+how you get around, budget and must-see places. It then builds the days from real, popular places
+(OpenTripMap, Tripadvisor, Apple Maps): compact areas per day, lunch and dinner at normal hours, nightlife only
+when it fits, times that include travel. You review the result like an import, can tap **Create again** for
+another version, and choose whether to add it or replace the current stops. No AI is needed; if an AI engine is
+available it only writes the day titles. Your answers are remembered per trip.
+
 ## AI (free)
 
 Settings → AI engine:
@@ -52,7 +63,7 @@ Settings → AI engine:
   basic on-device reading.
 - **Gemini**: free key from [Google AI Studio](https://aistudio.google.com/apikey), no card. The free tier may
   use your prompts to improve Google's products, so documents are only sent to Gemini when it is the engine in use.
-- AI is used for: reading imported programs, drafting a trip plan, ranking "What now?" picks, and short place tips.
+- AI is used for: reading imported programs, naming Auto plan days, ranking "What now?" picks, and short place tips.
   AI never invents places: names are matched to real map results and unmatched ones can't be added.
 
 ## Import a program

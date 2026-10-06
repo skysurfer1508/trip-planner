@@ -2,7 +2,7 @@ import SwiftUI
 import MapKit
 
 enum StopCategory: String, CaseIterable, Identifiable, Codable {
-    case sight, food, cafe, hotel, transport, other
+    case sight, food, cafe, hotel, transport, nightlife, other
 
     var id: String { rawValue }
 
@@ -13,6 +13,7 @@ enum StopCategory: String, CaseIterable, Identifiable, Codable {
         case .cafe: "Café"
         case .hotel: "Hotel"
         case .transport: "Transport"
+        case .nightlife: "Nightlife"
         case .other: "Other"
         }
     }
@@ -24,6 +25,7 @@ enum StopCategory: String, CaseIterable, Identifiable, Codable {
         case .cafe: "cup.and.saucer.fill"
         case .hotel: "bed.double.fill"
         case .transport: "tram.fill"
+        case .nightlife: "moon.stars.fill"
         case .other: "mappin"
         }
     }
@@ -35,6 +37,7 @@ enum StopCategory: String, CaseIterable, Identifiable, Codable {
         case .cafe: .brown
         case .hotel: .indigo
         case .transport: .gray
+        case .nightlife: .purple
         case .other: .teal
         }
     }
@@ -48,8 +51,10 @@ enum StopCategory: String, CaseIterable, Identifiable, Codable {
             return
         }
         switch poi {
-        case .restaurant, .foodMarket, .brewery, .winery, .nightlife:
+        case .restaurant, .foodMarket:
             self = .food
+        case .brewery, .winery, .nightlife:
+            self = .nightlife
         case .cafe, .bakery:
             self = .cafe
         case .hotel:

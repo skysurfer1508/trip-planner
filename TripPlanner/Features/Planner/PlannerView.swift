@@ -7,6 +7,7 @@ struct PlannerView: View {
     @State private var selectedIndex = 0
     @State private var showAddPlace = false
     @State private var showImport = false
+    @State private var showAutoPlan = false
     @State private var showSaved = false
     @State private var showExport = false
     @State private var showMap = false
@@ -62,6 +63,7 @@ struct PlannerView: View {
                     Section("Add") {
                         Button("Add place", systemImage: "mappin.and.ellipse") { showAddPlace = true }
                             .disabled(selectedDay == nil)
+                        Button("Auto plan…", systemImage: "wand.and.stars") { showAutoPlan = true }
                         Button("Import program (PDF, Word, photo)", systemImage: "doc.viewfinder") { showImport = true }
                         Button("Saved places (\(trip.savedPlaces.count))", systemImage: "bookmark") { showSaved = true }
                     }
@@ -104,6 +106,9 @@ struct PlannerView: View {
         }
         .sheet(isPresented: $showImport) {
             ImportFlowView(trip: trip)
+        }
+        .sheet(isPresented: $showAutoPlan) {
+            AutoPlanFlowView(trip: trip)
         }
         .sheet(isPresented: $showSaved) {
             SavedPlacesView(trip: trip)

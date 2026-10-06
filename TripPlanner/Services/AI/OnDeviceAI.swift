@@ -48,6 +48,13 @@ struct GenPicks {
 
 @available(iOS 26.0, *)
 @Generable
+struct GenThemes {
+    @Guide(description: "One short day title of at most 4 words per day, in order")
+    var themes: [String]
+}
+
+@available(iOS 26.0, *)
+@Generable
 struct GenTips {
     @Guide(description: "Three short practical tips")
     var tips: [String]
@@ -81,9 +88,9 @@ struct OnDeviceAI: AIEngine {
         return ParsedItinerary(days: days)
     }
 
-    func draftItinerary(_ request: DraftRequest) async throws -> ParsedItinerary {
-        let result = try await respond(AIPrompts.draft(request), as: GenItinerary.self)
-        return ItineraryJSON.parse(dictionary(result))
+    func dayThemes(_ days: [DayThemeInput], destination: String) async throws -> [String] {
+        let result = try await respond(AIPrompts.themes(days, destination: destination), as: GenThemes.self)
+        return result.themes.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
     }
 
     func rankPicks(_ request: PicksRequest) async throws -> [AIPick] {

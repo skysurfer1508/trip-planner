@@ -5,12 +5,9 @@ struct AIContext {
     var dates = ""
 }
 
-struct DraftRequest {
-    var destination: String
-    var days: Int
-    var interests: [String]
-    var pace: String
-    var budget: String
+struct DayThemeInput {
+    let day: Int
+    let stops: [String]
 }
 
 struct PickCandidate {
@@ -51,7 +48,8 @@ enum AIError: LocalizedError {
 protocol AIEngine {
     var label: String { get }
     func extractItinerary(text: String, context: AIContext) async throws -> ParsedItinerary
-    func draftItinerary(_ request: DraftRequest) async throws -> ParsedItinerary
+    /// A short title for each planned day, in the same order as `days`.
+    func dayThemes(_ days: [DayThemeInput], destination: String) async throws -> [String]
     func rankPicks(_ request: PicksRequest) async throws -> [AIPick]
     func placeTips(name: String, city: String) async throws -> [String]
 }
@@ -69,15 +67,13 @@ enum AIPrompts {
         """
     }
 
-    static func draft(_ request: DraftRequest) -> String {
-        """
-        Plan a \(request.days)-day trip to \(request.destination). Interests: \
-        \(request.interests.isEmpty ? "a bit of everything" : request.interests.joined(separator: ", ")). \
-        Pace: \(request.pace). Budget: \(request.budget). \
-        For each day give 3 to 6 stops in a sensible geographic order, including a lunch or dinner place. \
-        Use real, well-known places and write their exact names with the city so they can be found on a map. \
-        Give a start time (HH:mm, 24 hour) for each stop and a day label like "Day 1".
-        """
+    static func themes(_ days: [DayThemeInput], destination: String) -> String {
+        var lines = ["Give each day of a trip to \(destination) a short, catchy title of at most 4 words that fits its stops. "
+                     + "Return exactly \(days.count) titles in order, no numbering."]
+        for day in days {
+            lines.append("Day \(day.day): \(day.stops.joined(separator: "; "))")
+        }
+        return lines.joined(separator: "\n")
     }
 
     static func picks(_ request: PicksRequest) -> String {

@@ -205,7 +205,7 @@ struct OverviewView: View {
         HStack(spacing: 12) {
             quickAction("Add place", "plus.circle.fill", .addPlaces)
             quickAction("Import", "doc.viewfinder", .importProgram)
-            quickAction("AI plan", "wand.and.stars", .aiPlan)
+            quickAction("Auto plan", "wand.and.stars", .autoPlan)
         }
     }
 

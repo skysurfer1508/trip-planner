@@ -3,7 +3,7 @@ import SwiftData
 import MapKit
 
 enum TripStartAction {
-    case importProgram, aiPlan
+    case importProgram, autoPlan
 }
 
 /// Three short steps: where, when, how to start.
@@ -121,10 +121,10 @@ struct NewTripWizard: View {
                             detail: "A PDF, Word file or photo you already have.",
                             symbol: "doc.viewfinder",
                             action: .importProgram)
-                startButton("Draft it with AI",
-                            detail: "Tell it your interests and get a day-by-day plan.",
+                startButton("Auto plan my trip",
+                            detail: "Answer a few questions and get a day-by-day plan.",
                             symbol: "wand.and.stars",
-                            action: .aiPlan)
+                            action: .autoPlan)
             } footer: {
                 Text("You can do any of these later from the trip's Overview.")
             }

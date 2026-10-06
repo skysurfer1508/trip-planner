@@ -14,6 +14,8 @@ final class Trip {
     var hasDestinationCoordinate: Bool = false
     var budget: Double = 0
     var currencyCode: String = "EUR"
+    /// Encoded `TripPreferences` from the last Auto plan, to pre-fill the questions.
+    var planPreferences: Data?
     @Relationship(deleteRule: .cascade, inverse: \Day.trip) var days: [Day] = []
     @Relationship(deleteRule: .cascade, inverse: \Expense.trip) var expenses: [Expense] = []
     @Relationship(deleteRule: .cascade, inverse: \ChecklistItem.trip) var checklist: [ChecklistItem] = []

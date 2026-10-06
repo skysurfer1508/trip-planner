@@ -32,6 +32,7 @@ struct TripDTO: Codable {
     var checklist: [ChecklistDTO]
     var savedPlaces: [SavedPlaceDTO]
     var documents: [DocumentDTO]
+    var planPreferences: Data?
 }
 
 struct DayDTO: Codable {
@@ -145,7 +146,8 @@ enum TripArchiver {
                     DocumentDTO(title: $0.title, fileName: $0.fileName, kindRaw: $0.kindRaw,
                                 note: $0.note, addedAt: $0.addedAt, data: $0.data)
                 }
-                : []
+                : [],
+            planPreferences: trip.planPreferences
         )
     }
 
@@ -197,6 +199,7 @@ enum TripArchiver {
             trip.hasDestinationCoordinate = dto.hasDestinationCoordinate
             trip.budget = dto.budget
             trip.currencyCode = dto.currencyCode
+            trip.planPreferences = dto.planPreferences
 
             for dayDTO in dto.days {
                 let day = Day(date: dayDTO.date)

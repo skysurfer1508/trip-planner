@@ -1,7 +1,7 @@
 import Foundation
 
 enum SetupAction {
-    case editTrip, addPlaces, importProgram, aiPlan, documents, packing, budget
+    case editTrip, addPlaces, importProgram, autoPlan, documents, packing, budget
 }
 
 struct SetupStep: Identifiable {
@@ -28,7 +28,7 @@ enum TripSetupProgress {
                       actionTitle: "Set"),
             SetupStep(id: "stops",
                       title: "Plan some stops",
-                      detail: "Add places, import your program or let AI draft it.",
+                      detail: "Add places, import your program or let Auto plan build it.",
                       isDone: stopCount >= 3,
                       action: .addPlaces,
                       actionTitle: "Add"),

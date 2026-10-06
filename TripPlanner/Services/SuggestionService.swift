@@ -2,7 +2,7 @@ import Foundation
 import MapKit
 
 enum DiscoverKind: String, CaseIterable, Identifiable {
-    case sights, culture, nature, food, fun
+    case sights, culture, nature, food, fun, cafe, shopping, nightlife
 
     var id: String { rawValue }
 
@@ -13,6 +13,9 @@ enum DiscoverKind: String, CaseIterable, Identifiable {
         case .nature: "Nature"
         case .food: "Food"
         case .fun: "Fun"
+        case .cafe: "Cafés"
+        case .shopping: "Shopping"
+        case .nightlife: "Nightlife"
         }
     }
 
@@ -23,6 +26,9 @@ enum DiscoverKind: String, CaseIterable, Identifiable {
         case .nature: "leaf.fill"
         case .food: "fork.knife"
         case .fun: "figure.run"
+        case .cafe: "cup.and.saucer.fill"
+        case .shopping: "bag.fill"
+        case .nightlife: "moon.stars.fill"
         }
     }
 
@@ -34,6 +40,20 @@ enum DiscoverKind: String, CaseIterable, Identifiable {
         case .nature: "natural"
         case .food: "foods"
         case .fun: "amusements,sport"
+        case .cafe: "cafes"
+        case .shopping: "shops,marketplaces"
+        case .nightlife: ""
+        }
+    }
+
+    /// OpenTripMap has no reliable kind for bars and clubs; those come from Apple Maps.
+    var usesOpenTripMap: Bool { self != .nightlife }
+
+    /// Tripadvisor attractions/restaurants don't cover cafés, shops or nightlife well.
+    var usesTripadvisor: Bool {
+        switch self {
+        case .cafe, .shopping, .nightlife: false
+        default: true
         }
     }
 
@@ -44,6 +64,9 @@ enum DiscoverKind: String, CaseIterable, Identifiable {
     var stopCategory: StopCategory {
         switch self {
         case .food: .food
+        case .cafe: .cafe
+        case .nightlife: .nightlife
+        case .shopping: .other
         default: .sight
         }
     }
@@ -55,7 +78,10 @@ enum DiscoverKind: String, CaseIterable, Identifiable {
         case .culture: [.museum, .theater, .library, .university]
         case .nature: [.park, .nationalPark, .beach]
         case .food: [.restaurant, .cafe, .bakery, .foodMarket]
-        case .fun: [.amusementPark, .zoo, .aquarium, .stadium, .theater, .nightlife]
+        case .fun: [.amusementPark, .zoo, .aquarium, .stadium, .theater]
+        case .cafe: [.cafe, .bakery]
+        case .shopping: [.store]
+        case .nightlife: [.nightlife, .brewery, .winery]
         }
     }
 }
@@ -73,6 +99,7 @@ struct SuggestedPlace: Identifiable {
     var ranking: String?
     var tripadvisorURL: URL?
     var cuisines: [String] = []
+    var priceLevel: Int?
     var address: String?
     var isApple = false
     var score: Double = 0
@@ -111,7 +138,7 @@ enum SuggestionService {
                                          center: CLLocationCoordinate2D,
                                          radius: Double,
                                          key: String) async -> (places: [SuggestedPlace], notice: String?) {
-        guard !key.isEmpty else { return ([], nil) }
+        guard !key.isEmpty, kind.usesOpenTripMap else { return ([], nil) }
         do {
             let found = try await OpenTripMapService.places(center: center, radius: radius, kinds: kind.otmKinds, key: key)
             let places = found.map { place in
@@ -133,7 +160,7 @@ enum SuggestionService {
                                          center: CLLocationCoordinate2D,
                                          radius: Double,
                                          key: String) async -> (places: [SuggestedPlace], notice: String?) {
-        guard !key.isEmpty else { return ([], nil) }
+        guard !key.isEmpty, kind.usesTripadvisor else { return ([], nil) }
         do {
             let found = try await TripadvisorService.nearby(category: kind.tripadvisorCategory,
                                                             center: center,
@@ -152,6 +179,7 @@ enum SuggestionService {
                                ranking: place.ranking,
                                tripadvisorURL: place.url,
                                cuisines: place.cuisines,
+                               priceLevel: place.priceLevel.map { level in level.prefix { $0 == "$" }.count },
                                address: place.address.isEmpty ? nil : place.address)
             }
             return (places, nil)
@@ -207,6 +235,7 @@ enum SuggestionService {
                 merged.ranking = merged.ranking ?? place.ranking
                 merged.tripadvisorURL = merged.tripadvisorURL ?? place.tripadvisorURL
                 merged.address = merged.address ?? place.address
+                merged.priceLevel = merged.priceLevel ?? place.priceLevel
                 if merged.cuisines.isEmpty { merged.cuisines = place.cuisines }
                 result[index] = merged
             } else {

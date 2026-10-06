@@ -13,7 +13,7 @@ struct TripHubView: View {
     @State private var handledStart = false
     @State private var showEdit = false
     @State private var showImport = false
-    @State private var showAI = false
+    @State private var showAutoPlan = false
     @State private var showDocuments = false
     @State private var showPacking = false
 
@@ -50,8 +50,8 @@ struct TripHubView: View {
         .sheet(isPresented: $showImport) {
             ImportFlowView(trip: trip)
         }
-        .sheet(isPresented: $showAI) {
-            AIPlannerView(trip: trip)
+        .sheet(isPresented: $showAutoPlan) {
+            AutoPlanFlowView(trip: trip)
         }
         .sheet(isPresented: $showDocuments) {
             ToolSheet { DocumentsView(trip: trip) }
@@ -66,7 +66,7 @@ struct TripHubView: View {
             try? await Task.sleep(for: .milliseconds(700))
             switch startAction {
             case .importProgram: showImport = true
-            case .aiPlan: showAI = true
+            case .autoPlan: showAutoPlan = true
             }
         }
     }
@@ -76,7 +76,7 @@ struct TripHubView: View {
         case .editTrip: showEdit = true
         case .addPlaces: tab = .plan
         case .importProgram: showImport = true
-        case .aiPlan: showAI = true
+        case .autoPlan: showAutoPlan = true
         case .documents: showDocuments = true
         case .packing: showPacking = true
         case .budget: tab = .budget

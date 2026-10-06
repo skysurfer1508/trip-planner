@@ -13,8 +13,9 @@ struct GeminiAI: AIEngine {
         return ItineraryJSON.parse(try await generate(prompt: prompt, schema: AISchema.itinerary))
     }
 
-    func draftItinerary(_ request: DraftRequest) async throws -> ParsedItinerary {
-        ItineraryJSON.parse(try await generate(prompt: AIPrompts.draft(request), schema: AISchema.itinerary))
+    func dayThemes(_ days: [DayThemeInput], destination: String) async throws -> [String] {
+        let json = try await generate(prompt: AIPrompts.themes(days, destination: destination), schema: AISchema.themes)
+        return (json["themes"] as? [String] ?? []).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
     }
 
     func rankPicks(_ request: PicksRequest) async throws -> [AIPick] {
@@ -113,6 +114,10 @@ enum AISchema {
             "reason": string("One sentence why it fits now"),
         ], required: ["id", "reason"])),
     ], required: ["picks"])
+
+    static let themes: [String: Any] = object([
+        "themes": array(string("Short day title, at most 4 words")),
+    ], required: ["themes"])
 
     static let tips: [String: Any] = object([
         "tips": array(string("One short tip")),

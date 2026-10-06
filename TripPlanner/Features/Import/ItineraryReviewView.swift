@@ -7,6 +7,10 @@ struct ItineraryReviewView: View {
     let trip: Trip
     @Bindable var draft: ImportDraft
     var notice: String?
+    /// Runs just before the stops are added (e.g. to clear the days that are being replaced).
+    var onBeforeAdd: (() -> Void)?
+    /// When set, a "Create again" button builds another version.
+    var onRegenerate: (() -> Void)?
     /// Called after the stops were added.
     var onAdded: () -> Void
 
@@ -55,6 +59,11 @@ struct ItineraryReviewView: View {
                 Button("Add \(draft.includedCount)") { commit() }
                     .disabled(draft.includedCount == 0)
             }
+            if let onRegenerate {
+                ToolbarItem(placement: .bottomBar) {
+                    Button("Create again", systemImage: "arrow.triangle.2.circlepath", action: onRegenerate)
+                }
+            }
         }
         .sheet(item: $pickerTarget) { target in
             PlacePickerView(query: target.query, region: trip.searchRegion) { item in
@@ -90,6 +99,7 @@ struct ItineraryReviewView: View {
         let tripDays = trip.sortedDays
         guard !tripDays.isEmpty else { return }
         let calendar = Calendar.current
+        onBeforeAdd?()
 
         for draftDay in draft.days {
             let day = tripDays[min(max(draftDay.targetIndex, 0), tripDays.count - 1)]
@@ -103,6 +113,7 @@ struct ItineraryReviewView: View {
                     stop.plannedTime = calendar.date(bySettingHour: hour, minute: draftStop.minute ?? 0, second: 0, of: day.date)
                 }
                 stop.notes = draftStop.notes
+                if stop.address.isEmpty { stop.address = draftStop.address }
                 day.append(stop)
             }
         }

@@ -11,6 +11,7 @@ struct DraftStop: Identifiable {
     var category: StopCategory
     var item: MKMapItem?
     var include: Bool
+    var address = ""
 }
 
 struct DraftDay: Identifiable {
@@ -57,6 +58,31 @@ final class ImportDraft {
             return DraftDay(label: parsed.label ?? "Day \(index + 1)",
                             date: parsed.date,
                             targetIndex: target,
+                            stops: stops)
+        }
+    }
+
+    /// Fills the draft from an Auto plan result. The places are already known, so every stop
+    /// comes with a map item and no lookup is needed.
+    func load(plan: [PlannedDay], themes: [String], tripDays: [Day]) {
+        days = plan.enumerated().map { index, plannedDay in
+            let title = themes.indices.contains(index) ? themes[index] : plannedDay.theme
+            let stops = plannedDay.stops.map { planned -> DraftStop in
+                let candidate = planned.candidate
+                let item = MKMapItem(placemark: MKPlacemark(coordinate: candidate.coordinate))
+                item.name = candidate.name
+                return DraftStop(title: candidate.name,
+                                 hour: planned.startMinute / 60,
+                                 minute: planned.startMinute % 60,
+                                 notes: "",
+                                 category: candidate.kind.stopCategory,
+                                 item: item,
+                                 include: true,
+                                 address: candidate.address)
+            }
+            return DraftDay(label: "Day \(index + 1) · \(title)",
+                            date: nil,
+                            targetIndex: min(index, max(0, tripDays.count - 1)),
                             stops: stops)
         }
     }
