@@ -6,6 +6,7 @@ struct APIKeys: Sendable {
     var openTripMap = ""
     var tripadvisor = ""
     var gemini = ""
+    var aerodatabox = ""
 }
 
 /// API keys the user enters in Settings. They live in the Keychain on this device only and are
@@ -15,11 +16,13 @@ final class Secrets {
     var openTripMapKey = ""
     var tripadvisorKey = ""
     var geminiKey = ""
+    var aerodataboxKey = ""
 
     init() {
         openTripMapKey = Keychain.read("opentripmap")
         tripadvisorKey = Keychain.read("tripadvisor")
         geminiKey = Keychain.read("gemini")
+        aerodataboxKey = Keychain.read("aerodatabox")
         // Claude is no longer used; remove a key saved by an earlier version.
         Keychain.write("", account: "anthropic")
     }
@@ -27,17 +30,20 @@ final class Secrets {
     var keys: APIKeys {
         APIKeys(openTripMap: openTripMapKey.trimmingCharacters(in: .whitespacesAndNewlines),
                 tripadvisor: tripadvisorKey.trimmingCharacters(in: .whitespacesAndNewlines),
-                gemini: geminiKey.trimmingCharacters(in: .whitespacesAndNewlines))
+                gemini: geminiKey.trimmingCharacters(in: .whitespacesAndNewlines),
+                aerodatabox: aerodataboxKey.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
     var hasOpenTripMap: Bool { !keys.openTripMap.isEmpty }
     var hasTripadvisor: Bool { !keys.tripadvisor.isEmpty }
     var hasGemini: Bool { !keys.gemini.isEmpty }
+    var hasAerodatabox: Bool { !keys.aerodatabox.isEmpty }
 
     func persist() {
         Keychain.write(keys.openTripMap, account: "opentripmap")
         Keychain.write(keys.tripadvisor, account: "tripadvisor")
         Keychain.write(keys.gemini, account: "gemini")
+        Keychain.write(keys.aerodatabox, account: "aerodatabox")
     }
 }
 

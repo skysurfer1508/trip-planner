@@ -9,6 +9,21 @@ struct BookingEditView: View {
 
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
+    @Environment(Secrets.self) private var secrets
+
+    private enum LookupState {
+        case idle
+        case loading
+        case found(FlightLeg)
+        case failed(String)
+    }
+
+    @State private var flightDate = Date()
+    @State private var lookup: LookupState = .idle
+    @State private var legs: [FlightLeg] = []
+    @State private var bufferTouched = false
+    @State private var loadedKey = ""
+    @State private var showSettings = false
 
     @State private var title = ""
     @State private var otherEnd = ""
@@ -66,6 +81,19 @@ struct BookingEditView: View {
                 }
             }
             .onAppear(perform: load)
+            .task(id: lookupKey) {
+                // Looks the flight up by itself once the number and date are complete. An existing
+                // booking is left alone until its number or date is changed.
+                guard kind != .hotel, secrets.hasAerodatabox,
+                      FlightLookupService.normalize(title) != nil,
+                      lookupKey != loadedKey else { return }
+                try? await Task.sleep(for: .milliseconds(800))
+                if Task.isCancelled { return }
+                await runLookup()
+            }
+            .sheet(isPresented: $showSettings) {
+                SettingsView()
+            }
             .sheet(isPresented: $showPicker) {
                 PlacePickerView(query: kind == .hotel ? "hotel \(trip.destination)" : "airport \(trip.destination)",
                                 region: trip.searchRegion) { item in
@@ -87,6 +115,23 @@ struct BookingEditView: View {
         Section {
             TextField("Flight number (e.g. LH 1234)", text: $title)
                 .textInputAutocapitalization(.characters)
+                .autocorrectionDisabled()
+            if let airline = AirlineDirectory.name(forFlightNumber: title) {
+                Label(airline, systemImage: "airplane")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            DatePicker("Flight date", selection: $flightDate, displayedComponents: .date)
+            lookupStatus
+        } header: {
+            Text("Flight")
+        } footer: {
+            Text(secrets.hasAerodatabox
+                 ? "Type the flight number and date; the airports and times are filled in for you. You can still change anything."
+                 : "Add a free flight data key in Settings and the airports and times are filled in from the flight number.")
+        }
+
+        Section {
             TextField(kind == .arrivalFlight ? "Flying from (city or airport)" : "Flying to (city or airport)",
                       text: $otherEnd)
             if kind == .arrivalFlight {
@@ -103,7 +148,8 @@ struct BookingEditView: View {
             Stepper(kind == .arrivalFlight
                     ? "After landing: \(Format.minutes(buffer))"
                     : "Before take-off: \(Format.minutes(buffer))",
-                    value: $buffer, in: 30...360, step: 15)
+                    value: Binding(get: { buffer }, set: { buffer = $0; bufferTouched = true }),
+                    in: 30...360, step: 15)
         } footer: {
             Text(kind == .arrivalFlight
                  ? "Time to get off the plane, through the airport and to the hotel. The first day starts after it."
@@ -137,6 +183,114 @@ struct BookingEditView: View {
         }
     }
 
+    @ViewBuilder
+    private var lookupStatus: some View {
+        switch lookup {
+        case .idle:
+            if !secrets.hasAerodatabox && FlightLookupService.normalize(title) != nil {
+                Button {
+                    showSettings = true
+                } label: {
+                    Label("Add a flight data key to look this up", systemImage: "key.fill")
+                }
+            } else if secrets.hasAerodatabox {
+                Button {
+                    Task { await runLookup() }
+                } label: {
+                    Label("Look up flight", systemImage: "magnifyingglass")
+                }
+                .disabled(FlightLookupService.normalize(title) == nil)
+            }
+        case .loading:
+            HStack(spacing: 10) {
+                ProgressView()
+                Text("Looking up the flight…")
+                    .foregroundStyle(.secondary)
+            }
+        case .found(let leg):
+            VStack(alignment: .leading, spacing: 4) {
+                Label("\(leg.from.iata ?? leg.from.name) → \(leg.to.iata ?? leg.to.name)", systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                Text("\(Format.time(leg.departure)) → \(Format.time(leg.arrival))\(leg.status.map { " · \($0)" } ?? "")")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            if legs.count > 1 {
+                Picker("Which leg?", selection: Binding(get: { leg.id }, set: { id in
+                    if let chosen = legs.first(where: { $0.id == id }) {
+                        Task { await apply(chosen) }
+                    }
+                })) {
+                    ForEach(legs) { option in
+                        Text("\(option.from.iata ?? option.from.name) → \(option.to.iata ?? option.to.name)").tag(option.id)
+                    }
+                }
+            }
+        case .failed(let message):
+            VStack(alignment: .leading, spacing: 6) {
+                Label(message, systemImage: "exclamationmark.triangle.fill")
+                    .font(.footnote)
+                    .foregroundStyle(.orange)
+                Button("Try again") { Task { await runLookup() } }
+                    .font(.footnote)
+            }
+        }
+    }
+
+    private var lookupKey: String {
+        let number = FlightLookupService.normalize(title) ?? ""
+        let day = flightDate.formatted(.iso8601.year().month().day())
+        return "\(number)|\(day)|\(secrets.hasAerodatabox)"
+    }
+
+    private func runLookup() async {
+        guard kind != .hotel else { return }
+        guard let number = FlightLookupService.normalize(title) else {
+            lookup = .failed(FlightLookupError.invalidNumber.localizedDescription)
+            return
+        }
+        guard secrets.hasAerodatabox else {
+            lookup = .failed(FlightLookupError.noKey.localizedDescription)
+            return
+        }
+        lookup = .loading
+        do {
+            let found = try await FlightLookupService.lookup(number: number, date: flightDate, key: secrets.keys.aerodatabox)
+            legs = found
+            guard let best = FlightLookupService.bestLeg(found, kind: kind, near: trip.destinationCoordinate) else {
+                throw FlightLookupError.notFound
+            }
+            await apply(best)
+        } catch {
+            if Task.isCancelled { return }
+            lookup = .failed(error.localizedDescription)
+        }
+    }
+
+    /// Fills the form from a found leg: times, the airport at the destination, the other end.
+    private func apply(_ leg: FlightLeg) async {
+        var airport = kind == .arrivalFlight ? leg.to : leg.from
+        let other = kind == .arrivalFlight ? leg.from : leg.to
+        if airport.coordinate == nil {
+            airport.coordinate = await FlightLookupService.coordinate(for: airport)
+        }
+
+        start = leg.departure
+        end = leg.arrival
+        placeName = airport.displayName
+        address = airport.city ?? ""
+        coordinate = airport.coordinate
+        otherEnd = other.shortName
+        if !bufferTouched {
+            buffer = FlightLookupService.defaultBuffer(kind: kind, leg: leg)
+        }
+        let terminal = kind == .arrivalFlight ? leg.arrivalTerminal : leg.departureTerminal
+        if notes.isEmpty, let terminal, !terminal.isEmpty {
+            notes = "Terminal \(terminal)"
+        }
+        lookup = .found(leg)
+    }
+
     private var reminderHint: String {
         switch kind {
         case .arrivalFlight: "No reminder is needed for landing."
@@ -165,6 +319,9 @@ struct BookingEditView: View {
             notes = booking.notes
             buffer = booking.bufferMinutes
             remind = booking.remind
+            flightDate = booking.kind == .arrivalFlight ? booking.endDate : booking.startDate
+            bufferTouched = true
+            loadedKey = lookupKey
             return
         }
 
@@ -173,10 +330,12 @@ struct BookingEditView: View {
             end = at(trip.startDate, 12)
             start = end.addingTimeInterval(-2 * 3600)
             buffer = 120
+            flightDate = trip.startDate
         case .departureFlight:
             start = at(trip.endDate, 15)
             end = start.addingTimeInterval(2 * 3600)
             buffer = 180
+            flightDate = trip.endDate
         case .hotel:
             start = at(trip.startDate, 15)
             end = at(trip.endDate, 11)

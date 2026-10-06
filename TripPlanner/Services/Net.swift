@@ -54,6 +54,18 @@ enum Net {
         return try JSONDecoder().decode(T.self, from: payload)
     }
 
+    /// Like `json`, for endpoints that answer with a list. An empty answer (204) is an empty list.
+    static func jsonArray(url: URL,
+                          headers: [String: String] = [:],
+                          session: URLSession = Net.live) async throws -> [[String: Any]] {
+        let payload = try await data(url: url, headers: headers, session: session)
+        if payload.isEmpty { return [] }
+        guard let object = try JSONSerialization.jsonObject(with: payload) as? [[String: Any]] else {
+            throw NetError.badResponse
+        }
+        return object
+    }
+
     /// For APIs whose field types vary (numbers sent as strings and so on).
     static func json(url: URL,
                      headers: [String: String] = [:],

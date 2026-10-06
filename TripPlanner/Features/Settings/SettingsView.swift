@@ -36,6 +36,15 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    SecureField("RapidAPI key for AeroDataBox", text: $secrets.aerodataboxKey)
+                    Link("Get the free plan on RapidAPI", destination: URL(string: "https://rapidapi.com/aedbx-aedbx/api/aerodatabox")!)
+                } header: {
+                    Text("Flight lookup (AeroDataBox)")
+                } footer: {
+                    Text("Optional. Type a flight number and date and the app fills in the airports and times. Create a free RapidAPI account, subscribe to the Basic (free) plan of AeroDataBox and paste your key here. The free plan allows a few hundred lookups a month. RapidAPI may ask for a card to sign up; the free plan isn't charged.")
+                }
+
+                Section {
                     Picker("AI engine", selection: $aiModeRaw) {
                         ForEach(AIMode.allCases) { Text($0.title).tag($0.rawValue) }
                     }
@@ -113,6 +122,7 @@ struct SettingsView: View {
             .onChange(of: secrets.openTripMapKey) { secrets.persist() }
             .onChange(of: secrets.tripadvisorKey) { secrets.persist() }
             .onChange(of: secrets.geminiKey) { secrets.persist() }
+            .onChange(of: secrets.aerodataboxKey) { secrets.persist() }
         }
     }
 }

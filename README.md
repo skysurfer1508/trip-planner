@@ -38,8 +38,9 @@ Each trip has five tabs:
 | **Budget** | Budget, expenses in any currency (converted with free rates), totals and charts. |
 | **More** | Packing & to-do, Documents (offline), Saved places, Share & export, edit trip, Settings. |
 
-**Flights & hotel** (Overview → Get ready, or More): add your arrival flight, hotel and flight home. Pick the airport
-or hotel on the map and enter the times from your booking. The app then knows: the first day starts after you land
+**Flights & hotel** (Overview → Get ready, or More): add your arrival flight, hotel and flight home. For a flight, type the flight number and date (e.g. LH 1234): the app looks it up and fills in both airports,
+the airport location and the scheduled local times by itself (needs the free AeroDataBox key from Settings; the airline
+name shows even without it). For a hotel, pick it on the map and enter the times from your booking. The app then knows: the first day starts after you land
 (plus a buffer you set for the airport and the way to the hotel), the last day ends in time to get to the airport,
 the hotel is where every day starts from (Auto plan and Optimize route), stops outside those limits get a warning, and
 Trip Mode shows landing, check-in/out and when to leave for the airport. One tap adds landing, check-in/out, leaving
@@ -94,6 +95,7 @@ Keys are stored in the iOS Keychain on the device. Nothing is in the repo.
 |---|---|---|
 | [OpenTripMap](https://opentripmap.io/product) | Popularity ranking of sights | Free |
 | [Tripadvisor Content API](https://www.tripadvisor.com/developers) | Ratings, reviews, rankings | Free monthly allowance, key required |
+| [AeroDataBox on RapidAPI](https://rapidapi.com/aedbx-aedbx/api/aerodatabox) | Flight lookup by flight number and date | Free Basic plan (a few hundred lookups a month); RapidAPI may ask for a card to sign up |
 | [Gemini](https://aistudio.google.com/apikey) | AI when Apple Intelligence isn't available | Free tier, no card |
 
 Tripadvisor terms: results show "Ratings by Tripadvisor" with a link back, and are only cached in memory for the
