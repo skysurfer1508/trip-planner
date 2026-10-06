@@ -18,6 +18,7 @@ struct TodayView: View {
     @State private var editingStop: Stop?
     @State private var showExpense = false
     @State private var nearbyKind: NearbyKind?
+    @State private var showWhatNow = false
 
     // MARK: Derived state
 
@@ -167,6 +168,11 @@ struct TodayView: View {
         .sheet(item: $editingStop) { stop in
             StopDetailView(stop: stop)
         }
+        .sheet(isPresented: $showWhatNow) {
+            if let day {
+                WhatNowView(day: day, origin: searchOrigin, remaining: remaining)
+            }
+        }
         .sheet(item: $nearbyKind) { kind in
             if let day {
                 NearbyView(kind: kind, origin: searchOrigin, day: day)
@@ -209,6 +215,18 @@ struct TodayView: View {
     private var quickActions: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
+                Button {
+                    showWhatNow = true
+                } label: {
+                    Label("What now?", systemImage: "wand.and.stars")
+                        .font(.subheadline.bold())
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Color.accentColor, in: Capsule())
+                        .foregroundStyle(.white)
+                }
+                .buttonStyle(.plain)
+
                 ForEach(NearbyKind.allCases) { kind in
                     Button {
                         nearbyKind = kind

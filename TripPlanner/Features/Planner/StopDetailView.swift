@@ -3,6 +3,7 @@ import SwiftUI
 struct StopDetailView: View {
     @Bindable var stop: Stop
     @Environment(\.dismiss) private var dismiss
+    @Environment(Secrets.self) private var secrets
 
     private static let defaultHour = 9
 
@@ -77,6 +78,14 @@ struct StopDetailView: View {
                             .frame(maxWidth: 120)
                         Text(stop.day?.trip?.currencyCode ?? "")
                             .foregroundStyle(.secondary)
+                    }
+                }
+
+                if !stop.aiTips.isEmpty || AIRouter.current(geminiKey: secrets.keys.gemini) != nil {
+                    Section("Tips") {
+                        AITipsSection(name: stop.name,
+                                      city: stop.day?.trip?.destination ?? "",
+                                      cached: $stop.aiTips)
                     }
                 }
 

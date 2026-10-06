@@ -64,6 +64,8 @@ struct SuggestionDetailView: View {
                             .font(.body)
                     }
 
+                    AITipsSection(name: place.name, city: trip.destination)
+
                     VStack(spacing: 10) {
                         Button {
                             onAdd()

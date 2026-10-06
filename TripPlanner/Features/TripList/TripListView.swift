@@ -9,6 +9,8 @@ struct TripListView: View {
     @State private var showSettings = false
     @State private var tripToEdit: Trip?
     @State private var tripToDelete: Trip?
+    @State private var path: [Trip] = []
+    @State private var startActions: [PersistentIdentifier: TripStartAction] = [:]
 
     /// Running and upcoming trips first, finished ones last.
     private var orderedTrips: [Trip] {
@@ -18,7 +20,7 @@ struct TripListView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             ScrollView {
                 LazyVStack(spacing: 16) {
                     ForEach(orderedTrips) { trip in
@@ -59,7 +61,7 @@ struct TripListView: View {
             }
             .navigationTitle("Trips")
             .navigationDestination(for: Trip.self) { trip in
-                TripHubView(trip: trip)
+                TripHubView(trip: trip, startAction: startActions[trip.persistentModelID])
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -73,7 +75,12 @@ struct TripListView: View {
                 SettingsView()
             }
             .sheet(isPresented: $showNewTrip) {
-                TripEditView(trip: nil)
+                NewTripWizard { trip, action in
+                    if let action {
+                        startActions[trip.persistentModelID] = action
+                    }
+                    path.append(trip)
+                }
             }
             .sheet(item: $tripToEdit) { trip in
                 TripEditView(trip: trip)
@@ -96,35 +103,14 @@ struct TripListView: View {
 
 private struct TripCard: View {
     let trip: Trip
-    @State private var hero: URL?
 
     private var stopCount: Int {
         trip.days.reduce(0) { $0 + $1.stops.count }
     }
 
-    private var gradient: LinearGradient {
-        let palette: [[Color]] = [
-            [.indigo, .blue], [.teal, .green], [.orange, .pink], [.purple, .indigo], [.blue, .teal], [.pink, .orange],
-        ]
-        let seed = trip.name.unicodeScalars.reduce(0) { $0 + Int($1.value) }
-        let colors = palette[seed % palette.count]
-        return LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
-    }
-
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            Rectangle()
-                .fill(gradient)
-                .overlay {
-                    if let hero {
-                        AsyncImage(url: hero) { phase in
-                            if let image = phase.image {
-                                image.resizable().scaledToFill()
-                            }
-                        }
-                    }
-                }
-                .clipped()
+            TripHeroImage(trip: trip)
 
             LinearGradient(colors: [.clear, .black.opacity(0.7)], startPoint: .center, endPoint: .bottom)
 
@@ -151,15 +137,6 @@ private struct TripCard: View {
         .frame(height: 180)
         .clipShape(RoundedRectangle(cornerRadius: 18))
         .shadow(color: .black.opacity(0.12), radius: 6, y: 3)
-        .task(id: trip.destination) {
-            let city = trip.destination.components(separatedBy: ",").first?
-                .trimmingCharacters(in: .whitespaces) ?? ""
-            guard !city.isEmpty else {
-                hero = nil
-                return
-            }
-            hero = await WikipediaService.summary(title: city)?.hero
-        }
     }
 }
 
