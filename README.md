@@ -1,7 +1,7 @@
 # Trip Planner
 
 A SwiftUI trip planner with a live "tour guide" mode. iOS 17+, iPhone, no backend.
-Everything works without accounts; optional API keys unlock popularity data and smarter import.
+Everything works without accounts; optional API keys unlock popularity data and cloud AI.
 
 ## Run it (on your Mac)
 
@@ -13,58 +13,62 @@ open TripPlanner.xcodeproj
 ```
 
 In Xcode: select the **TripPlanner** target, then under *Signing & Capabilities* choose your Apple ID
-team (a free personal team works).
+team (a free personal team works). If the bundle ID `com.skysurfer.TripPlanner` is taken, change
+`PRODUCT_BUNDLE_IDENTIFIER` in `project.yml` and re-run `xcodegen`.
 
-The lock screen countdown (Live Activity) needs a second App ID for its widget extension. Free Apple
-accounts can only create 10 App IDs per 7 days, so it is off by default. To turn it on later, follow the
-comment in `project.yml` and set `AppFeatures.liveActivities = true`. If the bundle ID
-`com.skysurfer.TripPlanner` is taken, change `PRODUCT_BUNDLE_IDENTIFIER` in `project.yml`
-(keep the widget's ID prefixed with the app's) and re-run `xcodegen`.
+Free Apple accounts allow only 3 apps installed per device and 10 new App IDs per 7 days, so the
+lock screen countdown (Live Activity, needs a second App ID for its widget) is off by default. To turn
+it on later, follow the comment in `project.yml` and set `AppFeatures.liveActivities = true`.
 
-Run tests with Cmd+U (`ScheduleServiceTests`, `ItineraryParserTests`, `RouteOptimizerTests`).
+Run tests with Cmd+U.
 
-## Features
+## How the app is organised
 
-**Trips**
-- Destination autocomplete (Apple Maps) that sets the trip's location, plus *Browse destination ideas*
-  (curated list with Wikipedia photos and descriptions). The location drives place search, weather,
-  Discover and Trip Mode.
+**Trips list**: hero-photo cards. **New trip** is a 3-step wizard (where, when, how to start: empty,
+import a program, or draft with AI). Destination autocomplete sets the trip's location; *Browse
+destination ideas* shows curated cities with Wikipedia photos.
 
-**Plan tab**
-- Days, map with numbered pins and route, place search, reorder, time/stay/notes/estimated cost,
-  phone and website of a place.
-- Travel time between consecutive stops and a day summary (stops, time, distance, cost).
-- **Optimize route** (shortest walk, first stop stays first) and **Sort by time**.
-- **Saved places**: bookmark ideas from Discover and move them to a day later.
-- **Share & export**: itinerary as text, or timed stops as calendar events (.ics).
-- **Import program**: PDF, Word (.docx), a photo/screenshot, or text. Scanned pages are read with
-  on-device OCR. Stops are found with basic on-device reading or with an AI engine, matched to
-  real places in Apple Maps, and shown for review before anything is added. A copy of the file can be
-  kept in Documents.
+Each trip has five tabs:
 
-**Discover tab**
-- Top sights, culture, nature, food and fun around the destination, ranked by popularity:
-  OpenTripMap rating + Tripadvisor rating/review count, merged into one list. Falls back to plain Apple
-  Maps results when no keys are set.
+| Tab | What it does |
+|---|---|
+| **Overview** | Countdown or today's plan, weather, stats, a "Get ready" checklist (destination, stops, bookings, budget, packing) and quick actions. |
+| **Plan** | Days, map, place search, reorder, move/duplicate stops, copy a day, **Set times** (auto schedule from a start time), **Optimize route**, sort by time, travel time between stops, saved places, share/export, **full-screen map** with a drop-pin mode. |
+| **Discover** | Top sights, culture, nature, food and fun ranked by OpenTripMap + Tripadvisor popularity; bookmark places for later. |
+| **Budget** | Budget, expenses in any currency (converted with free rates), totals and charts. |
+| **More** | Packing & to-do, Documents (offline), Saved places, Share & export, edit trip, Settings. |
 
-**Budget tab**: budget, expenses in any currency (converted with free exchange rates), totals by
-category and day, planned costs from stops.
+**Trip Mode** (location arrow in the toolbar): today's plan with progress, next stop with walk/transit/drive ETA
+and a "Leave by" countdown, Navigate in Apple Maps, quick lookups (coffee, ATM, pharmacy, restrooms),
+**I'm hungry** (cuisine/takeaway/vegetarian filters, Tripadvisor "Top rated"), **What now?** (AI ranks real
+nearby places and your remaining stops for the time and weather), departure reminders, re-flow when you run late.
 
-**Packing tab**: suggested packing list (uses the forecast for climate and rain) plus a "before you go"
-to-do list.
+## AI (free)
 
-**Documents tab**: tickets, bookings and ID scans stored on the device and viewable offline.
+Settings → AI engine:
 
-**Trip Mode** (location arrow in the trip toolbar)
-- Today's plan with progress, next stop with walk/transit/drive ETA and a "Leave by" countdown,
-  Navigate in Apple Maps, tick stops off.
-- Quick lookups: coffee, ATM, pharmacy, restrooms.
-- **I'm hungry**: nearby food with cuisine, takeaway, vegetarian and distance filters; *Top rated*
-  (Tripadvisor) when a key is set.
-- Departure reminders, "you're behind schedule" re-flow, weather and rain warnings, lock screen countdown.
-- If you aren't at the destination yet, it uses the trip's destination instead of your location.
+- **Automatic** (default): Apple Intelligence on the phone when available (iOS 26 + supported iPhone). Free,
+  private, works offline. Otherwise Gemini if you added a key. Otherwise AI features are off and import uses
+  basic on-device reading.
+- **Gemini**: free key from [Google AI Studio](https://aistudio.google.com/apikey), no card. The free tier may
+  use your prompts to improve Google's products, so documents are only sent to Gemini when it is the engine in use.
+- AI is used for: reading imported programs, drafting a trip plan, ranking "What now?" picks, and short place tips.
+  AI never invents places: names are matched to real map results and unmatched ones can't be added.
 
-## API keys (Settings, gear icon on the trip list)
+## Import a program
+
+Plan → ⊕ → Import program: PDF, Word (.docx), a photo/screenshot or a text file. Scanned pages are read with
+on-device OCR. Stops are found with AI or basic reading, matched to places in Apple Maps and shown for review
+(untick, rename, re-pick a place, choose the day) before anything is added. A copy can be kept in Documents.
+
+## Backup and sharing
+
+Trips only live on your iPhone. **Settings → Backup → Back up all trips** saves a `.tripplanner` file (Files,
+iCloud Drive, AirDrop). **Plan → Share & export → Send the trip file** shares one trip; a friend who opens it
+with the app gets their own copy. Restoring always adds copies and never overwrites. Itineraries can also be
+shared as text or exported to Calendar (.ics).
+
+## Optional API keys (Settings, gear icon)
 
 Keys are stored in the iOS Keychain on the device. Nothing is in the repo.
 
@@ -72,24 +76,24 @@ Keys are stored in the iOS Keychain on the device. Nothing is in the repo.
 |---|---|---|
 | [OpenTripMap](https://opentripmap.io/product) | Popularity ranking of sights | Free |
 | [Tripadvisor Content API](https://www.tripadvisor.com/developers) | Ratings, reviews, rankings | Free monthly allowance, key required |
-| [Gemini (Google AI Studio)](https://aistudio.google.com/apikey) | AI import, trip planner, tips (only if Apple Intelligence isn't available) | Free tier, no card |
+| [Gemini](https://aistudio.google.com/apikey) | AI when Apple Intelligence isn't available | Free tier, no card |
 
-Tripadvisor terms: results show "Ratings by Tripadvisor" with a link back, and are only cached in
-memory for the session. Each Discover load uses about 11 Tripadvisor calls (1 search + up to 10 details).
+Tripadvisor terms: results show "Ratings by Tripadvisor" with a link back, and are only cached in memory for the
+session. Each Discover load uses about 11 Tripadvisor calls.
 
 ## Good to know
 
 - Apple Maps search has no ratings, prices or opening hours; Tripadvisor fills that gap for ratings.
-- Weather comes from [Open-Meteo](https://open-meteo.com) (free, no key), about 16 days ahead.
-- Exchange rates from open.er-api.com (free); the last rates are kept for offline use.
-- MapKit has no offline-maps API. For offline maps, use Apple Maps' own *Download Map* (iOS 17+); stops,
-  notes, budget, packing list and documents are stored on the device and work offline.
+- Weather: [Open-Meteo](https://open-meteo.com) (free, no key), about 16 days ahead.
+- Exchange rates: open.er-api.com (free); the last rates are kept for offline use.
+- MapKit has no offline-maps API. Use Apple Maps' own *Download Map* (iOS 17+) for offline maps; stops, notes,
+  budget, packing list and documents are stored on the device and work offline.
 - Transit ETAs aren't available in every city; the app falls back to an estimate.
-- On-device import works best with day headings ("Day 2", "Monday, June 5"), times ("10:00") and one
-  place per line. For anything messier, turn on an AI engine (Settings → AI).
+- On-device import works best with day headings ("Day 2", "Monday, June 5"), times ("10:00") and one place per
+  line. For anything messier, use an AI engine.
+- The on-device AI has a small context window, so long documents are processed in chunks.
 
 ## Testing in the simulator
 
-Set a location with *Features → Location → Custom Location*. Give a stop a planned time a few minutes
-ahead to see reminders and the re-flow banner. Live Activities and notifications are most reliable on a
-real iPhone.
+Set a location with *Features → Location → Custom Location*. Give a stop a planned time a few minutes ahead to
+see reminders and the re-flow banner. Apple Intelligence and notifications are most reliable on a real iPhone.
