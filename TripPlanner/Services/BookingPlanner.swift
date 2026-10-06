@@ -44,8 +44,11 @@ enum BookingPlanner {
             case .departureFlight:
                 let leave = booking.startDate.addingTimeInterval(-TimeInterval(booking.bufferMinutes * 60))
                 // Leaving for the airport starts at the hotel when there is one.
-                let hotel = hotels.first { calendar.startOfDay(for: $0.start) <= calendar.startOfDay(for: booking.startDate)
-                    && calendar.startOfDay(for: booking.startDate) <= calendar.startOfDay(for: $0.end) }
+                let flightDay = calendar.startOfDay(for: booking.startDate)
+                let hotel = hotels.first(where: { stay in
+                    calendar.startOfDay(for: stay.startDate) <= flightDay
+                        && flightDay <= calendar.startOfDay(for: stay.endDate)
+                })
                 add("Leave for the airport", at: leave, place: booking, category: .transport, minutes: 15,
                     coordinateOverride: hotel.map { ($0.latitude, $0.longitude) })
                 add("Flight \(booking.title)", at: booking.startDate, place: booking, category: .transport, minutes: 30)

@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import MapKit
 
 /// Popular places around the destination, ranked by OpenTripMap and Tripadvisor data.
