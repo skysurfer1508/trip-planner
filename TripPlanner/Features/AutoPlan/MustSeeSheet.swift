@@ -13,6 +13,7 @@ struct MustSeeSheet: View {
     let onAdd: (MustSee) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(Secrets.self) private var secrets
 
     @State private var text = ""
     @State private var useTime = false
@@ -22,10 +23,25 @@ struct MustSeeSheet: View {
     @State private var far: [MKMapItem] = []
     @State private var searching = false
     @State private var searched = false
+    @State private var batch: [BatchEntry] = []
+    @State private var batchBusy = false
+    @State private var batchMessage: String?
     @FocusState private var focused: Bool
+
+    /// One place found in a pasted list.
+    private struct BatchEntry: Identifiable {
+        let id = UUID()
+        var title: String
+        var minute: Int?
+        var day: Int?
+        var item: MKMapItem?
+        var include = true
+    }
 
     private var parsed: MustSeeParser.Parsed { MustSeeParser.parse(text) }
     private var query: String { parsed.query }
+    /// Several places in one text: they are found together instead of searched as one name.
+    private var isList: Bool { MustSeeParser.looksLikeList(text) }
 
     /// The time chosen by hand, else the one found in the text.
     private var minute: Int? {
@@ -65,7 +81,7 @@ struct MustSeeSheet: View {
     private var promptSection: some View {
         Section {
             TextField("e.g. Belém Tower at sunset, day 2", text: $text, axis: .vertical)
-                .lineLimit(1...4)
+                .lineLimit(1...8)
                 .focused($focused)
                 .submitLabel(.search)
                 .autocorrectionDisabled()
@@ -77,7 +93,7 @@ struct MustSeeSheet: View {
         } header: {
             Text("What do you want to see?")
         } footer: {
-            Text("Say where and when if you like: \"Colosseum in the evening\", \"Louvre 10:00 on day 3\". Or just type a name.")
+            Text("Say where and when if you like: \"Colosseum in the evening\", \"Louvre 10:00 on day 3\". Or just type a name. You can also paste a whole list of places.")
         }
     }
 
@@ -128,7 +144,9 @@ struct MustSeeSheet: View {
 
     @ViewBuilder
     private var resultSections: some View {
-        if query.count < 2 {
+        if isList {
+            batchSections
+        } else if query.count < 2 {
             if !popular.isEmpty {
                 Section("Popular in \(destinationName.isEmpty ? "this area" : destinationName)") {
                     ForEach(popular, id: \.self) { item in row(item) }
@@ -164,6 +182,143 @@ struct MustSeeSheet: View {
                 }
             }
         }
+    }
+
+    // MARK: Several places
+
+    @ViewBuilder
+    private var batchSections: some View {
+        Section {
+            Button {
+                Task { await findBatch() }
+            } label: {
+                HStack {
+                    Label("Find the places in this text", systemImage: "text.magnifyingglass")
+                    Spacer()
+                    if batchBusy { ProgressView() }
+                }
+            }
+            .disabled(batchBusy)
+            if let batchMessage {
+                Text(batchMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        } footer: {
+            Text(AIRouter.current(geminiKey: secrets.keys.gemini) == nil
+                 ? "Looks like several places. They are split at numbers, lines and \"or\". Turn on an AI engine in Settings for better results with long text."
+                 : "Looks like several places. The AI picks out the names, then each one is searched on the map.")
+        }
+
+        if !batch.isEmpty {
+            Section("Found") {
+                ForEach($batch) { $entry in
+                    HStack(alignment: .top, spacing: 12) {
+                        Toggle("Include", isOn: $entry.include)
+                            .labelsHidden()
+                            .disabled(entry.item == nil)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(entry.item?.name ?? entry.title)
+                                .font(.subheadline.weight(.medium))
+                            if let item = entry.item {
+                                Text(subtitle(item))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(2)
+                            } else {
+                                Label("No match for \"\(entry.title)\"", systemImage: "questionmark.circle")
+                                    .font(.caption)
+                                    .foregroundStyle(.orange)
+                            }
+                            if let when = whenText(entry) {
+                                Label(when, systemImage: "clock")
+                                    .font(.caption)
+                                    .foregroundStyle(.tint)
+                            }
+                        }
+                    }
+                }
+            }
+            Section {
+                let count = batch.filter { $0.include && $0.item != nil }.count
+                Button {
+                    addBatch()
+                } label: {
+                    Text("Add \(count) \(count == 1 ? "place" : "places")")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(count == 0)
+                .listRowBackground(Color.clear)
+            }
+        }
+    }
+
+    private func whenText(_ entry: BatchEntry) -> String? {
+        let time = entry.minute ?? (useTime ? minute : nil)
+        let number = entry.day ?? (day > 0 ? day : nil)
+        return MustSee.whenText(minute: time, day: number)
+    }
+
+    private func addBatch() {
+        for entry in batch where entry.include {
+            guard let item = entry.item else { continue }
+            onAdd(MustSee(item: item,
+                          preferredMinute: entry.minute ?? (useTime ? minute : nil),
+                          preferredDay: entry.day ?? (day > 0 ? day : nil)))
+        }
+        dismiss()
+    }
+
+    /// Picks the places out of the text (AI when available, else by splitting) and searches each on the map.
+    private func findBatch() async {
+        batchBusy = true
+        batchMessage = nil
+        defer { batchBusy = false }
+
+        var wanted: [(title: String, minute: Int?, day: Int?)] = []
+        if let engine = AIRouter.current(geminiKey: secrets.keys.gemini),
+           let result = try? await engine.extractItinerary(text: text, context: AIContext(destination: destinationName)) {
+            for stop in result.days.flatMap(\.stops) {
+                let hint = MustSeeParser.parse(stop.title + " " + stop.notes)
+                let minute = stop.hour.map { $0 * 60 + (stop.minute ?? 0) } ?? hint.minute
+                wanted.append((stop.title, minute, hint.day))
+            }
+        }
+        if wanted.isEmpty {
+            wanted = MustSeeParser.split(text).map { ($0.query, $0.minute, $0.day) }
+        }
+        guard !wanted.isEmpty else {
+            batch = []
+            batchMessage = "I couldn't find any place names in that text."
+            return
+        }
+
+        var entries: [BatchEntry] = []
+        for place in wanted.prefix(15) {
+            var entry = BatchEntry(title: place.title, minute: place.minute, day: place.day)
+            entry.item = await lookUp(place.title)
+            entry.include = entry.item != nil
+            entries.append(entry)
+            batch = entries
+            // MapKit limits how fast searches can follow each other.
+            try? await Task.sleep(for: .milliseconds(150))
+        }
+        let missing = entries.filter { $0.item == nil }.count
+        batchMessage = missing == 0 ? nil : "\(missing) not found on the map. Search them one by one, or add the city to the name."
+    }
+
+    /// The best match close to the destination; tries again with the destination's name added.
+    private func lookUp(_ name: String) async -> MKMapItem? {
+        var queries = [name]
+        if !destinationName.isEmpty { queries.append("\(name), \(destinationName)") }
+        for query in queries {
+            let items = (try? await PlaceSearchService.search(query: query, region: region)) ?? []
+            if let match = PlaceSearchService.partition(items, around: center, within: 150_000).near.first {
+                return match
+            }
+        }
+        return nil
     }
 
     private func row(_ item: MKMapItem) -> some View {
@@ -211,7 +366,7 @@ struct MustSeeSheet: View {
     /// Searches while typing, after a short pause.
     private func search() async {
         let wanted = query
-        guard wanted.count >= 2 else {
+        guard wanted.count >= 2, !isList else {
             near = []
             far = []
             searching = false

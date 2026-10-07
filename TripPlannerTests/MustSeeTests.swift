@@ -156,3 +156,29 @@ final class TravelLegTests: XCTestCase {
         XCTAssertEqual(PlaceSearchService.partition([far, near], around: nil, within: 1).near.count, 2)
     }
 }
+
+final class MustSeeListTests: XCTestCase {
+    func testPastedParagraphIsRecognisedAsAList() {
+        let text = "1. Place of culture observatory for a beautiful skyline view or Verso Tower maybe also at night 2. Świętokrzyski Bridge also at night for the view"
+        XCTAssertTrue(MustSeeParser.looksLikeList(text))
+        XCTAssertFalse(MustSeeParser.looksLikeList("Belém Tower at sunset"))
+        XCTAssertTrue(MustSeeParser.looksLikeList("Louvre\nEiffel Tower"))
+    }
+
+    func testSplitFindsEachPlaceWithoutTheExplanations() {
+        let text = "1. Place of culture observatory for a beautiful skyline view or Verso Tower maybe also at night 2. Świętokrzyski Bridge also at night for the view"
+        let places = MustSeeParser.split(text)
+        XCTAssertEqual(places.map(\.query), ["Place of culture observatory", "Verso Tower", "Świętokrzyski Bridge"])
+        XCTAssertNil(places[0].minute)
+        XCTAssertEqual(places[1].minute, 21 * 60)
+        XCTAssertEqual(places[2].minute, 21 * 60)
+    }
+
+    func testNamesWithForAreKept() {
+        XCTAssertEqual(MustSeeParser.split("Museum for Modern Art\nOld Town").map(\.query), ["Museum for Modern Art", "Old Town"])
+    }
+
+    func testDuplicatesAreDropped() {
+        XCTAssertEqual(MustSeeParser.split("Louvre\nlouvre\nEiffel Tower").map(\.query), ["Louvre", "Eiffel Tower"])
+    }
+}

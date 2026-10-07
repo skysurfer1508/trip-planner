@@ -13,10 +13,12 @@ struct MustSee: Identifiable {
     var name: String { item.name ?? "Place" }
 
     /// "Around 18:30 · Day 2", or nil when the traveller has no preference.
-    var whenText: String? {
+    var whenText: String? { Self.whenText(minute: preferredMinute, day: preferredDay) }
+
+    static func whenText(minute: Int?, day: Int?) -> String? {
         var parts: [String] = []
-        if let preferredMinute { parts.append("Around \(TripLogistics.timeText(preferredMinute))") }
-        if let preferredDay { parts.append("Day \(preferredDay)") }
+        if let minute { parts.append("Around \(TripLogistics.timeText(minute))") }
+        if let day { parts.append("Day \(day)") }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
@@ -104,6 +106,52 @@ enum MustSeeParser {
         }
 
         return Parsed(query: clean(rest), minute: minute, day: day)
+    }
+
+    // MARK: Several places in one text
+
+    /// A list or paragraph instead of one place: several lines, numbered items, or a long text.
+    static func looksLikeList(_ text: String) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let lines = trimmed.split(whereSeparator: \.isNewline)
+            .filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        if lines.count > 1 { return true }
+        let markers = (try? NSRegularExpression(pattern: #"(?:^|\s)\d{1,2}[.)]\s+\S"#))
+            .map { $0.numberOfMatches(in: trimmed, range: NSRange(trimmed.startIndex..., in: trimmed)) } ?? 0
+        return markers >= 2 || trimmed.count > 90
+    }
+
+    /// Splits such a text into places without any AI: at numbers, lines, semicolons and "or", dropping
+    /// the explanations ("... for a beautiful view", "maybe also at night").
+    static func split(_ text: String) -> [Parsed] {
+        var working = text.replacingOccurrences(of: #"(?:^|\s)\d{1,2}[.)]\s+(?=\S)"#, with: "\n",
+                                                options: .regularExpression)
+        working = working.replacingOccurrences(of: #"[;•·]|\s[-–—]\s|\s(?:or|and then|oder|und dann)\s"#,
+                                               with: "\n", options: [.regularExpression, .caseInsensitive])
+        var seen = Set<String>()
+        var result: [Parsed] = []
+        for line in working.split(whereSeparator: \.isNewline) {
+            var parsed = parse(String(line))
+            parsed.query = withoutExplanation(parsed.query)
+            let key = parsed.query.lowercased()
+            guard parsed.query.count >= 3, !seen.contains(key) else { continue }
+            seen.insert(key)
+            result.append(parsed)
+        }
+        return result
+    }
+
+    /// "Place of culture observatory for a beautiful view" -> "Place of culture observatory".
+    static func withoutExplanation(_ text: String) -> String {
+        var result = text
+        let always = #"\s+(?:maybe|also|because|which|where|especially|but)\b.*$"#
+        result = result.replacingOccurrences(of: always, with: "", options: [.regularExpression, .caseInsensitive])
+        // "for"/"with" can be part of a name ("Museum for Modern Art"): only cut after a longer name.
+        if let range = result.range(of: #"\s+(?:for|with|to see|so that)\b"#, options: [.regularExpression, .caseInsensitive]),
+           result[..<range.lowerBound].split(separator: " ").count >= 2 {
+            result = String(result[..<range.lowerBound])
+        }
+        return clean(result)
     }
 
     // MARK: Helpers
