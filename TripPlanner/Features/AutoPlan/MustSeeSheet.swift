@@ -83,7 +83,11 @@ struct MustSeeSheet: View {
             .sheet(isPresented: Binding(get: { changingID != nil }, set: { if !$0 { changingID = nil } })) {
                 PlacePickerView(query: batch.first { $0.id == changingID }?.title ?? "", region: region) { item in
                     if let id = changingID {
-                        update(id) { $0.item = item; $0.confident = true; $0.include = true }
+                        update(id) { entry in
+                            entry.item = item
+                            entry.confident = true
+                            entry.include = true
+                        }
                     }
                 }
             }
@@ -282,36 +286,92 @@ struct MustSeeSheet: View {
         return MustSee.whenText(minute: time, day: number, suggested: entry.minute != nil && entry.suggested)
     }
 
+    private struct TimeChoice: Identifiable {
+        let title: String
+        let minute: Int
+        var id: String { title }
+    }
+
+    private static let timeChoices: [TimeChoice] = [
+        TimeChoice(title: "Morning", minute: 570),
+        TimeChoice(title: "Afternoon", minute: 870),
+        TimeChoice(title: "Evening", minute: 1110),
+        TimeChoice(title: "Night", minute: 1260),
+    ]
+
     /// The time, day and place options of one found place.
     private func entryMenu(_ id: UUID) -> some View {
         Menu {
-            Section("Time") {
-                Button("Let the plan decide", systemImage: "wand.and.stars") { update(id) { $0.minute = nil; $0.suggested = false } }
-                ForEach([("Morning", 9 * 60 + 30), ("Afternoon", 14 * 60 + 30), ("Evening", 18 * 60 + 30), ("Night", 21 * 60)], id: \.0) { entry in
-                    Button(entry.0) { update(id) { $0.minute = entry.1; $0.suggested = false } }
-                }
-            }
-            if dayCount > 1 {
-                Section("Day") {
-                    Button("Any day") { update(id) { $0.day = nil } }
-                    ForEach(1...dayCount, id: \.self) { number in
-                        Button("Day \(number)") { update(id) { $0.day = number } }
-                    }
-                }
-            }
-            if let entry = batch.first(where: { $0.id == id }), entry.options.count > 1 {
-                Section("Other matches") {
-                    ForEach(Array(entry.options.dropFirst().prefix(3)), id: \.self) { option in
-                        Button(option.name ?? "Place") { update(id) { $0.item = option; $0.confident = true } }
-                    }
-                }
-            }
+            timeMenuSection(id)
+            dayMenuSection(id)
+            otherMatchesSection(id)
             Section {
                 Button("Search for another place…", systemImage: "magnifyingglass") { changingID = id }
             }
         } label: {
             Image(systemName: "ellipsis.circle")
                 .font(.title3)
+        }
+    }
+
+    private func timeMenuSection(_ id: UUID) -> some View {
+        Section("Time") {
+            Button("Let the plan decide", systemImage: "wand.and.stars") {
+                update(id) { entry in
+                    entry.minute = nil
+                    entry.suggested = false
+                }
+            }
+            ForEach(Self.timeChoices) { choice in
+                Button(choice.title) {
+                    update(id) { entry in
+                        entry.minute = choice.minute
+                        entry.suggested = false
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func dayMenuSection(_ id: UUID) -> some View {
+        if dayCount > 1 {
+            Section("Day") {
+                Button("Any day") {
+                    update(id) { entry in entry.day = nil }
+                }
+                ForEach(1...dayCount, id: \.self) { number in
+                    Button("Day \(number)") {
+                        update(id) { entry in entry.day = number }
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func otherMatchesSection(_ id: UUID) -> some View {
+        let options: [MKMapItem] = batch.first(where: { $0.id == id })?.options ?? []
+        if options.count > 1 {
+            Section("Other matches") {
+                ForEach(Array(options.dropFirst().prefix(3)), id: \.self) { option in
+                    Button(option.name ?? "Place") {
+                        update(id) { entry in
+                            entry.item = option
+                            entry.confident = true
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private static func discoverKind(for name: String) -> DiscoverKind? {
+        switch name {
+        case "food": return .food
+        case "cafe": return .cafe
+        case "nightlife": return .nightlife
+        default: return nil
         }
     }
 
@@ -375,7 +435,7 @@ struct MustSeeSheet: View {
         for wish in wishes.prefix(25) {
             var entry = BatchEntry(title: wish.name)
             entry.day = wish.day
-            entry.kind = wish.kind == "food" ? .food : wish.kind == "cafe" ? .cafe : wish.kind == "nightlife" ? .nightlife : nil
+            entry.kind = Self.discoverKind(for: wish.kind)
             if let stated = wish.statedMinute {
                 entry.minute = stated
             } else if let suggestion = wish.suggestedMinute ?? MustSeeParser.suggestedMinute(forName: wish.name) {
