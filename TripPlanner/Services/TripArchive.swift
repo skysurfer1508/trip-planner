@@ -51,6 +51,8 @@ struct BookingDTO: Codable {
     var notes: String
     var bufferMinutes: Int
     var remind: Bool
+    var phone: String?
+    var website: String?
 }
 
 struct DayDTO: Codable {
@@ -171,7 +173,7 @@ enum TripArchiver {
                            placeName: $0.placeName, otherEnd: $0.otherEnd, address: $0.address,
                            latitude: $0.latitude, longitude: $0.longitude, hasCoordinate: $0.hasCoordinate,
                            reference: $0.reference, notes: $0.notes, bufferMinutes: $0.bufferMinutes,
-                           remind: $0.remind)
+                           remind: $0.remind, phone: $0.phone, website: $0.website)
             }
         )
     }
@@ -281,6 +283,8 @@ enum TripArchiver {
                 booking.notes = b.notes
                 booking.bufferMinutes = b.bufferMinutes
                 booking.remind = b.remind
+                booking.phone = b.phone ?? ""
+                booking.website = b.website ?? ""
                 booking.trip = trip
             }
             for d in dto.documents {

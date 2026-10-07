@@ -40,7 +40,10 @@ Each trip has five tabs:
 
 **Flights & hotel** (Overview → Get ready, or More): add your arrival flight, hotel and flight home. For a flight, type the flight number and date (e.g. LH 1234): the app looks it up and fills in both airports,
 the airport location and the scheduled local times by itself (needs the free AeroDataBox key from Settings; the airline
-name shows even without it). For a hotel, pick it on the map and enter the times from your booking. The app then knows: the first day starts after you land
+name shows even without it). For a hotel, search by name or by the address from your booking (hotels, hostels, apartments and private
+rentals work); results are ranked by name match, can be sorted by distance from the centre, and show phone, website
+and, with a Tripadvisor key, ratings. It only identifies the place so days can start from it: nothing is booked or
+priced in the app. Enter the check-in and check-out times from your booking. The app then knows: the first day starts after you land
 (plus a buffer you set for the airport and the way to the hotel), the last day ends in time to get to the airport,
 the hotel is where every day starts from (Auto plan and Optimize route), stops outside those limits get a warning, and
 Trip Mode shows landing, check-in/out and when to leave for the airport. One tap adds landing, check-in/out, leaving

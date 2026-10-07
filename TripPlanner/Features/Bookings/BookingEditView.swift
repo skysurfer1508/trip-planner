@@ -37,9 +37,11 @@ struct BookingEditView: View {
     @State private var buffer = 120
     @State private var remind = true
     @State private var showPicker = false
+    @State private var phone = ""
+    @State private var website = ""
 
     private var placeLabel: String {
-        kind == .hotel ? "Find the hotel on the map" : "Find the airport on the map"
+        kind == .hotel ? "Search for your hotel or address" : "Find the airport on the map"
     }
 
     var body: some View {
@@ -95,13 +97,20 @@ struct BookingEditView: View {
                 SettingsView()
             }
             .sheet(isPresented: $showPicker) {
-                PlacePickerView(query: kind == .hotel ? "hotel \(trip.destination)" : "airport \(trip.destination)",
-                                region: trip.searchRegion) { item in
-                    placeName = item.name ?? placeName
-                    address = item.placemark.title ?? ""
-                    coordinate = item.placemark.coordinate
-                    if kind == .hotel && title.trimmingCharacters(in: .whitespaces).isEmpty {
-                        title = item.name ?? ""
+                if kind == .hotel {
+                    HotelSearchView(trip: trip, initialQuery: title) { hotel in
+                        title = hotel.name
+                        placeName = hotel.name
+                        address = hotel.address
+                        coordinate = hotel.coordinate
+                        phone = hotel.phone ?? ""
+                        website = hotel.website ?? ""
+                    }
+                } else {
+                    PlacePickerView(query: "airport \(trip.destination)", region: trip.searchRegion) { item in
+                        placeName = item.name ?? placeName
+                        address = item.placemark.title ?? ""
+                        coordinate = item.placemark.coordinate
                     }
                 }
             }
@@ -162,6 +171,21 @@ struct BookingEditView: View {
         Section {
             TextField("Hotel name", text: $title)
             placeButton
+            if !address.isEmpty {
+                Label(address, systemImage: "mappin.and.ellipse")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            if !phone.isEmpty, let url = URL(string: "tel:" + phone.filter { $0.isNumber || $0 == "+" }) {
+                Link(destination: url) {
+                    Label(phone, systemImage: "phone.fill")
+                }
+            }
+            if !website.isEmpty, let url = URL(string: website) {
+                Link(destination: url) {
+                    Label("Hotel website", systemImage: "safari")
+                }
+            }
             DatePicker("Check-in", selection: $start, displayedComponents: [.date, .hourAndMinute])
             DatePicker("Check-out", selection: $end, in: start..., displayedComponents: [.date, .hourAndMinute])
         }
@@ -319,6 +343,8 @@ struct BookingEditView: View {
             notes = booking.notes
             buffer = booking.bufferMinutes
             remind = booking.remind
+            phone = booking.phone
+            website = booking.website
             flightDate = booking.kind == .arrivalFlight ? booking.endDate : booking.startDate
             bufferTouched = true
             loadedKey = lookupKey
@@ -359,6 +385,8 @@ struct BookingEditView: View {
         target.notes = notes
         target.bufferMinutes = buffer
         target.remind = remind
+        target.phone = phone
+        target.website = website
         if let coordinate {
             target.latitude = coordinate.latitude
             target.longitude = coordinate.longitude

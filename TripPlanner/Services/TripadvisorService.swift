@@ -69,6 +69,42 @@ enum TripadvisorService {
         return places
     }
 
+    /// Finds places by name (e.g. a hotel), best matches first, each with its details.
+    static func search(query: String,
+                       category: String,
+                       near center: CLLocationCoordinate2D?,
+                       key: String) async throws -> [TAPlace] {
+        guard var components = URLComponents(string: "\(base)/search") else { return [] }
+        var items = [
+            URLQueryItem(name: "key", value: key),
+            URLQueryItem(name: "searchQuery", value: query),
+            URLQueryItem(name: "category", value: category),
+            URLQueryItem(name: "language", value: "en"),
+        ]
+        if let center {
+            items.append(URLQueryItem(name: "latLong", value: "\(center.latitude),\(center.longitude)"))
+            items.append(URLQueryItem(name: "radius", value: "50"))
+            items.append(URLQueryItem(name: "radiusUnit", value: "km"))
+        }
+        components.queryItems = items
+        guard let url = components.url else { return [] }
+
+        let json = try await Net.json(url: url, headers: ["accept": "application/json"])
+        let rows = json["data"] as? [[String: Any]] ?? []
+        let ids = rows.compactMap { $0["location_id"] as? String }.prefix(5)
+
+        var places: [TAPlace] = []
+        await withTaskGroup(of: TAPlace?.self) { group in
+            for id in ids {
+                group.addTask { await details(id: id, key: key) }
+            }
+            for await place in group {
+                if let place { places.append(place) }
+            }
+        }
+        return places
+    }
+
     static func details(id: String, key: String) async -> TAPlace? {
         if let cached = await cache.get(id) { return cached }
 

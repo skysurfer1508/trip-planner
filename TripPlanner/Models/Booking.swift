@@ -56,6 +56,9 @@ final class Booking {
     /// take-off (travel to the airport, check-in, security).
     var bufferMinutes: Int = 120
     var remind: Bool = true
+    /// Hotel contact details from the map, for quick access during the trip.
+    var phone: String = ""
+    var website: String = ""
     var trip: Trip?
 
     init(kind: BookingKind, title: String = "", startDate: Date, endDate: Date) {
