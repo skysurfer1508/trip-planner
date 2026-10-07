@@ -91,6 +91,7 @@ struct TripSnapshot {
     func restore(into trip: Trip) {
         for (index, day) in trip.sortedDays.enumerated() {
             for stop in Array(day.stops) {
+                day.stops.removeAll { $0 === stop }
                 trip.modelContext?.delete(stop)
             }
             guard days.indices.contains(index) else { continue }
@@ -162,6 +163,7 @@ enum PlanChatApplier {
                 }
                 let name = stop.name
                 owner.renumber(owner.sortedStops.filter { $0 !== stop })
+                owner.stops.removeAll { $0 === stop }
                 trip.modelContext?.delete(stop)
                 outcome.changes.append("Removed \(name)")
 
@@ -263,6 +265,7 @@ enum PlanChatApplier {
                 let ordered = owner.sortedStops.filter { $0 !== new }.map { $0 === old ? new : $0 }
                 owner.renumber(ordered)
                 outcome.changes.append("Replaced \(old.name) with \(place.name)")
+                owner.stops.removeAll { $0 === old }
                 trip.modelContext?.delete(old)
 
             default:
