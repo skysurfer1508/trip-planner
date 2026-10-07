@@ -44,9 +44,17 @@ struct ItineraryReviewView: View {
 
             ForEach($draft.days) { $day in
                 Section {
+                    if let start = startLeg(for: day) {
+                        start
+                    }
                     ForEach($day.stops) { $stop in
-                        DraftStopRow(stop: $stop) {
-                            pickerTarget = PickerTarget(dayID: day.id, stopID: stop.id, query: stop.title)
+                        VStack(alignment: .leading, spacing: 8) {
+                            DraftStopRow(stop: $stop) {
+                                pickerTarget = PickerTarget(dayID: day.id, stopID: stop.id, query: stop.title)
+                            }
+                            if let leg = legAfter(stop, in: day) {
+                                leg
+                            }
                         }
                     }
                 } header: {
@@ -96,6 +104,61 @@ struct ItineraryReviewView: View {
         }
     }
 
+    // MARK: Travel between stops
+
+    private var tripDays: [Day] { trip.sortedDays }
+
+    /// The time on the clock at the destination, for timetable lookups.
+    private func wallClock(dayIndex: Int, hour: Int?, minute: Int?, plusMinutes extra: Int = 0, fallbackHour: Int = 10) -> Date? {
+        guard tripDays.indices.contains(dayIndex) else { return nil }
+        let base = hour.map { $0 * 60 + (minute ?? 0) } ?? fallbackHour * 60
+        let total = min(base + extra, 23 * 60 + 59)
+        return Calendar.current.date(bySettingHour: total / 60, minute: total % 60, second: 0,
+                                     of: tripDays[dayIndex].date)
+    }
+
+    private func nextStop(after id: UUID, in day: DraftDay) -> DraftStop? {
+        guard let index = day.stops.firstIndex(where: { $0.id == id }) else { return nil }
+        return day.stops[(index + 1)...].first { $0.include && $0.item != nil }
+    }
+
+    /// Travel time from this stop to the next one that will be added, in the preferred way of getting around.
+    private func legAfter(_ stop: DraftStop, in day: DraftDay) -> TravelLegView? {
+        guard stop.include, let from = stop.item?.placemark.coordinate,
+              let next = nextStop(after: stop.id, in: day), let to = next.item?.placemark.coordinate else { return nil }
+        return TravelLegView(trip: trip,
+                             fromName: stop.item?.name ?? stop.title,
+                             toName: next.item?.name ?? next.title,
+                             from: from, to: to,
+                             departAt: wallClock(dayIndex: day.targetIndex, hour: stop.hour, minute: stop.minute,
+                                                 plusMinutes: 60),
+                             arriveBy: nil,
+                             inset: 52)
+    }
+
+    /// Every day starts at the hotel: the way from there to the first stop.
+    private func startLeg(for day: DraftDay) -> AnyView? {
+        guard tripDays.indices.contains(day.targetIndex),
+              let anchor = trip.window(for: tripDays[day.targetIndex].date).anchor,
+              let first = day.stops.first(where: { $0.include && $0.item != nil }),
+              let to = first.item?.placemark.coordinate else { return nil }
+        let name = trip.window(for: tripDays[day.targetIndex].date).anchorName ?? "Hotel"
+        let arrive = first.hour == nil ? nil : wallClock(dayIndex: day.targetIndex, hour: first.hour, minute: first.minute)
+        return AnyView(
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 12) {
+                    HotelPin()
+                    Text("Start from \(name)")
+                        .font(.subheadline.weight(.medium))
+                }
+                TravelLegView(trip: trip, fromName: name, toName: first.item?.name ?? first.title,
+                              from: anchor, to: to,
+                              departAt: arrive == nil ? wallClock(dayIndex: day.targetIndex, hour: nil, minute: nil, fallbackHour: 9) : nil,
+                              arriveBy: arrive, suffix: "to the first stop", inset: 40)
+            }
+        )
+    }
+
     private func apply(_ item: MKMapItem, to target: PickerTarget) {
         guard let dayIndex = draft.days.firstIndex(where: { $0.id == target.dayID }),
               let stopIndex = draft.days[dayIndex].stops.firstIndex(where: { $0.id == target.stopID }) else { return }
@@ -103,6 +166,7 @@ struct ItineraryReviewView: View {
         draft.days[dayIndex].stops[stopIndex].include = true
     }
 
+    @MainActor
     private func commit() {
         let tripDays = trip.sortedDays
         guard !tripDays.isEmpty else { return }
@@ -123,6 +187,7 @@ struct ItineraryReviewView: View {
                 stop.notes = draftStop.notes
                 if stop.address.isEmpty { stop.address = draftStop.address }
                 day.append(stop)
+                PlacePreviewStore.shared.apply(to: stop)
             }
         }
         onAdded()
@@ -153,6 +218,7 @@ private struct DraftStopRow: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
+                    PlaceSummaryText(name: item.name ?? stop.title, coordinate: item.placemark.coordinate)
                 } else {
                     Label("No match found", systemImage: "questionmark.circle")
                         .font(.caption)
@@ -162,10 +228,31 @@ private struct DraftStopRow: View {
 
             Spacer(minLength: 0)
 
+            if let item = stop.item {
+                PlaceThumbnail(name: item.name ?? stop.title, coordinate: item.placemark.coordinate,
+                               category: stop.category, size: 52)
+            }
+
             Button(action: onChangePlace) {
                 Image(systemName: "magnifyingglass")
             }
             .buttonStyle(.borderless)
+        }
+        .modifier(PreviewLoader(stop: stop))
+    }
+}
+
+/// Loads the photo and description of a matched place.
+private struct PreviewLoader: ViewModifier {
+    let stop: DraftStop
+
+    func body(content: Content) -> some View {
+        if let item = stop.item {
+            content.loadsPlacePreview(name: item.name ?? stop.title,
+                                      coordinate: item.placemark.coordinate,
+                                      category: stop.category)
+        } else {
+            content
         }
     }
 }

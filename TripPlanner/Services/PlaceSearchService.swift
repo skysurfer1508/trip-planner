@@ -13,6 +13,24 @@ enum PlaceSearchService {
         return response.mapItems
     }
 
+    /// Splits results into those close to `center` and those far away (a "Castle" in another
+    /// country). Without a centre everything counts as near. Keeps MapKit's relevance order.
+    static func partition(_ items: [MKMapItem],
+                          around center: CLLocationCoordinate2D?,
+                          within limit: CLLocationDistance) -> (near: [MKMapItem], far: [MKMapItem]) {
+        guard let center else { return (items, []) }
+        var near: [MKMapItem] = []
+        var far: [MKMapItem] = []
+        for item in items {
+            if RoutingService.straightLine(from: center, to: item.placemark.coordinate) <= limit {
+                near.append(item)
+            } else {
+                far.append(item)
+            }
+        }
+        return (near, far)
+    }
+
     /// Finds a map region around a destination name like "Lisbon", used to bias place search.
     static func region(for destination: String) async -> MKCoordinateRegion? {
         let trimmed = destination.trimmingCharacters(in: .whitespacesAndNewlines)

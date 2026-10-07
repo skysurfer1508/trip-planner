@@ -14,7 +14,7 @@ enum AutoPlanService {
 
     static func build(prefs: TripPreferences,
                       center: CLLocationCoordinate2D,
-                      mustSees: [MKMapItem],
+                      mustSees: [MustSee],
                       keys: APIKeys,
                       windows: [DayWindow] = [],
                       variation: Double = 0.3) async -> Output {
@@ -72,16 +72,7 @@ enum AutoPlanService {
         }
 
         // 3. Places the user insists on.
-        for item in mustSees {
-            let coordinate = item.placemark.coordinate
-            candidates.append(PlanCandidate(id: "must-\(item.name ?? "")-\(coordinate.latitude)",
-                                            name: item.name ?? "Must-see",
-                                            coordinate: coordinate,
-                                            kind: .sights,
-                                            score: 1,
-                                            address: item.placemark.title ?? "",
-                                            isMustSee: true))
-        }
+        candidates.append(contentsOf: mustSees.map { $0.candidate() })
 
         if keys.openTripMap.isEmpty && keys.tripadvisor.isEmpty {
             notices.append("Only Apple Maps places were available, so there is no popularity ranking. Add a free OpenTripMap key in Settings for better picks.")

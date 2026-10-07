@@ -25,8 +25,9 @@ struct AutoPlanFlowView: View {
     @State private var prefs = TripPreferences()
     @State private var step: Step = .who
     @State private var phase: Phase = .questions
-    @State private var mustSees: [MKMapItem] = []
-    @State private var showMustSeePicker = false
+    @State private var mustSees: [MustSee] = []
+    @State private var popularSights: [MKMapItem] = []
+    @State private var showMustSeeSheet = false
     @State private var replaceExisting = false
     @State private var draft = ImportDraft()
     @State private var notice: String?
@@ -279,14 +280,21 @@ struct AutoPlanFlowView: View {
     }
 
     private var mustSeePage: some View {
-        QuestionPage(title: "Anything you must see?", subtitle: "Optional. These always make it into the plan.") {
-            ForEach(Array(mustSees.enumerated()), id: \.offset) { index, item in
-                HStack {
+        QuestionPage(title: "Anything you must see?", subtitle: "Optional. These always make it into the plan. Say when you want to be there and the plan is built around it.") {
+            ForEach(mustSees) { entry in
+                HStack(spacing: 12) {
                     Image(systemName: "mappin.circle.fill")
+                        .font(.title3)
                         .foregroundStyle(.red)
-                    VStack(alignment: .leading) {
-                        Text(item.name ?? "Place")
-                        if let address = item.placemark.title {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(entry.name)
+                            .font(.subheadline.weight(.medium))
+                        if let when = entry.whenText {
+                            Label(when, systemImage: "clock")
+                                .font(.caption)
+                                .foregroundStyle(.tint)
+                        }
+                        if let address = entry.item.placemark.title {
                             Text(address)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -295,27 +303,36 @@ struct AutoPlanFlowView: View {
                     }
                     Spacer()
                     Button {
-                        mustSees.remove(at: index)
+                        mustSees.removeAll { $0.id == entry.id }
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundStyle(.secondary)
                     }
-                    .accessibilityLabel("Remove \(item.name ?? "place")")
+                    .accessibilityLabel("Remove \(entry.name)")
                 }
                 .padding(12)
                 .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
             }
             Button {
-                showMustSeePicker = true
+                showMustSeeSheet = true
             } label: {
-                Label("Add a place", systemImage: "plus.circle.fill")
+                Label(mustSees.isEmpty ? "Add something you want to see" : "Add another",
+                      systemImage: "plus.circle.fill")
+                    .font(.headline)
             }
-            .sheet(isPresented: $showMustSeePicker) {
-                PlacePickerView(query: "", region: trip.searchRegion) { item in
-                    mustSees.append(item)
+            .sheet(isPresented: $showMustSeeSheet) {
+                MustSeeSheet(destinationName: trip.destination,
+                             center: trip.destinationCoordinate,
+                             region: trip.searchRegion,
+                             dayCount: prefs.days,
+                             popular: popularSights.filter { sight in
+                                 !mustSees.contains { $0.name == sight.name }
+                             }) { entry in
+                    mustSees.append(entry)
                 }
             }
         }
+        .task { await loadPopularSights() }
     }
 
     private var summaryPage: some View {
@@ -335,7 +352,9 @@ struct AutoPlanFlowView: View {
                 summaryRow(prefs.transport.symbol, prefs.transport.title)
                 summaryRow(prefs.budget.symbol, prefs.budget.title)
                 if !mustSees.isEmpty {
-                    summaryRow("mappin.and.ellipse", mustSees.compactMap(\.name).joined(separator: ", "))
+                    summaryRow("mappin.and.ellipse", mustSees.map { entry in
+                        entry.whenText.map { "\(entry.name) (\($0.lowercased()))" } ?? entry.name
+                    }.joined(separator: ", "))
                 }
             }
             .card()
@@ -393,6 +412,20 @@ struct AutoPlanFlowView: View {
             prefs.transport = trip.transport
         }
         prefs.days = min(max(trip.days.count, 1), 14)
+    }
+
+    /// The destination's best-known sights, offered as one-tap must-sees.
+    private func loadPopularSights() async {
+        guard popularSights.isEmpty, let center = trip.destinationCoordinate ?? trip.anyCoordinate else { return }
+        let result = await SuggestionService.load(kind: .sights, center: center, radiusMeters: 12_000, keys: secrets.keys)
+        popularSights = result.places
+            .sorted { $0.score > $1.score }
+            .prefix(12)
+            .map { place in
+                let item = MKMapItem(placemark: MKPlacemark(coordinate: place.coordinate))
+                item.name = place.name
+                return item
+            }
     }
 
     private func go(_ offset: Int) {

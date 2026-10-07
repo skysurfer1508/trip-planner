@@ -166,12 +166,20 @@ struct PlanWalkthroughView: View {
                 } else {
                     VStack(spacing: 0) {
                         if let anchor = dayWindow.anchor, let first = day.stops.first {
-                            startRow(name: dayWindow.anchorName ?? "Hotel", from: anchor, to: first.candidate.coordinate)
+                            startRow(name: dayWindow.anchorName ?? "Hotel", from: anchor, first: first, dayIndex: index)
                             Divider()
                         }
                         ForEach(Array(day.stops.enumerated()), id: \.element.candidate.id) { number, stop in
                             stopRow(stop, number: number + 1)
-                            if number < day.stops.count - 1 { Divider() }
+                            if number < day.stops.count - 1 {
+                                let next = day.stops[number + 1]
+                                TravelLegView(trip: trip, fromName: stop.candidate.name, toName: next.candidate.name,
+                                              from: stop.candidate.coordinate, to: next.candidate.coordinate,
+                                              departAt: wallClock(index, minute: stop.startMinute + stop.durationMinutes),
+                                              arriveBy: nil, inset: 36)
+                                    .padding(.bottom, 8)
+                                Divider()
+                            }
                         }
                     }
                     .card()
@@ -189,29 +197,38 @@ struct PlanWalkthroughView: View {
         return parts.isEmpty ? nil : parts.joined(separator: " ")
     }
 
-    private func startRow(name: String, from: CLLocationCoordinate2D, to: CLLocationCoordinate2D) -> some View {
-        let distance = RoutingService.straightLine(from: from, to: to)
-        let mode: TravelMode = distance > 2_500 ? .drive : .walk
-        return HStack(spacing: 12) {
-            HotelPin()
-            VStack(alignment: .leading, spacing: 2) {
+    /// The day's time on the clock at the destination, for timetable lookups.
+    private func wallClock(_ dayIndex: Int, minute: Int) -> Date? {
+        guard tripDays.indices.contains(dayIndex) else { return nil }
+        return Calendar.current.date(bySettingHour: min(minute / 60, 23), minute: minute % 60, second: 0,
+                                     of: tripDays[dayIndex].date)
+    }
+
+    private func startRow(name: String, from: CLLocationCoordinate2D, first: PlannedStop, dayIndex: Int) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 12) {
+                HotelPin()
                 Text("Start from \(name)")
                     .font(.subheadline.weight(.medium))
-                Label("\(Format.duration(RoutingService.estimate(from: from, to: to, mode: mode))) to the first stop",
-                      systemImage: mode.symbol)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                Spacer()
             }
-            Spacer()
+            TravelLegView(trip: trip, fromName: name, toName: first.candidate.name,
+                          from: from, to: first.candidate.coordinate,
+                          departAt: nil,
+                          arriveBy: wallClock(dayIndex, minute: first.startMinute),
+                          suffix: "to the first stop", inset: 36)
         }
         .padding(.vertical, 8)
     }
 
     private func stopRow(_ stop: PlannedStop, number: Int) -> some View {
-        HStack(spacing: 12) {
-            StopPin(number: number, category: stop.candidate.kind.stopCategory)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(stop.candidate.name)
+        let candidate = stop.candidate
+        let category = candidate.kind.stopCategory
+        return HStack(alignment: .top, spacing: 12) {
+            StopPin(number: number, category: category)
+                .padding(.top, 2)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(candidate.name)
                     .font(.subheadline.weight(.medium))
                 HStack(spacing: 6) {
                     Text(TripLogistics.timeText(stop.startMinute))
@@ -219,27 +236,35 @@ struct PlanWalkthroughView: View {
                     Text("·")
                     Text(Format.minutes(stop.durationMinutes))
                     Text("·")
-                    Text(stop.candidate.kind.title)
+                    Text(candidate.kind.title)
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                if candidate.isMustSee, let wanted = candidate.preferredMinute {
+                    Label("You asked for around \(TripLogistics.timeText(wanted))", systemImage: "star.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                }
+                PlaceSummaryText(name: candidate.name, coordinate: candidate.coordinate)
             }
-            Spacer()
+            Spacer(minLength: 4)
+            PlaceThumbnail(name: candidate.name, coordinate: candidate.coordinate, category: category, size: 56)
             Menu {
                 Button("Replace…", systemImage: "arrow.triangle.2.circlepath") {
                     alternatives = AlternativeTarget(stop: stop)
                 }
                 Button("Remove", systemImage: "trash", role: .destructive) {
-                    applyEdits([.remove(stop.candidate.id)], message: "Removed \(stop.candidate.name).")
+                    applyEdits([.remove(candidate.id)], message: "Removed \(candidate.name).")
                 }
             } label: {
                 Image(systemName: "ellipsis")
                     .frame(width: 32, height: 32)
                     .contentShape(Rectangle())
             }
-            .accessibilityLabel("Options for \(stop.candidate.name)")
+            .accessibilityLabel("Options for \(candidate.name)")
         }
         .padding(.vertical, 8)
+        .loadsPlacePreview(name: candidate.name, coordinate: candidate.coordinate, category: category)
     }
 
     // MARK: Composer
@@ -411,17 +436,19 @@ private struct AlternativesSheet: View {
                     dismiss()
                 } label: {
                     HStack(spacing: 12) {
-                        Image(systemName: option.kind.symbol)
-                            .frame(width: 30)
-                            .foregroundStyle(.tint)
+                        PlaceThumbnail(name: option.name, coordinate: option.coordinate,
+                                       category: option.kind.stopCategory, size: 44, corner: 10)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(option.name)
                                 .foregroundStyle(.primary)
                             Text("\(option.kind.title) · \(Format.distance(RoutingService.straightLine(from: stop.candidate.coordinate, to: option.coordinate))) from \(stop.candidate.name)")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                            PlaceSummaryText(name: option.name, coordinate: option.coordinate, lines: 2)
                         }
                     }
+                    .loadsPlacePreview(name: option.name, coordinate: option.coordinate,
+                                       category: option.kind.stopCategory)
                 }
             }
             .overlay {

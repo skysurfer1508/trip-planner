@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 /// Limits how many lookups run at once when a long list of stops appears.
-private actor LookupGate {
+actor LookupGate {
     private var active = 0
 
     func enter() async {

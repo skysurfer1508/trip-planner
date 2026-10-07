@@ -76,6 +76,7 @@ struct TransitConnector: View {
     let timing: TransitTiming
     /// What to show until the route arrives (the straight-line estimate).
     let fallback: String
+    var inset: CGFloat = 36
     var onDuration: ((TimeInterval?) -> Void)?
 
     @State private var outcome: TransitOutcome?
@@ -97,8 +98,8 @@ struct TransitConnector: View {
             showRoute = true
         } label: {
             content
-                .font(.caption2)
-                .padding(.leading, 36)
+                .font(.caption)
+                .padding(.leading, inset)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
         }

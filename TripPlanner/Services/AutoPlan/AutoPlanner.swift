@@ -18,6 +18,9 @@ struct PlanCandidate: Identifiable {
     var priceLevel: Int?
     var cuisines: [String] = []
     var isMustSee = false
+    /// When the traveller wants to be there (minutes after midnight) and on which day (1 = first).
+    var preferredMinute: Int?
+    var preferredDay: Int?
 }
 
 enum PlanSlot: String {
@@ -82,15 +85,24 @@ enum AutoPlanner {
                                  count: dayCount)
         while centres.count < dayCount { centres.append(center) }
 
-        // Must-see places go to the day whose centre is closest.
+        // Must-see places go to the day they were asked for, else to the day whose centre is closest.
+        // Those with a wanted time are slotted into the day's timeline afterwards.
         var reserved = Array(repeating: [PlanCandidate](), count: dayCount)
+        var timed = Array(repeating: [PlanCandidate](), count: dayCount)
         var used = Set<String>()
         for place in pool where place.isMustSee {
-            let index = centres.indices.min {
+            var index = centres.indices.min {
                 RoutingService.straightLine(from: centres[$0], to: place.coordinate)
                     < RoutingService.straightLine(from: centres[$1], to: place.coordinate)
             } ?? 0
-            reserved[index].append(place)
+            if let day = place.preferredDay, (1...dayCount).contains(day) {
+                index = day - 1
+            }
+            if place.preferredMinute != nil {
+                timed[index].append(place)
+            } else {
+                reserved[index].append(place)
+            }
             used.insert(place.id)
         }
 
@@ -143,7 +155,7 @@ enum AutoPlanner {
                 return nil
             }
 
-            let activities = max(prefs.pace.activitiesPerDay, reserved[dayIndex].count)
+            let activities = max(prefs.pace.activitiesPerDay - timed[dayIndex].count, reserved[dayIndex].count)
             let before = (activities + 1) / 2
             for _ in 0..<before { add(nextActivity(rng: &rng), .activity) }
             if prefs.includeLunch { add(pick(kind: .food, near: current, rng: &rng), .lunch) }
@@ -152,14 +164,35 @@ enum AutoPlanner {
             if prefs.includeDinner { add(pick(kind: .food, near: current, rng: &rng), .dinner) }
             if prefs.wantsNightlife { add(pick(kind: .nightlife, near: current, rng: &rng), .nightlife) }
 
-            let stops = schedule(slots,
-                                 prefs: prefs,
-                                 from: window.anchor,
-                                 startMinute: max(prefs.dayStart.minutes, window.startMinute ?? 0),
-                                 limit: min(prefs.endLimitMinutes, window.endMinute ?? Int.max))
+            let startMinute = max(prefs.dayStart.minutes, window.startMinute ?? 0)
+            let limit = min(prefs.endLimitMinutes, window.endMinute ?? Int.max)
+            var stops = schedule(slots, prefs: prefs, from: window.anchor, startMinute: startMinute, limit: limit)
+            if !timed[dayIndex].isEmpty {
+                stops = insertTimed(timed[dayIndex], into: stops, prefs: prefs, anchor: window.anchor,
+                                    startMinute: startMinute, limit: limit)
+            }
             days.append(PlannedDay(stops: stops, theme: theme(for: stops)))
         }
         return days
+    }
+
+    /// Puts places with a wanted time where they belong in the day, then schedules the day again
+    /// (each of them waits for its time).
+    static func insertTimed(_ places: [PlanCandidate],
+                            into stops: [PlannedStop],
+                            prefs: TripPreferences,
+                            anchor: CLLocationCoordinate2D?,
+                            startMinute: Int,
+                            limit: Int,
+                            travelOverride: TravelOverride? = nil) -> [PlannedStop] {
+        var entries = stops.map { (place: $0.candidate, slot: $0.slot, key: $0.startMinute) }
+        for place in places.sorted(by: { ($0.preferredMinute ?? 0) < ($1.preferredMinute ?? 0) }) {
+            let wanted = place.preferredMinute ?? 0
+            let position = entries.firstIndex { $0.key > wanted } ?? entries.count
+            entries.insert((place, .activity, wanted), at: position)
+        }
+        return schedule(entries.map { ($0.place, $0.slot) }, prefs: prefs, from: anchor,
+                        startMinute: startMinute, limit: limit, travelOverride: travelOverride)
     }
 
     // MARK: Scoring
@@ -292,6 +325,9 @@ enum AutoPlanner {
                 start += travel + 5
             }
             start = (start + 4) / 5 * 5
+            if let wanted = entry.place.preferredMinute {
+                start = max(start, wanted)
+            }
             // A late start (after a flight) leaves no room for a lunch at 5 pm.
             if entry.slot == .lunch && start > 15 * 60 { continue }
             switch entry.slot {

@@ -159,12 +159,6 @@ private struct HotelStartRow: View {
     let day: Day
 
     var body: some View {
-        let to = first.coordinate
-        let distance = RoutingService.straightLine(from: from, to: to)
-        let mode: TravelMode = distance > 2_500 ? .drive : .walk
-        let time = RoutingService.estimate(from: from, to: to, mode: mode)
-        let text = "\(Format.duration(time)) · \(Format.distance(distance * 1.25)) to the first stop"
-
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 12) {
                 HotelPin()
@@ -172,50 +166,32 @@ private struct HotelStartRow: View {
                     .font(.subheadline.weight(.medium))
                 Spacer()
             }
-            if let trip = day.trip, trip.transport == .transit {
-                TransitConnector(trip: trip, fromName: name, toName: first.name, from: from, to: to,
-                                 timing: first.plannedTime.map { .arriveBy($0) } ?? .departAt(day.defaultWallClock(hour: 9)),
-                                 fallback: text)
-            } else {
-                Label(text, systemImage: mode.symbol)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .padding(.leading, 36)
-            }
+            TravelLegView(trip: day.trip, fromName: name, toName: first.name, from: from, to: first.coordinate,
+                          departAt: nil,
+                          arriveBy: first.plannedTime.map { day.combine(time: $0) },
+                          suffix: "to the first stop")
         }
         .accessibilityElement(children: .contain)
     }
 }
 
-/// The way from one stop to the next: a straight-line estimate, or the real public transport route.
+/// The way from one stop to the next in the trip's preferred way of getting around.
 private struct LegConnector: View {
     let day: Day
     let stop: Stop
     let next: Stop
 
     var body: some View {
-        let distance = RoutingService.straightLine(from: stop.coordinate, to: next.coordinate)
-        let mode: TravelMode = distance > 2_500 ? .drive : .walk
-        let time = RoutingService.estimate(from: stop.coordinate, to: next.coordinate, mode: mode)
-        let text = "\(Format.duration(time)) · \(Format.distance(distance * 1.25))"
-
-        if let trip = day.trip, trip.transport == .transit {
-            TransitConnector(trip: trip, fromName: stop.name, toName: next.name,
-                             from: stop.coordinate, to: next.coordinate,
-                             timing: timing, fallback: text)
-        } else {
-            Label(text, systemImage: mode.symbol)
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-                .padding(.leading, 36)
-        }
+        TravelLegView(trip: day.trip, fromName: stop.name, toName: next.name,
+                      from: stop.coordinate, to: next.coordinate,
+                      departAt: departure, arriveBy: nil)
     }
 
-    private var timing: TransitTiming {
+    private var departure: Date {
         if let time = stop.plannedTime {
-            return .departAt(time.addingTimeInterval(TimeInterval(stop.durationMinutes * 60)))
+            return day.combine(time: time).addingTimeInterval(TimeInterval(stop.durationMinutes * 60))
         }
-        return .departAt(day.defaultWallClock(hour: 10))
+        return day.defaultWallClock(hour: 10)
     }
 }
 

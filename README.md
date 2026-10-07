@@ -96,7 +96,14 @@ when it fits, times that include travel. You review the result like an import, c
 another version, or **Walk through** it one day at a time: each day shows its map and stops, and you can remove or
 replace a stop, shuffle the day, start it earlier or later, or tell the AI what to change ("more food", "swap the
 museum for something outdoors", "add something for kids"). The AI can only choose real places from the pool the plan
-was built from, every change reschedules the day, and Undo reverts it. Without an AI engine the buttons still work,
+was built from, every change reschedules the day, and Undo reverts it. Every place in the walk-through and the review
+shows its photo and a short Wikipedia description, and between places you see the travel time in the way of getting
+around you chose (on foot, by car, or the real public transport route), also on the Plan page.
+
+**Must-see places**: type what you want in a box ("Belém Tower at sunset on day 2", "Louvre 10:00") or search for a
+place; the text is understood without any AI (time, part of the day, day number). The place is searched while you
+type, results far from the destination are listed separately, and popular sights are one tap away. A preferred time
+and day can also be set by hand; the plan puts the place on that day and not before that time. Without an AI engine the buttons still work,
 only typed requests need one. Finally choose whether to add the plan or replace the current stops. No AI is needed; if an AI engine is
 available it only writes the day titles. Your answers are remembered per trip.
 
