@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreLocation
 
 /// Sets a time for every stop of a day: from a start time, one after another, using each stop's
 /// stay length plus the estimated travel time between stops.
@@ -11,13 +12,17 @@ struct AutoTimeSheet: View {
 
     private var stops: [Stop] { day.sortedStops }
 
+    /// The hotel the day starts from, if there is one.
+    private var hotel: CLLocationCoordinate2D? { day.trip?.window(for: day.date).anchor }
+
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    DatePicker("First stop at", selection: $start, displayedComponents: .hourAndMinute)
+                    DatePicker(hotel == nil ? "First stop at" : "Leave the hotel at",
+                               selection: $start, displayedComponents: .hourAndMinute)
                 } footer: {
-                    Text("Each stop starts after the previous one ends, plus travel time (walking, or driving for longer hops) and 5 minutes of slack. This replaces existing times for this day.")
+                    Text("Each stop starts after the previous one ends, plus travel time (walking, or driving for longer hops) and 5 minutes of slack. \(hotel == nil ? "" : "The first stop adds the way from the hotel. ")This replaces existing times for this day.")
                 }
 
                 if let windowNote {
@@ -92,6 +97,13 @@ struct AutoTimeSheet: View {
             }
             return ScheduleService.AutoItem(durationMinutes: stop.durationMinutes, travelMinutes: travel)
         }
-        return ScheduleService.autoSchedule(items: items, start: day.combine(time: start))
+        var first = day.combine(time: start)
+        if let hotel, let firstStop = stops.first {
+            let meters = RoutingService.straightLine(from: hotel, to: firstStop.coordinate)
+            let mode: TravelMode = meters > 2_500 ? .drive : .walk
+            let minutes = Int((RoutingService.estimate(from: hotel, to: firstStop.coordinate, mode: mode) / 60).rounded(.up))
+            first = first.addingTimeInterval(TimeInterval(minutes * 60))
+        }
+        return ScheduleService.autoSchedule(items: items, start: first)
     }
 }

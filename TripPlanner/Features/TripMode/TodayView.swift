@@ -112,7 +112,9 @@ struct TodayView: View {
                             .background(Color.blue.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
                     }
 
-                    StopsMapView(stops: day.sortedStops, showsUser: true, highlighted: nextStop)
+                    StopsMapView(stops: day.sortedStops, showsUser: true, highlighted: nextStop,
+                                 start: trip.window(for: day.date).anchor,
+                                 startName: trip.window(for: day.date).anchorName)
                         .frame(height: 220)
                         .clipShape(RoundedRectangle(cornerRadius: 16))
 

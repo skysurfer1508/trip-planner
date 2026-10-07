@@ -10,6 +10,9 @@ enum ItineraryExporter {
 
         for (index, day) in trip.sortedDays.enumerated() {
             lines.append("Day \(index + 1) · \(day.date.formatted(date: .complete, time: .omitted))")
+            if let hotel = trip.window(for: day.date).anchorName {
+                lines.append("   Start from \(hotel)")
+            }
             if day.stops.isEmpty {
                 lines.append("   (nothing planned)")
             }

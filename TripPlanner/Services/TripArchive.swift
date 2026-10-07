@@ -76,6 +76,10 @@ struct StopDTO: Codable {
     var phone: String
     var website: String
     var aiTips: String
+    var summary: String?
+    var wikiURL: String?
+    /// Only a photo the user chose is saved; Wikipedia photos are fetched again.
+    var userImage: Data?
 }
 
 struct ExpenseDTO: Codable {
@@ -147,7 +151,9 @@ enum TripArchiver {
                             address: stop.address, categoryRaw: stop.categoryRaw, plannedTime: stop.plannedTime,
                             durationMinutes: stop.durationMinutes, notes: stop.notes, order: stop.order,
                             isDone: stop.isDone, estimatedCost: stop.estimatedCost, phone: stop.phone,
-                            website: stop.website, aiTips: stop.aiTips)
+                            website: stop.website, aiTips: stop.aiTips,
+                            summary: stop.summary, wikiURL: stop.wikiURL,
+                            userImage: stop.imageSource == "user" ? stop.imageData : nil)
                 })
             },
             expenses: trip.expenses.sorted { $0.date < $1.date }.map {
@@ -247,6 +253,12 @@ enum TripArchiver {
                     stop.phone = stopDTO.phone
                     stop.website = stopDTO.website
                     stop.aiTips = stopDTO.aiTips
+                    stop.summary = stopDTO.summary ?? ""
+                    stop.wikiURL = stopDTO.wikiURL ?? ""
+                    if let image = stopDTO.userImage {
+                        stop.imageData = image
+                        stop.imageSource = "user"
+                    }
                     day.stops.append(stop)
                 }
             }

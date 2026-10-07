@@ -31,9 +31,14 @@ struct NextUpCard: View {
                     }
                 }
                 Spacer()
-                Image(systemName: stop.category.symbol)
-                    .font(.title2)
-                    .foregroundStyle(stop.category.color)
+                StopThumbnail(stop: stop, size: 72, corner: 14)
+            }
+
+            if !stop.summary.isEmpty {
+                Text(stop.summary)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(3)
             }
 
             Picker("Travel mode", selection: $mode) {
@@ -83,6 +88,7 @@ struct NextUpCard: View {
         }
         .padding()
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .task { await PlaceInfoLoader.ensureInfo(for: stop) }
     }
 
     /// "Leave by 14:35 (in 22 min)", turning red when it's time to go.

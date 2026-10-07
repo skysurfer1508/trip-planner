@@ -21,6 +21,14 @@ final class Stop {
     var website: String = ""
     /// Short AI-written tips, cached so they work offline.
     var aiTips: String = ""
+    /// Short description (from Wikipedia) and where it came from.
+    var summary: String = ""
+    var wikiURL: String = ""
+    /// Photo of the place: from Wikipedia ("wikipedia") or chosen by the user ("user").
+    @Attribute(.externalStorage) var imageData: Data?
+    var imageSource: String = ""
+    /// When the photo/description lookup last finished; nil means it still has to run.
+    var infoCheckedAt: Date?
     var day: Day?
 
     init(name: String,
@@ -54,6 +62,11 @@ final class Stop {
         copy.phone = phone
         copy.website = website
         copy.aiTips = aiTips
+        copy.summary = summary
+        copy.wikiURL = wikiURL
+        copy.imageData = imageData
+        copy.imageSource = imageSource
+        copy.infoCheckedAt = infoCheckedAt
         return copy
     }
 

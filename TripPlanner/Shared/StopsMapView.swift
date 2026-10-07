@@ -6,6 +6,9 @@ struct StopsMapView: View {
     let stops: [Stop]
     var showsUser = false
     var highlighted: Stop?
+    /// The hotel the day starts from; the route line begins here.
+    var start: CLLocationCoordinate2D?
+    var startName: String?
 
     @State private var camera: MapCameraPosition = .automatic
 
@@ -22,8 +25,14 @@ struct StopsMapView: View {
                             isHighlighted: highlighted?.persistentModelID == stop.persistentModelID)
                 }
             }
-            if stops.count > 1 {
-                MapPolyline(coordinates: stops.map(\.coordinate))
+            if let start {
+                Annotation(startName ?? "Hotel", coordinate: start) {
+                    HotelPin()
+                }
+            }
+            let path = (start.map { [$0] } ?? []) + stops.map(\.coordinate)
+            if path.count > 1 {
+                MapPolyline(coordinates: path)
                     .stroke(Color.accentColor.opacity(0.7), lineWidth: 3)
             }
         }

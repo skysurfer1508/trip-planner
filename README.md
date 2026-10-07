@@ -33,7 +33,7 @@ Each trip has five tabs:
 | Tab | What it does |
 |---|---|
 | **Overview** | Countdown or today's plan, weather, stats, a "Get ready" checklist (destination, stops, bookings, budget, packing) and quick actions. |
-| **Plan** | Days, map, place search, reorder, move/duplicate stops, copy a day, **Set times** (auto schedule from a start time), **Optimize route**, sort by time, travel time between stops, saved places, share/export, **full-screen map** with a drop-pin mode. |
+| **Plan** | Every day starts from your hotel (first row and pin, route and travel time begin there). Each stop has a photo and a short description from Wikipedia (stored on the stop, so it works offline; add your own photo anywhere Wikipedia has nothing). Days, map, place search, reorder, move/duplicate stops, copy a day, **Set times** (auto schedule from a start time), **Optimize route**, sort by time, travel time between stops, saved places, share/export, **full-screen map** with a drop-pin mode. |
 | **Discover** | Top sights, culture, nature, food and fun ranked by OpenTripMap + Tripadvisor popularity; bookmark places for later. |
 | **Budget** | Budget, expenses in any currency (converted with free rates), totals and charts. |
 | **More** | Packing & to-do, Documents (offline), Saved places, Share & export, edit trip, Settings. |

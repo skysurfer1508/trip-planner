@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import CoreLocation
 
 /// Reorderable list of a day's stops. Reordering needs edit mode (Edit button in the planner).
 struct DayStopListView: View {
@@ -69,6 +70,9 @@ struct DayStopListView: View {
                     .listRowBackground(Color.clear)
             } else {
                 Section {
+                    if let anchor = window.anchor, let first = stops.first {
+                        HotelStartRow(name: window.anchorName ?? "Hotel", from: anchor, to: first.coordinate)
+                    }
                     ForEach(Array(stops.enumerated()), id: \.element.persistentModelID) { index, stop in
                         Button {
                             onSelect(stop)
@@ -116,7 +120,7 @@ struct DayStopListView: View {
                         day.renumber(ordered)
                     }
                 } header: {
-                    DaySummary(stops: stops)
+                    DaySummary(stops: stops, start: window.anchor)
                 }
             }
         }
@@ -124,18 +128,47 @@ struct DayStopListView: View {
     }
 }
 
+/// Every day starts from the hotel: the first row shows the way to the first stop.
+private struct HotelStartRow: View {
+    let name: String
+    let from: CLLocationCoordinate2D
+    let to: CLLocationCoordinate2D
+
+    var body: some View {
+        let distance = RoutingService.straightLine(from: from, to: to)
+        let mode: TravelMode = distance > 2_500 ? .drive : .walk
+        let time = RoutingService.estimate(from: from, to: to, mode: mode)
+
+        HStack(spacing: 12) {
+            HotelPin()
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Start from \(name)")
+                    .font(.subheadline.weight(.medium))
+                Label("\(Format.duration(time)) · \(Format.distance(distance * 1.25)) to the first stop",
+                      systemImage: mode.symbol)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
 private struct DaySummary: View {
     let stops: [Stop]
+    var start: CLLocationCoordinate2D?
 
     var body: some View {
         let stay = stops.reduce(0) { $0 + $1.durationMinutes }
-        let route = RouteOptimizer.length(stops.map(\.coordinate)) * 1.25
+        let path = (start.map { [$0] } ?? []) + stops.map(\.coordinate)
+        let route = RouteOptimizer.length(path) * 1.25
         let cost = stops.reduce(0) { $0 + $1.estimatedCost }
 
         HStack(spacing: 10) {
             Label("\(stops.count) \(stops.count == 1 ? "stop" : "stops")", systemImage: "mappin")
             Label(Format.minutes(stay), systemImage: "clock")
-            if stops.count > 1 {
+            if path.count > 1 {
                 Label(Format.distance(route), systemImage: "point.topleft.down.to.point.bottomright.curvepath")
             }
             if cost > 0 {
@@ -177,11 +210,16 @@ struct StopRow: View {
                     }
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    if !stop.summary.isEmpty {
+                        Text(stop.summary)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                            .padding(.top, 1)
+                    }
                 }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                Spacer(minLength: 4)
+                StopThumbnail(stop: stop, size: 56)
             }
 
             if let warning {
@@ -202,5 +240,6 @@ struct StopRow: View {
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
+        .task { await PlaceInfoLoader.ensureInfo(for: stop) }
     }
 }

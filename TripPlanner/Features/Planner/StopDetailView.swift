@@ -1,9 +1,12 @@
 import SwiftUI
+import PhotosUI
 
 struct StopDetailView: View {
     @Bindable var stop: Stop
     @Environment(\.dismiss) private var dismiss
     @Environment(Secrets.self) private var secrets
+    @State private var photoItem: PhotosPickerItem?
+    @State private var loadingInfo = false
 
     private static let defaultHour = 9
 
@@ -33,6 +36,8 @@ struct StopDetailView: View {
     var body: some View {
         NavigationStack {
             Form {
+                photoSection
+
                 Section {
                     TextField("Name", text: $stop.name)
                     Picker("Category", selection: $stop.category) {
@@ -107,6 +112,95 @@ struct StopDetailView: View {
                     Button("Done") { dismiss() }
                 }
             }
+            .task {
+                loadingInfo = stop.infoCheckedAt == nil
+                await PlaceInfoLoader.ensureInfo(for: stop)
+                loadingInfo = false
+            }
+            .onChange(of: photoItem) { _, item in
+                guard let item else { return }
+                Task {
+                    if let data = try? await item.loadTransferable(type: Data.self),
+                       let prepared = Self.prepared(data) {
+                        stop.imageData = prepared
+                        stop.imageSource = "user"
+                    }
+                    photoItem = nil
+                }
+            }
         }
+    }
+
+    // MARK: Photo and description
+
+    @ViewBuilder
+    private var photoSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 12) {
+                if let data = stop.imageData, let image = UIImage(data: data) {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(height: 210)
+                        .frame(maxWidth: .infinity)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                } else if loadingInfo {
+                    HStack(spacing: 10) {
+                        ProgressView()
+                        Text("Looking for a photo…")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                if !stop.summary.isEmpty {
+                    Text(stop.summary)
+                        .font(.subheadline)
+                    if let url = URL(string: stop.wikiURL), !stop.wikiURL.isEmpty {
+                        Link("Read more on Wikipedia", destination: url)
+                            .font(.footnote)
+                    }
+                    if stop.imageSource != "user" {
+                        Text("Text and photo from Wikipedia (CC BY-SA)")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                } else if !loadingInfo {
+                    Text("No description found for this place.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+
+            PhotosPicker(selection: $photoItem, matching: .images) {
+                Label(stop.imageData == nil ? "Add my own photo" : "Use my own photo instead",
+                      systemImage: "photo.badge.plus")
+            }
+            if stop.imageData != nil {
+                Button("Remove photo", systemImage: "trash", role: .destructive) {
+                    stop.imageData = nil
+                    stop.imageSource = ""
+                }
+            }
+            Button("Look up photo and description again", systemImage: "arrow.clockwise") {
+                Task {
+                    loadingInfo = true
+                    await PlaceInfoLoader.ensureInfo(for: stop, force: true)
+                    loadingInfo = false
+                }
+            }
+        }
+    }
+
+    /// Photos from the library are shrunk so a trip stays small.
+    private static func prepared(_ data: Data) -> Data? {
+        guard let image = UIImage(data: data) else { return nil }
+        let longest = max(image.size.width, image.size.height)
+        let scale = min(1, 1024 / longest)
+        let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+        let resized = UIGraphicsImageRenderer(size: size).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: size))
+        }
+        return resized.jpegData(compressionQuality: 0.8)
     }
 }

@@ -56,6 +56,12 @@ struct DayMapView: View {
                     UserAnnotation()
                     ForEach(visible) { entry in
                         let stops = entry.day.sortedStops
+                        let anchor = trip.window(for: entry.day.date).anchor
+                        if let anchor {
+                            Annotation("Hotel", coordinate: anchor) {
+                                HotelPin()
+                            }
+                        }
                         ForEach(Array(stops.enumerated()), id: \.element.persistentModelID) { number, stop in
                             Annotation(stop.name, coordinate: stop.coordinate) {
                                 StopPin(number: number + 1,
@@ -65,8 +71,9 @@ struct DayMapView: View {
                                     .onTapGesture { selected = stop }
                             }
                         }
-                        if stops.count > 1 {
-                            MapPolyline(coordinates: stops.map(\.coordinate))
+                        let path = (anchor.map { [$0] } ?? []) + stops.map(\.coordinate)
+                        if path.count > 1 {
+                            MapPolyline(coordinates: path)
                                 .stroke(DayPalette.color(entry.index).opacity(0.7), lineWidth: 3)
                         }
                     }

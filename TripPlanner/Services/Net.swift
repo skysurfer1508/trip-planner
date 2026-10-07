@@ -54,6 +54,11 @@ enum Net {
         return try JSONDecoder().decode(T.self, from: payload)
     }
 
+    /// Raw bytes of a URL, e.g. an image.
+    static func bytes(url: URL, session: URLSession = Net.live) async throws -> Data {
+        try await data(url: url, headers: [:], session: session)
+    }
+
     /// Like `json`, for endpoints that answer with a list. An empty answer (204) is an empty list.
     static func jsonArray(url: URL,
                           headers: [String: String] = [:],
