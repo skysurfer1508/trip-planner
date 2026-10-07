@@ -25,6 +25,7 @@ struct DiscoverView: View {
     @State private var addedIDs: Set<String> = []
     @State private var selected: SuggestedPlace?
     @State private var showSettings = false
+    @State private var showSearch = false
     @State private var saveFeedback = 0
 
     private var center: CLLocationCoordinate2D? {
@@ -57,9 +58,20 @@ struct DiscoverView: View {
         }
         .navigationTitle("Discover")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            if !days.isEmpty {
-                ToolbarItem(placement: .topBarTrailing) {
+        .safeAreaInset(edge: .top, spacing: 0) {
+            TabHeader(title: "Discover") {
+                if let day = targetDay {
+                    Button {
+                        showSearch = true
+                    } label: {
+                        Image(systemName: "magnifyingglass")
+                    }
+                    .accessibilityLabel("Search places")
+                    .sheet(isPresented: $showSearch) {
+                        AddPlaceView(day: day)
+                    }
+                }
+                if !days.isEmpty {
                     Menu {
                         Picker("Add to", selection: $targetIndex) {
                             ForEach(Array(days.enumerated()), id: \.offset) { index, day in
@@ -68,6 +80,8 @@ struct DiscoverView: View {
                         }
                     } label: {
                         Label("Add to Day \(min(targetIndex, days.count - 1) + 1)", systemImage: "calendar.badge.plus")
+                            .labelStyle(.titleAndIcon)
+                            .font(.subheadline)
                     }
                 }
             }

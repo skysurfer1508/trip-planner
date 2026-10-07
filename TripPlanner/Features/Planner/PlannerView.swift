@@ -14,6 +14,7 @@ struct PlannerView: View {
     @State private var showTimes = false
     @State private var editingStop: Stop?
     @State private var feedback = 0
+    @State private var editMode: EditMode = .inactive
 
     private var days: [Day] { trip.sortedDays }
 
@@ -61,49 +62,16 @@ struct PlannerView: View {
         }
         .navigationTitle(trip.name)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                EditButton()
-                Menu {
-                    Section("Add") {
-                        Button("Add place", systemImage: "mappin.and.ellipse") { showAddPlace = true }
-                            .disabled(selectedDay == nil)
-                        Button("Auto plan…", systemImage: "wand.and.stars") { showAutoPlan = true }
-                        Button("Import program (PDF, Word, photo)", systemImage: "doc.viewfinder") { showImport = true }
-                        Button("Saved places (\(trip.savedPlaces.count))", systemImage: "bookmark") { showSaved = true }
-                    }
-                    Section("This day") {
-                        Button("Optimize route", systemImage: "point.topleft.down.to.point.bottomright.curvepath") {
-                            if let day = selectedDay { optimize(day) }
-                        }
-                        .disabled((selectedDay?.stops.count ?? 0) < 2)
-                        Button("Sort by time", systemImage: "clock.arrow.2.circlepath") {
-                            if let day = selectedDay { sortByTime(day) }
-                        }
-                        .disabled((selectedDay?.stops.count ?? 0) < 2)
-                        Button("Set times…", systemImage: "clock.badge.checkmark") { showTimes = true }
-                            .disabled((selectedDay?.stops.count ?? 0) < 1)
-                        Menu("Copy day to…", systemImage: "doc.on.doc") {
-                            ForEach(Array(days.enumerated()), id: \.element.persistentModelID) { index, target in
-                                if target.persistentModelID != selectedDay?.persistentModelID {
-                                    Button("Day \(index + 1) · \(Format.dayChip(target.date))") {
-                                        selectedDay?.copyStops(to: target)
-                                        feedback += 1
-                                    }
-                                }
-                            }
-                        }
-                        .disabled((selectedDay?.stops.count ?? 0) < 1 || days.count < 2)
-                    }
-                    Section {
-                        Button("Share & export", systemImage: "square.and.arrow.up") { showExport = true }
-                    }
-                } label: {
-                    Image(systemName: "plus.circle")
+        .safeAreaInset(edge: .top, spacing: 0) {
+            TabHeader(title: trip.name) {
+                Button(editMode.isEditing ? "Done" : "Edit") {
+                    withAnimation { editMode = editMode.isEditing ? .inactive : .active }
                 }
-                .accessibilityLabel("Plan actions")
+                .font(.body)
+                actionsMenu
             }
         }
+        .environment(\.editMode, $editMode)
         .sheet(isPresented: $showAddPlace) {
             if let day = selectedDay {
                 AddPlaceView(day: day)
@@ -134,6 +102,48 @@ struct PlannerView: View {
         }
         .sensoryFeedback(.success, trigger: feedback)
         .onAppear(perform: jumpToToday)
+    }
+
+    /// Add places, Auto plan, import, and the actions for the selected day.
+    private var actionsMenu: some View {
+        Menu {
+            Section("Add") {
+                Button("Add place", systemImage: "mappin.and.ellipse") { showAddPlace = true }
+                    .disabled(selectedDay == nil)
+                Button("Auto plan…", systemImage: "wand.and.stars") { showAutoPlan = true }
+                Button("Import program (PDF, Word, photo)", systemImage: "doc.viewfinder") { showImport = true }
+                Button("Saved places (\(trip.savedPlaces.count))", systemImage: "bookmark") { showSaved = true }
+            }
+            Section("This day") {
+                Button("Optimize route", systemImage: "point.topleft.down.to.point.bottomright.curvepath") {
+                    if let day = selectedDay { optimize(day) }
+                }
+                .disabled((selectedDay?.stops.count ?? 0) < 2)
+                Button("Sort by time", systemImage: "clock.arrow.2.circlepath") {
+                    if let day = selectedDay { sortByTime(day) }
+                }
+                .disabled((selectedDay?.stops.count ?? 0) < 2)
+                Button("Set times…", systemImage: "clock.badge.checkmark") { showTimes = true }
+                    .disabled((selectedDay?.stops.count ?? 0) < 1)
+                Menu("Copy day to…", systemImage: "doc.on.doc") {
+                    ForEach(Array(days.enumerated()), id: \.element.persistentModelID) { index, target in
+                        if target.persistentModelID != selectedDay?.persistentModelID {
+                            Button("Day \(index + 1) · \(Format.dayChip(target.date))") {
+                                selectedDay?.copyStops(to: target)
+                                feedback += 1
+                            }
+                        }
+                    }
+                }
+                .disabled((selectedDay?.stops.count ?? 0) < 1 || days.count < 2)
+            }
+            Section {
+                Button("Share & export", systemImage: "square.and.arrow.up") { showExport = true }
+            }
+        } label: {
+            Image(systemName: "plus.circle.fill")
+        }
+        .accessibilityLabel("Plan actions")
     }
 
     private var dayPicker: some View {

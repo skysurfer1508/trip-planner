@@ -113,10 +113,12 @@ struct BudgetView: View {
         }
         .navigationTitle("Budget")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                Button("Budget", systemImage: "slider.horizontal.3") { showBudget = true }
-                Button("Add expense", systemImage: "plus") { showAdd = true }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            TabHeader(title: "Budget") {
+                Button { showBudget = true } label: { Image(systemName: "slider.horizontal.3") }
+                    .accessibilityLabel("Budget settings")
+                Button { showAdd = true } label: { Image(systemName: "plus.circle.fill") }
+                    .accessibilityLabel("Add expense")
             }
         }
         .sheet(isPresented: $showAdd) {
