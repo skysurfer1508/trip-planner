@@ -100,6 +100,12 @@ was built from, every change reschedules the day, and Undo reverts it. Every pla
 shows its photo and a short Wikipedia description, and between places you see the travel time in the way of getting
 around you chose (on foot, by car, or the real public transport route), also on the Plan page.
 
+**Plan tab**: after you reorder stops (Edit), a banner and an *Adjust times* button lay the day's times out again in the
+new order, with the way between stops in your way of getting around (and the first stop's time kept). The sparkles button
+opens a chat with the AI about the whole plan ("swap day 1 and day 2", "start everything an hour later", "put the
+museums in the morning", "add a coffee break on day 1"). It only uses the stops in the plan and real places nearby,
+and every change can be undone.
+
 **How to plan** (first Auto plan question): *Suggest everything*, *Build around my places* (your places and the stops
 already in the trip are fixed, the rest is filled with suggestions) or *Only my places* (nothing is added; your places are
 spread over the days by area, put in a short walking order and timed, meals at meal times). Stops already in the trip can
