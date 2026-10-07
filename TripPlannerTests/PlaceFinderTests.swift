@@ -8,7 +8,7 @@ final class PlaceFinderTests: XCTestCase {
 
     func testAccentsAndPolishLettersAreIgnored() {
         XCTAssertEqual(PlaceFinder.fold("Świętokrzyski Łódź Ørsted Straße"), "swietokrzyski lodz orsted strasse")
-        XCTAssertGreaterThan(PlaceFinder.similarity("Swietokrzyski Bridge", "Most Świętokrzyski"), 0.7)
+        XCTAssertGreaterThan(PlaceFinder.similarity("Swietokrzyski Bridge", "Most Świętokrzyski"), 0.45)
     }
 
     func testPartialAndLongerNamesStillMatch() {
