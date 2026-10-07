@@ -166,7 +166,7 @@ struct OnDeviceAI: AIEngine {
 
     func extractPlaces(text: String, destination: String) async throws -> [PlaceWish] {
         var all: [PlaceWish] = []
-        for chunk in TextChunker.chunks(text, limit: 1800).prefix(8) {
+        for chunk in TextChunker.chunks(text, limit: 500).prefix(24) {
             let result = try await respond(AIPrompts.places(text: chunk, destination: destination), as: GenPlaceWishes.self)
             let rows: [[String: Any]] = result.places.map { place in
                 ["name": place.name, "localName": place.localName, "kind": place.kind,

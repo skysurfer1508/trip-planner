@@ -91,25 +91,23 @@ enum AutoPlanner {
                                  count: dayCount)
         while centres.count < dayCount { centres.append(center) }
 
-        // Must-see places go to the day they were asked for, else to the day whose centre is closest.
-        // Those with a wanted time are slotted into the day's timeline afterwards.
+        // The traveller's own places are spread over the days by area, but never onto a day with no
+        // time left (the evening of arrival). Those with a wanted time are slotted in afterwards.
         var reserved = Array(repeating: [PlanCandidate](), count: dayCount)
         var timed = Array(repeating: [PlanCandidate](), count: dayCount)
         var used = Set<String>()
-        for place in pool where place.isMustSee {
-            var index = centres.indices.min {
-                RoutingService.straightLine(from: centres[$0], to: place.coordinate)
-                    < RoutingService.straightLine(from: centres[$1], to: place.coordinate)
-            } ?? 0
-            if let day = place.preferredDay, (1...dayCount).contains(day) {
-                index = day - 1
+        let capacities = (0..<dayCount).map { index in
+            capacity(prefs: prefs, window: windows.indices.contains(index) ? windows[index] : DayWindow())
+        }
+        for (index, group) in distribute(pool.filter(\.isMustSee), dayCount: dayCount, capacities: capacities).enumerated() {
+            for place in group {
+                if place.preferredMinute != nil {
+                    timed[index].append(place)
+                } else {
+                    reserved[index].append(place)
+                }
+                used.insert(place.id)
             }
-            if place.preferredMinute != nil {
-                timed[index].append(place)
-            } else {
-                reserved[index].append(place)
-            }
-            used.insert(place.id)
         }
 
         func pick(kind: DiscoverKind, near: CLLocationCoordinate2D, rng: inout G) -> PlanCandidate? {
@@ -139,6 +137,7 @@ enum AutoPlanner {
             let window = windows.indices.contains(dayIndex) ? windows[dayIndex] : DayWindow()
             // Start from the hotel when there is one; otherwise from the day's area.
             var current = window.anchor ?? centres[dayIndex]
+            reserved[dayIndex] = walkingOrder(reserved[dayIndex], from: current)
             var slots: [(place: PlanCandidate, slot: PlanSlot)] = []
             var kindCursor = dayIndex
 
@@ -198,6 +197,119 @@ enum AutoPlanner {
         return days
     }
 
+    // MARK: Spreading places over days
+
+    /// Minutes of a day that can be used: from its start (after landing, or the usual start) to its end.
+    static func availableMinutes(prefs: TripPreferences, window: DayWindow) -> Int {
+        let start = max(prefs.dayStart.minutes, window.startMinute ?? 0)
+        let end = min(prefs.endLimitMinutes, window.endMinute ?? Int.max)
+        return max(0, end - start)
+    }
+
+    /// How many stops a day takes: about two hours each with the way between them. A day with
+    /// under an hour left (the evening of arrival) takes none.
+    static func capacity(prefs: TripPreferences, window: DayWindow) -> Int {
+        let minutes = availableMinutes(prefs: prefs, window: window)
+        return minutes < 60 ? 0 : max(1, minutes / 110)
+    }
+
+    /// Spreads places over the days: first the ones asked for on a day, then the rest by area, a compact
+    /// area per day, the biggest areas on the days with the most time. A day never gets more than its
+    /// capacity until every day is full.
+    static func distribute(_ places: [PlanCandidate], dayCount: Int, capacities: [Int]) -> [[PlanCandidate]] {
+        var buckets = Array(repeating: [PlanCandidate](), count: dayCount)
+        var free = (0..<dayCount).map { capacities.indices.contains($0) ? capacities[$0] : 6 }
+        var rest: [PlanCandidate] = []
+        for place in places {
+            if let day = place.preferredDay, (1...dayCount).contains(day) {
+                buckets[day - 1].append(place)
+                free[day - 1] -= 1
+            } else {
+                rest.append(place)
+            }
+        }
+        guard !rest.isEmpty else { return buckets }
+
+        let centres = dayCentres(points: rest.map(\.coordinate), weights: rest.map { _ in 1.0 }, count: dayCount)
+        guard !centres.isEmpty else { return buckets }
+
+        func nearestCentre(_ place: PlanCandidate) -> Int {
+            centres.indices.min {
+                RoutingService.straightLine(from: place.coordinate, to: centres[$0])
+                    < RoutingService.straightLine(from: place.coordinate, to: centres[$1])
+            } ?? 0
+        }
+
+        // Pair areas with days: the area with the most places goes to the day with the most room.
+        var sizes = Array(repeating: 0, count: centres.count)
+        for place in rest { sizes[nearestCentre(place)] += 1 }
+        let areaOrder = centres.indices.sorted { sizes[$0] > sizes[$1] }
+        let dayOrder = (0..<dayCount).sorted { free[$0] > free[$1] }
+        var dayCentre = Array(repeating: centres[0], count: dayCount)
+        for (rank, area) in areaOrder.enumerated() where rank < dayOrder.count {
+            dayCentre[dayOrder[rank]] = centres[area]
+        }
+
+        func distance(_ place: PlanCandidate, day: Int) -> Double {
+            RoutingService.straightLine(from: place.coordinate, to: dayCentre[day])
+        }
+
+        // Places close to an area centre first, so the clear cases settle before the borderline ones.
+        let ordered = rest.sorted { a, b in
+            RoutingService.straightLine(from: a.coordinate, to: centres[nearestCentre(a)])
+                < RoutingService.straightLine(from: b.coordinate, to: centres[nearestCentre(b)])
+        }
+        for place in ordered {
+            let byDistance = (0..<dayCount).sorted { distance(place, day: $0) < distance(place, day: $1) }
+            let day = byDistance.first { free[$0] > 0 } ?? (0..<dayCount).max { free[$0] < free[$1] } ?? 0
+            buckets[day].append(place)
+            free[day] -= 1
+        }
+        return buckets
+    }
+
+    /// Short walking order starting near `start`, so the first place on a list is not simply the first stop.
+    static func walkingOrder(_ places: [PlanCandidate], from start: CLLocationCoordinate2D?) -> [PlanCandidate] {
+        guard places.count > 1 else { return places }
+        if let start {
+            let order = RouteOptimizer.order([start] + places.map(\.coordinate)).dropFirst().map { $0 - 1 }
+            return order.map { places[$0] }
+        }
+        return RouteOptimizer.order(places.map(\.coordinate)).map { places[$0] }
+    }
+
+    /// Finds room for places that did not make it into a day: on the day they were asked for, else
+    /// the day with the most room, as long as nothing else has to be dropped for it.
+    static func placeMissing(_ missing: [PlanCandidate],
+                             into days: [PlannedDay],
+                             prefs: TripPreferences,
+                             windows: [DayWindow]) -> (days: [PlannedDay], leftOut: [PlanCandidate]) {
+        var days = days
+        var leftOut: [PlanCandidate] = []
+        for place in missing {
+            var order = days.indices.sorted { days[$0].stops.count < days[$1].stops.count }
+            if let wanted = place.preferredDay, days.indices.contains(wanted - 1) {
+                order.removeAll { $0 == wanted - 1 }
+                order.insert(wanted - 1, at: 0)
+            }
+            var placed = false
+            for index in order {
+                let window = windows.indices.contains(index) ? windows[index] : DayWindow()
+                let before = days[index].stops.count
+                let outcome = PlanEditor.apply([.add(place.id, after: nil)], to: days[index], pool: [place],
+                                               usedElsewhere: [], prefs: prefs, window: window)
+                if outcome.day.stops.count == before + 1,
+                   outcome.day.stops.contains(where: { $0.candidate.id == place.id }) {
+                    days[index] = outcome.day
+                    placed = true
+                    break
+                }
+            }
+            if !placed { leftOut.append(place) }
+        }
+        return (days, leftOut)
+    }
+
     struct Arrangement {
         var days: [PlannedDay]
         /// Places that did not fit on any day.
@@ -217,32 +329,11 @@ enum AutoPlanner {
                                leftOut: [])
         }
 
-        // Compact areas, then fill the days evenly.
-        var centres = dayCentres(points: places.map(\.coordinate), weights: places.map { _ in 1.0 }, count: dayCount)
-        while centres.count < dayCount { centres.append(centres.last ?? center) }
-        let capacity = Int((Double(places.count) / Double(dayCount)).rounded(.up)) + 1
-
-        func distance(_ place: PlanCandidate, _ centre: CLLocationCoordinate2D) -> Double {
-            RoutingService.straightLine(from: place.coordinate, to: centre)
+        // Compact areas, then fill the days by how much time each has.
+        let capacities = (0..<dayCount).map { index in
+            capacity(prefs: prefs, window: windows.indices.contains(index) ? windows[index] : DayWindow())
         }
-
-        var buckets = Array(repeating: [PlanCandidate](), count: dayCount)
-        var rest: [PlanCandidate] = []
-        for place in places {
-            if let day = place.preferredDay, (1...dayCount).contains(day) {
-                buckets[day - 1].append(place)
-            } else {
-                rest.append(place)
-            }
-        }
-        rest.sort { a, b in
-            (centres.map { distance(a, $0) }.min() ?? 0) < (centres.map { distance(b, $0) }.min() ?? 0)
-        }
-        for place in rest {
-            let byDistance = centres.indices.sorted { distance(place, centres[$0]) < distance(place, centres[$1]) }
-            let index = byDistance.first { buckets[$0].count < capacity } ?? byDistance[0]
-            buckets[index].append(place)
-        }
+        var buckets = distribute(places, dayCount: dayCount, capacities: capacities)
 
         func build(_ bucket: [PlanCandidate], dayIndex: Int) -> [PlannedStop] {
             let window = windows.indices.contains(dayIndex) ? windows[dayIndex] : DayWindow()

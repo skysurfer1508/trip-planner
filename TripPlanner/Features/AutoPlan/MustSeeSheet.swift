@@ -405,6 +405,7 @@ struct MustSeeSheet: View {
         let plain = MustSeeParser.split(text)
 
         var wishes: [PlaceWish] = []
+        var textOnly = Set<UUID>()
         if let engine = AIRouter.current(geminiKey: secrets.keys.gemini),
            let result = try? await engine.extractPlaces(text: text, destination: destinationName), !result.isEmpty {
             wishes = result
@@ -416,6 +417,17 @@ struct MustSeeSheet: View {
                     wishes[index].suggestedMinute = nil
                 }
                 if wishes[index].day == nil { wishes[index].day = match.day }
+            }
+            // The AI sometimes stops after a few places. Anything the plain reading found that the AI did
+            // not mention is added, so a pasted list is never cut short.
+            if plain.count >= 3 {
+                for parsed in plain where !wishes.contains(where: { PlaceFinder.similarity(parsed.query, $0.name) > 0.45 }) {
+                    var wish = PlaceWish(name: parsed.query)
+                    wish.statedMinute = parsed.minute
+                    wish.day = parsed.day
+                    textOnly.insert(wish.id)
+                    wishes.append(wish)
+                }
             }
         } else {
             wishes = plain.map { parsed in
@@ -432,7 +444,7 @@ struct MustSeeSheet: View {
         }
 
         var entries: [BatchEntry] = []
-        for wish in wishes.prefix(25) {
+        for wish in wishes.prefix(40) {
             var entry = BatchEntry(title: wish.name)
             entry.day = wish.day
             entry.kind = Self.discoverKind(for: wish.kind)
@@ -447,7 +459,8 @@ struct MustSeeSheet: View {
             entry.options = matches.map(\.item)
             entry.item = matches.first?.item
             entry.confident = matches.first?.isConfident ?? false
-            entry.include = entry.item != nil
+            // Names only the plain reading found are ticked only when the match is certain.
+            entry.include = entry.item != nil && (entry.confident || !textOnly.contains(wish.id))
             entries.append(entry)
             batch = entries
         }

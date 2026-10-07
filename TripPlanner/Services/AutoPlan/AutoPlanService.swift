@@ -10,6 +10,8 @@ enum AutoPlanService {
         var candidateCount: Int
         /// Every place that was considered, so single days can be changed afterwards.
         var candidates: [PlanCandidate]
+        /// The traveller's own places that did not fit on any day.
+        var leftOut: [PlanCandidate] = []
     }
 
     static func build(prefs: TripPreferences,
@@ -89,31 +91,41 @@ enum AutoPlanService {
 
         candidates.append(contentsOf: fixed)
 
+        var days: [PlannedDay]
         if !fillGaps {
             // Only the traveller's own places: arrange them, don't add anything.
             let own = candidates.filter(\.isMustSee)
-            let arranged = AutoPlanner.arrange(places: own, prefs: prefs, center: center, windows: windows)
-            if !arranged.leftOut.isEmpty {
-                let names = arranged.leftOut.map(\.name).joined(separator: ", ")
-                notices.append("These places didn't fit in the days available: \(names). Add a day or move them in the walk-through.")
-            }
-            return Output(days: arranged.days,
-                          notices: Array(Set(notices)).sorted(),
-                          candidateCount: own.count,
-                          candidates: AutoPlanner.dedupe(candidates))
-        }
-
-        var generator = SystemRandomNumberGenerator()
-        let days = AutoPlanner.generate(candidates: candidates,
+            days = AutoPlanner.arrange(places: own, prefs: prefs, center: center, windows: windows).days
+        } else {
+            var generator = SystemRandomNumberGenerator()
+            days = AutoPlanner.generate(candidates: candidates,
                                         prefs: prefs,
                                         center: center,
                                         variation: variation,
                                         windows: windows,
                                         using: &generator)
+        }
+
+        // Every place of the traveller's own must be in the plan or be reported, never silently lost.
+        let pool = AutoPlanner.dedupe(candidates)
+        let own = pool.filter(\.isMustSee)
+        let planned = Set(days.flatMap { $0.stops.map(\.candidate.id) })
+        let missing = own.filter { !planned.contains($0.id) }
+        var leftOut: [PlanCandidate] = []
+        if !missing.isEmpty {
+            let result = AutoPlanner.placeMissing(missing, into: days, prefs: prefs, windows: windows)
+            days = result.days
+            leftOut = result.leftOut
+        }
+        if !leftOut.isEmpty {
+            let names = leftOut.map(\.name).joined(separator: ", ")
+            notices.append("\(own.count - leftOut.count) of your \(own.count) places are in the plan. These didn't fit in the days available: \(names). You can add them in the walk-through, or add a day to the trip.")
+        }
         return Output(days: days,
                       notices: Array(Set(notices)).sorted(),
                       candidateCount: candidates.count,
-                      candidates: AutoPlanner.dedupe(candidates))
+                      candidates: pool,
+                      leftOut: leftOut)
     }
 
     private static func candidate(from place: SuggestedPlace) -> PlanCandidate {

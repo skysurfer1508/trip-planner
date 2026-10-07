@@ -8,6 +8,8 @@ struct PlanWalkthroughView: View {
     let trip: Trip
     @Binding var plan: [PlannedDay]
     @Binding var pool: [PlanCandidate]
+    /// The traveller's own places that did not fit on any day.
+    @Binding var leftOut: [PlanCandidate]
     let prefs: TripPreferences
     let windows: [DayWindow]
     /// Real public transport minutes found while planning, used when a day is scheduled again.
@@ -203,6 +205,10 @@ struct PlanWalkthroughView: View {
                         }
                     }
                     .card()
+                }
+
+                if !leftOut.isEmpty {
+                    leftOutCard(for: index)
                 }
 
                 Button {
@@ -427,6 +433,37 @@ struct PlanWalkthroughView: View {
             pool.append(candidate)
         }
         applyEdits([.add(candidate.id, after: nil)], message: "Added \(candidate.name) to day \(dayIndex + 1).")
+    }
+
+    /// Places from the traveller's list that are not on any day yet, each with a button to add it here.
+    private func leftOutCard(for index: Int) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("Your places that aren't in the plan yet", systemImage: "exclamationmark.circle")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.orange)
+            ForEach(leftOut) { place in
+                HStack {
+                    Text(place.name)
+                        .font(.subheadline)
+                    Spacer()
+                    Button("Add to day \(index + 1)") {
+                        addLeftOut(place, to: index)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 14))
+    }
+
+    private func addLeftOut(_ place: PlanCandidate, to index: Int) {
+        applyEdits([.add(place.id, after: nil)], message: "Added \(place.name) to day \(index + 1).", on: index)
+        if plan.indices.contains(index), plan[index].stops.contains(where: { $0.candidate.id == place.id }) {
+            leftOut.removeAll { $0.id == place.id }
+        }
     }
 
     private func hasNightlife(_ index: Int) -> Bool {

@@ -87,6 +87,7 @@ struct AutoPlanFlowView: View {
     @State private var notice: String?
     @State private var plan: [PlannedDay] = []
     @State private var pool: [PlanCandidate] = []
+    @State private var leftOut: [PlanCandidate] = []
     @State private var dayWindows: [DayWindow] = []
     @State private var transitMinutes: [String: Int] = [:]
 
@@ -153,6 +154,7 @@ struct AutoPlanFlowView: View {
                     PlanWalkthroughView(trip: trip,
                                         plan: $plan,
                                         pool: $pool,
+                                        leftOut: $leftOut,
                                         prefs: prefs,
                                         windows: dayWindows,
                                         transitMinutes: transitMinutes) {
@@ -634,6 +636,7 @@ struct AutoPlanFlowView: View {
             plan[index].theme = themes[index]
         }
         pool = output.candidates
+        leftOut = output.leftOut
         dayWindows = windows
         transitMinutes = [:]
         if prefs.transport == .transit && TransitRouter.isEnabled {

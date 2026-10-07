@@ -305,3 +305,86 @@ final class ArrangeTests: XCTestCase {
         XCTAssertEqual(day.stops.filter { $0.candidate.kind == .food }.count, 1, "no second restaurant is added")
     }
 }
+
+final class OwnPlacesDistributionTests: XCTestCase {
+    private let center = CLLocationCoordinate2D(latitude: 52.2297, longitude: 21.0122)
+
+    private func place(_ id: String, north: Double, east: Double = 0, kind: DiscoverKind = .sights) -> PlanCandidate {
+        var candidate = PlanCandidate(id: id, name: "Place \(id)",
+                                      coordinate: CLLocationCoordinate2D(latitude: center.latitude + north,
+                                                                         longitude: center.longitude + east),
+                                      kind: kind, score: 1)
+        candidate.isMustSee = true
+        return candidate
+    }
+
+    private func prefs(days: Int) -> TripPreferences {
+        var value = TripPreferences()
+        value.days = days
+        value.group = .couple
+        value.interests = [.sights]
+        return value
+    }
+
+    func testArrivalEveningDoesNotSwallowYourPlaces() {
+        // 12 places in one area, and day 1 starts only after landing at 20:00.
+        let places = (0..<12).map { place("p\($0)", north: Double($0 % 4) * 0.003, east: Double($0 / 4) * 0.003) }
+        var windows = [DayWindow](repeating: DayWindow(), count: 3)
+        windows[0] = DayWindow(startMinute: 20 * 60)
+        var rng = SplitMix64(seed: 5)
+        let days = AutoPlanner.generate(candidates: places, prefs: prefs(days: 3), center: center, variation: 0,
+                                        windows: windows, using: &rng)
+        let planned = Set(days.flatMap { $0.stops.map(\.candidate.id) })
+        XCTAssertEqual(planned, Set(places.map(\.id)), "every place is in the plan")
+        XCTAssertLessThanOrEqual(days[0].stops.count, 1)
+    }
+
+    func testAllPlacesOfALongListMakeIt() {
+        let places = (0..<20).map { place("p\($0)", north: Double($0 % 5) * 0.004, east: Double($0 / 5) * 0.004) }
+        let capacities = [Int](repeating: 6, count: 5)
+        let buckets = AutoPlanner.distribute(places, dayCount: 5, capacities: capacities)
+        XCTAssertEqual(buckets.flatMap { $0 }.count, 20)
+        XCTAssertTrue(buckets.allSatisfy { $0.count <= 6 })
+        XCTAssertGreaterThanOrEqual(buckets.filter { !$0.isEmpty }.count, 4, "spread over the days")
+    }
+
+    func testBusyDaysGetMorePlacesThanTheArrivalDay() {
+        let places = (0..<8).map { place("p\($0)", north: Double($0) * 0.002) }
+        let buckets = AutoPlanner.distribute(places, dayCount: 2, capacities: [1, 6])
+        XCTAssertEqual(buckets[0].count, 1)
+        XCTAssertEqual(buckets[1].count, 7)
+    }
+
+    func testCapacityOfAnArrivalDay() {
+        var value = prefs(days: 1)
+        value.dayStart = .normal
+        XCTAssertGreaterThanOrEqual(AutoPlanner.capacity(prefs: value, window: DayWindow()), 5)
+        XCTAssertEqual(AutoPlanner.capacity(prefs: value, window: DayWindow(startMinute: 21 * 60)), 0)
+    }
+
+    func testListOrderIsNotTheOrderOfTheDay() {
+        // A zigzag list: far north, south, north, south...
+        let zigzag = (0..<8).map { place("p\($0)", north: $0 % 2 == 0 ? 0.04 + Double($0) * 0.001 : Double($0) * 0.001) }
+        let ordered = AutoPlanner.walkingOrder(zigzag, from: center)
+        func length(_ list: [PlanCandidate]) -> Double {
+            RouteOptimizer.length([center] + list.map(\.coordinate))
+        }
+        XCTAssertLessThan(length(ordered), length(zigzag) * 0.6)
+        XCTAssertNotEqual(ordered.map(\.id), zigzag.map(\.id))
+    }
+
+    func testMissingPlacesFindRoomOrAreReported() {
+        let planned = place("a", north: 0)
+        let day = AutoPlanner.arrange(places: [planned], prefs: prefs(days: 1), center: center).days
+        let extra = place("b", north: 0.002)
+        let fits = AutoPlanner.placeMissing([extra], into: day, prefs: prefs(days: 1), windows: [])
+        XCTAssertTrue(fits.leftOut.isEmpty)
+        XCTAssertEqual(fits.days[0].stops.count, 2)
+
+        // A day that is already over leaves no room.
+        let full = AutoPlanner.arrange(places: (0..<12).map { place("f\($0)", north: Double($0) * 0.001) },
+                                       prefs: prefs(days: 1), center: center).days
+        let noRoom = AutoPlanner.placeMissing([extra], into: full, prefs: prefs(days: 1), windows: [])
+        XCTAssertEqual(noRoom.leftOut.map(\.id), ["b"])
+    }
+}
