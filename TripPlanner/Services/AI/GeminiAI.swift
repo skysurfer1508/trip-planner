@@ -18,6 +18,11 @@ struct GeminiAI: AIEngine {
         return (json["themes"] as? [String] ?? []).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
     }
 
+    func editDay(_ request: DayEditRequest) async throws -> DayEditResponse {
+        let json = try await generate(prompt: AIPrompts.editDay(request), schema: AISchema.dayEdit)
+        return DayEditJSON.parse(json)
+    }
+
     func rankPicks(_ request: PicksRequest) async throws -> [AIPick] {
         let json = try await generate(prompt: AIPrompts.picks(request), schema: AISchema.picks)
         let rows = json["picks"] as? [[String: Any]] ?? []
@@ -114,6 +119,17 @@ enum AISchema {
             "reason": string("One sentence why it fits now"),
         ], required: ["id", "reason"])),
     ], required: ["picks"])
+
+    static let dayEdit: [String: Any] = object([
+        "summary": string("One short sentence about what changed, or why nothing could change"),
+        "edits": array(object([
+            "action": choice(["remove", "replace", "add", "set_start"]),
+            "stop": string("An s-id from the current stops, or empty"),
+            "candidate": string("A p-id from the places list, or empty"),
+            "after": string("An s-id to insert after, or empty"),
+            "time": string("HH:mm for set_start, or empty"),
+        ], required: ["action"])),
+    ], required: ["summary", "edits"])
 
     static let themes: [String: Any] = object([
         "themes": array(string("Short day title, at most 4 words")),

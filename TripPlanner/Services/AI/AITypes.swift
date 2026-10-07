@@ -10,6 +10,36 @@ struct DayThemeInput {
     let stops: [String]
 }
 
+struct DayEditItem {
+    /// Short id used in the prompt ("s1" for a stop, "p3" for a place) so small models can't garble it.
+    let alias: String
+    let name: String
+    let detail: String
+}
+
+struct DayEditRequest {
+    var instruction: String
+    var dayNumber: Int
+    var destination: String
+    var travellers: String
+    var startTime: String?
+    var stops: [DayEditItem]
+    var candidates: [DayEditItem]
+}
+
+struct DayEditCommand {
+    var action: String
+    var stop: String = ""
+    var candidate: String = ""
+    var after: String = ""
+    var time: String = ""
+}
+
+struct DayEditResponse {
+    var summary: String
+    var commands: [DayEditCommand]
+}
+
 struct PickCandidate {
     let id: String
     let name: String
@@ -50,6 +80,8 @@ protocol AIEngine {
     func extractItinerary(text: String, context: AIContext) async throws -> ParsedItinerary
     /// A short title for each planned day, in the same order as `days`.
     func dayThemes(_ days: [DayThemeInput], destination: String) async throws -> [String]
+    /// Turns a free-text change request for one day into a few edits that only use the listed ids.
+    func editDay(_ request: DayEditRequest) async throws -> DayEditResponse
     func rankPicks(_ request: PicksRequest) async throws -> [AIPick]
     func placeTips(name: String, city: String) async throws -> [String]
 }
@@ -73,6 +105,24 @@ enum AIPrompts {
         for day in days {
             lines.append("Day \(day.day): \(day.stops.joined(separator: "; "))")
         }
+        return lines.joined(separator: "\n")
+    }
+
+    static func editDay(_ request: DayEditRequest) -> String {
+        var lines = [
+            "You adjust ONE day of a travel plan for a trip to \(request.destination). Travellers: \(request.travellers).",
+            "Day \(request.dayNumber)" + (request.startTime.map { " starts at \($0)." } ?? "."),
+            "Current stops in order:",
+        ]
+        lines += request.stops.map { "- \($0.alias): \($0.name) (\($0.detail))" }
+        lines.append("Places you may use:")
+        lines += request.candidates.map { "- \($0.alias): \($0.name) (\($0.detail))" }
+        lines.append("The traveller says: \"\(request.instruction)\"")
+        lines.append("Answer with the smallest set of edits that does what they ask, using only the ids listed above. "
+                     + "Actions: remove (stop = an s-id), replace (stop = an s-id, candidate = a p-id), "
+                     + "add (candidate = a p-id, after = an s-id or empty), set_start (time = HH:mm). "
+                     + "Leave unused fields empty. If nothing fits, return no edits and say why. "
+                     + "The summary is one short sentence for the traveller about what you changed.")
         return lines.joined(separator: "\n")
     }
 

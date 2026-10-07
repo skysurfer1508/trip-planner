@@ -18,6 +18,7 @@ struct AutoPlanFlowView: View {
         case questions
         case working(String)
         case review
+        case walkthrough
         case failed(String)
     }
 
@@ -29,6 +30,9 @@ struct AutoPlanFlowView: View {
     @State private var replaceExisting = false
     @State private var draft = ImportDraft()
     @State private var notice: String?
+    @State private var plan: [PlannedDay] = []
+    @State private var pool: [PlanCandidate] = []
+    @State private var dayWindows: [DayWindow] = []
 
     private var hasExistingStops: Bool {
         trip.days.contains { !$0.stops.isEmpty }
@@ -62,8 +66,19 @@ struct AutoPlanFlowView: View {
                                         draft: draft,
                                         notice: notice,
                                         onBeforeAdd: replaceExisting ? clearTargetDays : nil,
-                                        onRegenerate: { Task { await create() } }) {
+                                        onRegenerate: { Task { await create() } },
+                                        onWalkThrough: { phase = .walkthrough }) {
                         dismiss()
+                    }
+                case .walkthrough:
+                    PlanWalkthroughView(trip: trip,
+                                        plan: $plan,
+                                        pool: pool,
+                                        prefs: prefs,
+                                        windows: dayWindows) {
+                        rebuildDraft()
+                        notice = "Adjusted in the walk-through."
+                        phase = .review
                     }
                 case .failed(let message): failedView(message)
                 }
@@ -428,11 +443,22 @@ struct AutoPlanFlowView: View {
             }
         }
 
-        draft = ImportDraft()
-        draft.load(plan: output.days, themes: themes, tripDays: trip.sortedDays)
+        plan = output.days
+        for index in plan.indices where themes.indices.contains(index) {
+            plan[index].theme = themes[index]
+        }
+        pool = output.candidates
+        dayWindows = windows
+        rebuildDraft()
         let notes = logisticsNotes + output.notices
         notice = notes.isEmpty ? nil : notes.joined(separator: " ")
         phase = .review
+    }
+
+    /// The review list always mirrors `plan`, so changes from the walk-through show up there.
+    private func rebuildDraft() {
+        draft = ImportDraft()
+        draft.load(plan: plan, themes: plan.map(\.theme), tripDays: trip.sortedDays)
     }
 
     /// Removes the stops of the days the new plan is about to fill.

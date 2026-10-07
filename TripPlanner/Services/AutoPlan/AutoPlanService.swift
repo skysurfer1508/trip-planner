@@ -8,6 +8,8 @@ enum AutoPlanService {
         var days: [PlannedDay]
         var notices: [String]
         var candidateCount: Int
+        /// Every place that was considered, so single days can be changed afterwards.
+        var candidates: [PlanCandidate]
     }
 
     static func build(prefs: TripPreferences,
@@ -92,7 +94,10 @@ enum AutoPlanService {
                                         variation: variation,
                                         windows: windows,
                                         using: &generator)
-        return Output(days: days, notices: Array(Set(notices)).sorted(), candidateCount: candidates.count)
+        return Output(days: days,
+                      notices: Array(Set(notices)).sorted(),
+                      candidateCount: candidates.count,
+                      candidates: AutoPlanner.dedupe(candidates))
     }
 
     private static func candidate(from place: SuggestedPlace) -> PlanCandidate {

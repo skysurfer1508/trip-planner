@@ -32,6 +32,8 @@ struct PlannedStop {
 struct PlannedDay {
     var stops: [PlannedStop]
     var theme: String
+    /// A start time the traveller asked for (minutes after midnight).
+    var startOverride: Int?
 }
 
 /// A small seedable generator so plans can be reproduced in tests.

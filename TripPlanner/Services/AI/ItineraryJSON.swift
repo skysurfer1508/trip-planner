@@ -71,3 +71,19 @@ enum TextChunker {
         return result
     }
 }
+
+/// Turns Gemini's answer to a day-edit request into commands.
+enum DayEditJSON {
+    static func parse(_ root: [String: Any]) -> DayEditResponse {
+        let rows = root["edits"] as? [[String: Any]] ?? []
+        let commands = rows.compactMap { row -> DayEditCommand? in
+            guard let action = row["action"] as? String, !action.isEmpty else { return nil }
+            return DayEditCommand(action: action,
+                                  stop: row["stop"] as? String ?? "",
+                                  candidate: row["candidate"] as? String ?? "",
+                                  after: row["after"] as? String ?? "",
+                                  time: row["time"] as? String ?? "")
+        }
+        return DayEditResponse(summary: (root["summary"] as? String) ?? "", commands: commands)
+    }
+}

@@ -62,7 +62,11 @@ nature, beaches, shopping, nightlife, family activities, adventure, hidden gems)
 how you get around, budget and must-see places. It then builds the days from real, popular places
 (OpenTripMap, Tripadvisor, Apple Maps): compact areas per day, lunch and dinner at normal hours, nightlife only
 when it fits, times that include travel. You review the result like an import, can tap **Create again** for
-another version, and choose whether to add it or replace the current stops. No AI is needed; if an AI engine is
+another version, or **Walk through** it one day at a time: each day shows its map and stops, and you can remove or
+replace a stop, shuffle the day, start it earlier or later, or tell the AI what to change ("more food", "swap the
+museum for something outdoors", "add something for kids"). The AI can only choose real places from the pool the plan
+was built from, every change reschedules the day, and Undo reverts it. Without an AI engine the buttons still work,
+only typed requests need one. Finally choose whether to add the plan or replace the current stops. No AI is needed; if an AI engine is
 available it only writes the day titles. Your answers are remembered per trip.
 
 ## AI (free)

@@ -48,6 +48,29 @@ struct GenPicks {
 
 @available(iOS 26.0, *)
 @Generable
+struct GenEdit {
+    @Guide(description: "One of: remove, replace, add, set_start")
+    var action: String
+    @Guide(description: "An s-id from the current stops, or an empty string")
+    var stop: String
+    @Guide(description: "A p-id from the places list, or an empty string")
+    var candidate: String
+    @Guide(description: "An s-id to insert after, or an empty string")
+    var after: String
+    @Guide(description: "HH:mm for set_start, or an empty string")
+    var time: String
+}
+
+@available(iOS 26.0, *)
+@Generable
+struct GenDayEdit {
+    @Guide(description: "One short sentence about what changed, or why nothing could change")
+    var summary: String
+    var edits: [GenEdit]
+}
+
+@available(iOS 26.0, *)
+@Generable
 struct GenThemes {
     @Guide(description: "One short day title of at most 4 words per day, in order")
     var themes: [String]
@@ -91,6 +114,15 @@ struct OnDeviceAI: AIEngine {
     func dayThemes(_ days: [DayThemeInput], destination: String) async throws -> [String] {
         let result = try await respond(AIPrompts.themes(days, destination: destination), as: GenThemes.self)
         return result.themes.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+    }
+
+    func editDay(_ request: DayEditRequest) async throws -> DayEditResponse {
+        let result = try await respond(AIPrompts.editDay(request), as: GenDayEdit.self)
+        return DayEditResponse(summary: result.summary,
+                               commands: result.edits.map {
+                                   DayEditCommand(action: $0.action, stop: $0.stop, candidate: $0.candidate,
+                                                  after: $0.after, time: $0.time)
+                               })
     }
 
     func rankPicks(_ request: PicksRequest) async throws -> [AIPick] {

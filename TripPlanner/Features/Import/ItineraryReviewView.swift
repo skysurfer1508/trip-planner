@@ -11,6 +11,8 @@ struct ItineraryReviewView: View {
     var onBeforeAdd: (() -> Void)?
     /// When set, a "Create again" button builds another version.
     var onRegenerate: (() -> Void)?
+    /// When set, a "Walk through" button goes through the plan one day at a time.
+    var onWalkThrough: (() -> Void)?
     /// Called after the stops were added.
     var onAdded: () -> Void
 
@@ -59,9 +61,15 @@ struct ItineraryReviewView: View {
                 Button("Add \(draft.includedCount)") { commit() }
                     .disabled(draft.includedCount == 0)
             }
-            if let onRegenerate {
-                ToolbarItem(placement: .bottomBar) {
-                    Button("Create again", systemImage: "arrow.triangle.2.circlepath", action: onRegenerate)
+            if onWalkThrough != nil || onRegenerate != nil {
+                ToolbarItemGroup(placement: .bottomBar) {
+                    if let onWalkThrough {
+                        Button("Walk through", systemImage: "figure.walk", action: onWalkThrough)
+                    }
+                    Spacer()
+                    if let onRegenerate {
+                        Button("Create again", systemImage: "arrow.triangle.2.circlepath", action: onRegenerate)
+                    }
                 }
             }
         }
