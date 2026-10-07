@@ -100,6 +100,13 @@ was built from, every change reschedules the day, and Undo reverts it. Every pla
 shows its photo and a short Wikipedia description, and between places you see the travel time in the way of getting
 around you chose (on foot, by car, or the real public transport route), also on the Plan page.
 
+**How to plan** (first Auto plan question): *Suggest everything*, *Build around my places* (your places and the stops
+already in the trip are fixed, the rest is filled with suggestions) or *Only my places* (nothing is added; your places are
+spread over the days by area, put in a short walking order and timed, meals at meal times). Stops already in the trip can
+be kept (with their notes and photos), replaced, or left alone. Flights and hotel check-ins are never touched. Places that
+don't fit in the days are listed, not dropped silently. Paste a list of places and the AI (or a plain splitter without
+one) picks out the names.
+
 **Must-see places**: type what you want in a box ("Belém Tower at sunset on day 2", "Louvre 10:00") or search for a
 place; the text is understood without any AI (time, part of the day, day number). The place is searched while you
 type, results far from the destination are listed separately, and popular sights are one tap away. A preferred time
