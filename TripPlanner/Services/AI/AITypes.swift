@@ -82,6 +82,8 @@ protocol AIEngine {
     func dayThemes(_ days: [DayThemeInput], destination: String) async throws -> [String]
     /// Turns a free-text change request for one day into a few edits that only use the listed ids.
     func editDay(_ request: DayEditRequest) async throws -> DayEditResponse
+    /// Short notes about tickets, apps and tips, using only the given text.
+    func summarizeTransit(text: String, city: String) async throws -> TransitNotes
     func rankPicks(_ request: PicksRequest) async throws -> [AIPick]
     func placeTips(name: String, city: String) async throws -> [String]
 }
@@ -124,6 +126,13 @@ enum AIPrompts {
                      + "Leave unused fields empty. If nothing fits, return no edits and say why. "
                      + "The summary is one short sentence for the traveller about what you changed.")
         return lines.joined(separator: "\n")
+    }
+
+    static func transit(text: String, city: String) -> String {
+        "Using ONLY the text below about public transport in \(city), write short notes for a visitor: "
+            + "tickets and passes (what exists, where to buy; prices only if the text states them), "
+            + "apps or websites to use, and practical tips. Each item under 25 words. "
+            + "Do not add anything that is not in the text. If the text says nothing about a list, leave it empty.\n\nTEXT:\n\(text)"
     }
 
     static func picks(_ request: PicksRequest) -> String {

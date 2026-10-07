@@ -34,6 +34,10 @@ struct TripDTO: Codable {
     var documents: [DocumentDTO]
     var planPreferences: Data?
     var bookings: [BookingDTO]?
+    var transportRaw: String?
+    var transitGuide: String?
+    var transitGuideTitle: String?
+    var transitNotes: String?
 }
 
 struct BookingDTO: Codable {
@@ -180,7 +184,11 @@ enum TripArchiver {
                            latitude: $0.latitude, longitude: $0.longitude, hasCoordinate: $0.hasCoordinate,
                            reference: $0.reference, notes: $0.notes, bufferMinutes: $0.bufferMinutes,
                            remind: $0.remind, phone: $0.phone, website: $0.website)
-            }
+            },
+            transportRaw: trip.transportRaw,
+            transitGuide: trip.transitGuide,
+            transitGuideTitle: trip.transitGuideTitle,
+            transitNotes: trip.transitNotes
         )
     }
 
@@ -233,6 +241,10 @@ enum TripArchiver {
             trip.budget = dto.budget
             trip.currencyCode = dto.currencyCode
             trip.planPreferences = dto.planPreferences
+            trip.transportRaw = dto.transportRaw ?? "walking"
+            trip.transitGuide = dto.transitGuide ?? ""
+            trip.transitGuideTitle = dto.transitGuideTitle ?? ""
+            trip.transitNotes = dto.transitNotes ?? ""
 
             for dayDTO in dto.days {
                 let day = Day(date: dayDTO.date)

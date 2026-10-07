@@ -21,6 +21,8 @@ struct DayMapView: View {
     @State private var scope: Int = -1          // -1 = all days
     @State private var camera: MapCameraPosition = .automatic
     @State private var dropMode = false
+    @State private var showTransit = false
+    @State private var segments: [RouteSegment] = []
     @State private var pending: PendingPin?
     @State private var selected: Stop?
 
@@ -72,9 +74,16 @@ struct DayMapView: View {
                             }
                         }
                         let path = (anchor.map { [$0] } ?? []) + stops.map(\.coordinate)
-                        if path.count > 1 {
+                        if path.count > 1 && !(showTransit && !segments.isEmpty) {
                             MapPolyline(coordinates: path)
                                 .stroke(DayPalette.color(entry.index).opacity(0.7), lineWidth: 3)
+                        }
+                    }
+                    if showTransit {
+                        ForEach(segments) { segment in
+                            MapPolyline(coordinates: segment.coordinates)
+                                .stroke(segment.color,
+                                        style: StrokeStyle(lineWidth: 5, lineCap: .round, dash: segment.dashed ? [2, 7] : []))
                         }
                     }
                     if let pending {
@@ -119,14 +128,23 @@ struct DayMapView: View {
                         Label("Show", systemImage: "calendar")
                     }
                 }
-                ToolbarItem(placement: .bottomBar) {
+                ToolbarItemGroup(placement: .bottomBar) {
                     Toggle(isOn: $dropMode) {
                         Label("Drop pin", systemImage: "mappin.and.ellipse")
                     }
                     .toggleStyle(.button)
+                    Spacer()
+                    Toggle(isOn: $showTransit) {
+                        Label("Transit lines", systemImage: "tram.fill")
+                    }
+                    .toggleStyle(.button)
                 }
             }
-            .onAppear { scope = initialIndex < days.count ? initialIndex : -1 }
+            .onAppear {
+                scope = initialIndex < days.count ? initialIndex : -1
+                showTransit = trip.transport == .transit
+            }
+            .task(id: transitKey) { await loadTransit() }
             .onChange(of: scope) { camera = .automatic }
             .sheet(item: $pending) { pin in
                 PinSheet(pin: pin, days: days, defaultIndex: targetIndex) { name, dayIndex in
@@ -135,6 +153,50 @@ struct DayMapView: View {
             }
             .sheet(item: $selected) { stop in
                 StopDetailView(stop: stop)
+            }
+        }
+    }
+
+    /// Changes when the lines have to be drawn again: toggle, shown days, or the stops of those days.
+    private var transitKey: String {
+        guard showTransit else { return "off" }
+        let stops = visible.map { entry in
+            entry.day.sortedStops.map { "\($0.persistentModelID.hashValue)@\($0.plannedTime?.timeIntervalSince1970 ?? 0)" }
+                .joined(separator: ",")
+        }
+        return "on|\(scope)|" + stops.joined(separator: ";")
+    }
+
+    /// Public transport lines between the stops of the shown days, one leg after the other (the
+    /// routes are cached, so a second look costs no requests).
+    private func loadTransit() async {
+        guard showTransit else {
+            segments = []
+            return
+        }
+        let zone = await TripTimeZone.ensure(trip)
+        var collected: [RouteSegment] = []
+        segments = []
+
+        for entry in visible {
+            let day = entry.day
+            var previous: (coordinate: CLLocationCoordinate2D, name: String, clock: Date)?
+            if let anchor = trip.window(for: day.date).anchor {
+                previous = (anchor, "Hotel", day.defaultWallClock(hour: 9))
+            }
+            for (number, stop) in day.sortedStops.enumerated() {
+                if let origin = previous {
+                    let outcome = await TransitRouter.lookup(from: origin.coordinate, to: stop.coordinate,
+                                                             timing: .departAt(origin.clock), timeZone: zone)
+                    if Task.isCancelled { return }
+                    if case .routes(let result) = outcome, let best = result.best {
+                        collected += TransitPaths.segments(from: best, prefix: "\(entry.index)-\(number)")
+                        segments = collected
+                    }
+                }
+                let leaves = stop.plannedTime.map { $0.addingTimeInterval(TimeInterval(stop.durationMinutes * 60)) }
+                    ?? day.defaultWallClock(hour: 10)
+                previous = (stop.coordinate, stop.name, leaves)
             }
         }
     }

@@ -9,6 +9,9 @@ struct AutoTimeSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var start = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
     @State private var windowNote: String?
+    /// Real public transport minutes per pair of places, when the trip uses public transport.
+    @State private var transitMinutes: [String: Int] = [:]
+    @State private var loadingTransit = false
 
     private var stops: [Stop] { day.sortedStops }
 
@@ -22,7 +25,7 @@ struct AutoTimeSheet: View {
                     DatePicker(hotel == nil ? "First stop at" : "Leave the hotel at",
                                selection: $start, displayedComponents: .hourAndMinute)
                 } footer: {
-                    Text("Each stop starts after the previous one ends, plus travel time (walking, or driving for longer hops) and 5 minutes of slack. \(hotel == nil ? "" : "The first stop adds the way from the hotel. ")This replaces existing times for this day.")
+                    Text("Each stop starts after the previous one ends, plus travel time (\(usesTransit ? "real public transport times where available, else an estimate" : "walking, or driving for longer hops")) and 5 minutes of slack. \(hotel == nil ? "" : "The first stop adds the way from the hotel. ")This replaces existing times for this day.")
                 }
 
                 if let windowNote {
@@ -64,6 +67,7 @@ struct AutoTimeSheet: View {
                 }
             }
             .onAppear(perform: applyWindow)
+            .task(id: transitSignature) { await loadTransit() }
         }
         .presentationDetents([.medium, .large])
     }
@@ -86,6 +90,43 @@ struct AutoTimeSheet: View {
         windowNote = notes.isEmpty ? nil : notes.joined(separator: " ")
     }
 
+    private var usesTransit: Bool { day.trip?.transport == .transit }
+
+    /// Changes when the stops or the start change, so the real durations are looked up again.
+    private var transitSignature: String {
+        guard usesTransit else { return "off" }
+        let ids = stops.map { "\($0.persistentModelID.hashValue)" }.joined(separator: ",")
+        let time = Calendar.current.dateComponents([.hour, .minute], from: start)
+        return "\(ids)|\(time.hour ?? 0):\(time.minute ?? 0)"
+    }
+
+    /// Asks for the public transport time of every leg of the day (saved, so later lookups are free).
+    private func loadTransit() async {
+        guard usesTransit, let trip = day.trip, TransitRouter.isEnabled else {
+            transitMinutes = [:]
+            return
+        }
+        loadingTransit = true
+        defer { loadingTransit = false }
+        let zone = await TripTimeZone.ensure(trip)
+        var table: [String: Int] = [:]
+        var previous: CLLocationCoordinate2D? = hotel
+        var clock = day.combine(time: start)
+        for stop in stops {
+            if let origin = previous {
+                let outcome = await TransitRouter.lookup(from: origin, to: stop.coordinate,
+                                                         timing: .departAt(clock), timeZone: zone)
+                if Task.isCancelled { return }
+                if let seconds = outcome.bestDuration {
+                    table[TransitRouter.pairKey(origin, stop.coordinate)] = Int((seconds / 60).rounded(.up))
+                }
+            }
+            previous = stop.coordinate
+            clock = clock.addingTimeInterval(TimeInterval((stop.durationMinutes + 20) * 60))
+        }
+        transitMinutes = table
+    }
+
     private func schedule() -> [Date] {
         let items = stops.enumerated().map { index, stop -> ScheduleService.AutoItem in
             var travel = 0
@@ -94,6 +135,9 @@ struct AutoTimeSheet: View {
                 let meters = RoutingService.straightLine(from: previous.coordinate, to: stop.coordinate)
                 let mode: TravelMode = meters > 2_500 ? .drive : .walk
                 travel = Int((RoutingService.estimate(from: previous.coordinate, to: stop.coordinate, mode: mode) / 60).rounded(.up))
+                if let real = transitMinutes[TransitRouter.pairKey(previous.coordinate, stop.coordinate)] {
+                    travel = real
+                }
             }
             return ScheduleService.AutoItem(durationMinutes: stop.durationMinutes, travelMinutes: travel)
         }
@@ -101,7 +145,10 @@ struct AutoTimeSheet: View {
         if let hotel, let firstStop = stops.first {
             let meters = RoutingService.straightLine(from: hotel, to: firstStop.coordinate)
             let mode: TravelMode = meters > 2_500 ? .drive : .walk
-            let minutes = Int((RoutingService.estimate(from: hotel, to: firstStop.coordinate, mode: mode) / 60).rounded(.up))
+            var minutes = Int((RoutingService.estimate(from: hotel, to: firstStop.coordinate, mode: mode) / 60).rounded(.up))
+            if let real = transitMinutes[TransitRouter.pairKey(hotel, firstStop.coordinate)] {
+                minutes = real
+            }
             first = first.addingTimeInterval(TimeInterval(minutes * 60))
         }
         return ScheduleService.autoSchedule(items: items, start: first)

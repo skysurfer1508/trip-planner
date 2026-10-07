@@ -10,6 +10,8 @@ struct PlanWalkthroughView: View {
     let pool: [PlanCandidate]
     let prefs: TripPreferences
     let windows: [DayWindow]
+    /// Real public transport minutes found while planning, used when a day is scheduled again.
+    var transitMinutes: [String: Int] = [:]
     let onDone: () -> Void
 
     @Environment(Secrets.self) private var secrets
@@ -38,6 +40,11 @@ struct PlanWalkthroughView: View {
 
     private var engine: (any AIEngine)? { AIRouter.current(geminiKey: secrets.keys.gemini) }
     private var tripDays: [Day] { trip.sortedDays }
+
+    private var travelOverride: TravelOverride? {
+        let known = transitMinutes
+        return known.isEmpty ? nil : { a, b in known[TransitRouter.pairKey(a, b)] }
+    }
 
     private func window(_ index: Int) -> DayWindow {
         windows.indices.contains(index) ? windows[index] : DayWindow()
@@ -343,7 +350,8 @@ struct PlanWalkthroughView: View {
                                        pool: pool,
                                        usedElsewhere: usedElsewhere(target),
                                        prefs: prefs,
-                                       window: window(target))
+                                       window: window(target),
+                                       travelOverride: travelOverride)
         guard outcome.changed else {
             reply = Reply(text: outcome.notes.first ?? "Nothing changed.", isError: true)
             return
@@ -373,7 +381,8 @@ struct PlanWalkthroughView: View {
 
     private func shift(_ index: Int, by minutes: Int) {
         guard plan.indices.contains(index) else { return }
-        let outcome = PlanEditor.shiftStart(plan[index], by: minutes, prefs: prefs, window: window(index))
+        let outcome = PlanEditor.shiftStart(plan[index], by: minutes, prefs: prefs, window: window(index),
+                                            travelOverride: travelOverride)
         history.append(plan)
         plan[index] = outcome.day
         reply = Reply(text: minutes < 0 ? "Day \(index + 1) now starts earlier." : "Day \(index + 1) now starts later.")

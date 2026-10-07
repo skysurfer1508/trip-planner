@@ -3,6 +3,9 @@ import CoreLocation
 
 // MARK: - Types
 
+/// Real travel minutes between two places, when known (e.g. from a public transport lookup).
+typealias TravelOverride = (CLLocationCoordinate2D, CLLocationCoordinate2D) -> Int?
+
 struct PlanCandidate: Identifiable {
     let id: String
     var name: String
@@ -274,7 +277,8 @@ enum AutoPlanner {
                          prefs: TripPreferences,
                          from anchor: CLLocationCoordinate2D? = nil,
                          startMinute: Int? = nil,
-                         limit: Int? = nil) -> [PlannedStop] {
+                         limit: Int? = nil,
+                         travelOverride: TravelOverride? = nil) -> [PlannedStop] {
         var result: [PlannedStop] = []
         var cursor = startMinute ?? prefs.dayStart.minutes
         var previous: CLLocationCoordinate2D? = anchor
@@ -283,7 +287,9 @@ enum AutoPlanner {
         for entry in slots {
             var start = cursor
             if let previous {
-                start += travelMinutes(from: previous, to: entry.place.coordinate, transport: prefs.transport) + 5
+                let travel = travelOverride?(previous, entry.place.coordinate)
+                    ?? travelMinutes(from: previous, to: entry.place.coordinate, transport: prefs.transport)
+                start += travel + 5
             }
             start = (start + 4) / 5 * 5
             // A late start (after a flight) leaves no room for a lunch at 5 pm.

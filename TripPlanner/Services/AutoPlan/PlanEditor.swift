@@ -26,7 +26,8 @@ enum PlanEditor {
                       pool: [PlanCandidate],
                       usedElsewhere: Set<String>,
                       prefs: TripPreferences,
-                      window: DayWindow) -> EditOutcome {
+                      window: DayWindow,
+                      travelOverride: TravelOverride? = nil) -> EditOutcome {
         var entries: [Entry] = day.stops.map { ($0.candidate, $0.slot) }
         var start = day.startOverride
         var notes: [String] = []
@@ -84,7 +85,7 @@ enum PlanEditor {
             }
         }
 
-        let stops = reschedule(entries, startOverride: start, prefs: prefs, window: window)
+        let stops = reschedule(entries, startOverride: start, prefs: prefs, window: window, travelOverride: travelOverride)
         if stops.count < entries.count {
             let dropped = entries.count - stops.count
             notes.append("\(dropped) \(dropped == 1 ? "stop" : "stops") no longer fit before the end of the day and \(dropped == 1 ? "was" : "were") left out.")
@@ -98,20 +99,24 @@ enum PlanEditor {
     static func reschedule(_ entries: [Entry],
                            startOverride: Int?,
                            prefs: TripPreferences,
-                           window: DayWindow) -> [PlannedStop] {
+                           window: DayWindow,
+                           travelOverride: TravelOverride? = nil) -> [PlannedStop] {
         let base = startOverride ?? prefs.dayStart.minutes
         return AutoPlanner.schedule(entries,
                                     prefs: prefs,
                                     from: window.anchor,
                                     startMinute: max(base, window.startMinute ?? 0),
-                                    limit: min(prefs.endLimitMinutes, window.endMinute ?? Int.max))
+                                    limit: min(prefs.endLimitMinutes, window.endMinute ?? Int.max),
+                                    travelOverride: travelOverride)
     }
 
     /// The day starts earlier or later by `minutes`.
-    static func shiftStart(_ day: PlannedDay, by minutes: Int, prefs: TripPreferences, window: DayWindow) -> EditOutcome {
+    static func shiftStart(_ day: PlannedDay, by minutes: Int, prefs: TripPreferences, window: DayWindow,
+                           travelOverride: TravelOverride? = nil) -> EditOutcome {
         let current = day.startOverride ?? max(prefs.dayStart.minutes, window.startMinute ?? 0)
         let target = min(max(current + minutes, 6 * 60), 12 * 60)
-        return apply([.setStart(target)], to: day, pool: [], usedElsewhere: [], prefs: prefs, window: window)
+        return apply([.setStart(target)], to: day, pool: [], usedElsewhere: [], prefs: prefs, window: window,
+                     travelOverride: travelOverride)
     }
 
     /// Other places that could take a stop's place: same kind, not used yet, close by and well rated.

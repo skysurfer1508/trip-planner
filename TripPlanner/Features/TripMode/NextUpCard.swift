@@ -6,6 +6,10 @@ struct NextUpCard: View {
     @Binding var mode: TravelMode
     let etas: [TravelMode: TimeInterval]
     let distance: CLLocationDistance?
+    /// With public transport selected, the real route from where you are is shown.
+    var transitTrip: Trip?
+    var origin: CLLocationCoordinate2D?
+    @Binding var transitDuration: TimeInterval?
     let onDone: () -> Void
 
     var body: some View {
@@ -67,6 +71,15 @@ struct NextUpCard: View {
                 }
             }
 
+            if mode == .transit, let transitTrip, let origin {
+                TransitConnector(trip: transitTrip, fromName: "Your location", toName: stop.name,
+                                 from: origin, to: stop.coordinate, timing: .now,
+                                 fallback: "Looking for the best route…") { duration in
+                    transitDuration = duration
+                }
+                .padding(.leading, -36)
+            }
+
             leaveBy
 
             HStack(spacing: 12) {
@@ -96,7 +109,7 @@ struct NextUpCard: View {
     private var leaveBy: some View {
         if let planned = stop.plannedTime,
            Calendar.current.isDateInToday(planned),
-           let eta = etas[mode] {
+           let eta = (mode == .transit ? transitDuration : nil) ?? etas[mode] {
             TimelineView(.periodic(from: .now, by: 30)) { context in
                 let leave = planned.addingTimeInterval(-(eta + 5 * 60))
                 let minutes = Int((leave.timeIntervalSince(context.date) / 60).rounded(.down))

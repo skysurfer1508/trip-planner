@@ -33,6 +33,7 @@ struct AutoPlanFlowView: View {
     @State private var plan: [PlannedDay] = []
     @State private var pool: [PlanCandidate] = []
     @State private var dayWindows: [DayWindow] = []
+    @State private var transitMinutes: [String: Int] = [:]
 
     private var hasExistingStops: Bool {
         trip.days.contains { !$0.stops.isEmpty }
@@ -75,7 +76,8 @@ struct AutoPlanFlowView: View {
                                         plan: $plan,
                                         pool: pool,
                                         prefs: prefs,
-                                        windows: dayWindows) {
+                                        windows: dayWindows,
+                                        transitMinutes: transitMinutes) {
                         rebuildDraft()
                         notice = "Adjusted in the walk-through."
                         phase = .review
@@ -387,6 +389,8 @@ struct AutoPlanFlowView: View {
         if let data = trip.planPreferences,
            let saved = try? JSONDecoder().decode(TripPreferences.self, from: data) {
             prefs = saved
+        } else {
+            prefs.transport = trip.transport
         }
         prefs.days = min(max(trip.days.count, 1), 14)
     }
@@ -404,6 +408,7 @@ struct AutoPlanFlowView: View {
         if let data = try? JSONEncoder().encode(prefs) {
             trip.planPreferences = data
         }
+        trip.transport = prefs.transport
 
         phase = .working("Finding the best places…")
         // Flights and hotel: when each day can start and has to end, and where it starts from.
@@ -449,6 +454,18 @@ struct AutoPlanFlowView: View {
         }
         pool = output.candidates
         dayWindows = windows
+        transitMinutes = [:]
+        if prefs.transport == .transit && TransitRouter.isEnabled {
+            phase = .working("Checking public transport…")
+            let zone = await TripTimeZone.ensure(trip)
+            let refined = await TransitRefiner.refine(plan, prefs: prefs, windows: windows,
+                                                      dates: tripDays.map(\.date), zone: zone)
+            plan = refined.days
+            transitMinutes = refined.minutes
+            if !refined.minutes.isEmpty {
+                logisticsNotes.append("Travel times use real public transport timetables where available.")
+            }
+        }
         rebuildDraft()
         let notes = logisticsNotes + output.notices
         notice = notes.isEmpty ? nil : notes.joined(separator: " ")

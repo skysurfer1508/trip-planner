@@ -71,6 +71,17 @@ struct GenDayEdit {
 
 @available(iOS 26.0, *)
 @Generable
+struct GenTransitNotes {
+    @Guide(description: "Short notes about tickets and passes, only from the text")
+    var tickets: [String]
+    @Guide(description: "Short notes about apps or websites, only from the text")
+    var apps: [String]
+    @Guide(description: "Short practical tips, only from the text")
+    var tips: [String]
+}
+
+@available(iOS 26.0, *)
+@Generable
 struct GenThemes {
     @Guide(description: "One short day title of at most 4 words per day, in order")
     var themes: [String]
@@ -123,6 +134,14 @@ struct OnDeviceAI: AIEngine {
                                    DayEditCommand(action: $0.action, stop: $0.stop, candidate: $0.candidate,
                                                   after: $0.after, time: $0.time)
                                })
+    }
+
+    func summarizeTransit(text: String, city: String) async throws -> TransitNotes {
+        let result = try await respond(AIPrompts.transit(text: String(text.prefix(3_000)), city: city),
+                                       as: GenTransitNotes.self)
+        return TransitNotes(tickets: result.tickets.filter { !$0.isEmpty },
+                            apps: result.apps.filter { !$0.isEmpty },
+                            tips: result.tips.filter { !$0.isEmpty })
     }
 
     func rankPicks(_ request: PicksRequest) async throws -> [AIPick] {

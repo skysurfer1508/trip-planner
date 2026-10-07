@@ -23,6 +23,13 @@ struct GeminiAI: AIEngine {
         return DayEditJSON.parse(json)
     }
 
+    func summarizeTransit(text: String, city: String) async throws -> TransitNotes {
+        let json = try await generate(prompt: AIPrompts.transit(text: String(text.prefix(6_000)), city: city),
+                                      schema: AISchema.transitNotes)
+        func list(_ key: String) -> [String] { (json[key] as? [String] ?? []).filter { !$0.isEmpty } }
+        return TransitNotes(tickets: list("tickets"), apps: list("apps"), tips: list("tips"))
+    }
+
     func rankPicks(_ request: PicksRequest) async throws -> [AIPick] {
         let json = try await generate(prompt: AIPrompts.picks(request), schema: AISchema.picks)
         let rows = json["picks"] as? [[String: Any]] ?? []
@@ -130,6 +137,12 @@ enum AISchema {
             "time": string("HH:mm for set_start, or empty"),
         ], required: ["action"])),
     ], required: ["summary", "edits"])
+
+    static let transitNotes: [String: Any] = object([
+        "tickets": array(string("A short note about tickets or passes")),
+        "apps": array(string("A short note about an app or website")),
+        "tips": array(string("A short practical tip")),
+    ], required: ["tickets", "apps", "tips"])
 
     static let themes: [String: Any] = object([
         "themes": array(string("Short day title, at most 4 words")),

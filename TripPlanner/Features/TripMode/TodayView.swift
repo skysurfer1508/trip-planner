@@ -19,6 +19,7 @@ struct TodayView: View {
     @State private var showExpense = false
     @State private var nearbyKind: NearbyKind?
     @State private var showWhatNow = false
+    @State private var transitDuration: TimeInterval?
 
     // MARK: Derived state
 
@@ -126,7 +127,10 @@ struct TodayView: View {
                         NextUpCard(stop: next,
                                    mode: $mode,
                                    etas: etas,
-                                   distance: distanceToNext) {
+                                   distance: distanceToNext,
+                                   transitTrip: trip,
+                                   origin: userCoordinate,
+                                   transitDuration: $transitDuration) {
                             next.isDone = true
                             dismissedReflow = false
                         }
@@ -186,7 +190,14 @@ struct TodayView: View {
         .sheet(isPresented: $showExpense) {
             ExpenseEditView(trip: trip, expense: nil, defaultDate: isToday ? Date() : (day?.date ?? Date()))
         }
-        .onAppear { location.start() }
+        .onAppear {
+            location.start()
+            switch trip.transport {
+            case .transit: mode = .transit
+            case .car: mode = .drive
+            case .walking: break
+            }
+        }
         .task(id: etaKey) { await loadETAs() }
         .task(id: smartKey) { await syncSmartFeatures() }
     }

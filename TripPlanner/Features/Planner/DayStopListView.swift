@@ -71,18 +71,23 @@ struct DayStopListView: View {
             } else {
                 Section {
                     if let anchor = window.anchor, let first = stops.first {
-                        HotelStartRow(name: window.anchorName ?? "Hotel", from: anchor, to: first.coordinate)
+                        HotelStartRow(name: window.anchorName ?? "Hotel", from: anchor, first: first, day: day)
                     }
                     ForEach(Array(stops.enumerated()), id: \.element.persistentModelID) { index, stop in
-                        Button {
-                            onSelect(stop)
-                        } label: {
-                            StopRow(stop: stop,
-                                    number: index + 1,
-                                    next: index + 1 < stops.count ? stops[index + 1] : nil,
-                                    warning: warning(for: stop, window: window))
+                        VStack(alignment: .leading, spacing: 6) {
+                            Button {
+                                onSelect(stop)
+                            } label: {
+                                StopRow(stop: stop,
+                                        number: index + 1,
+                                        warning: warning(for: stop, window: window))
+                            }
+                            .buttonStyle(.plain)
+
+                            if index + 1 < stops.count {
+                                LegConnector(day: day, stop: stop, next: stops[index + 1])
+                            }
                         }
-                        .buttonStyle(.plain)
                         .contextMenu {
                             Menu("Move to day", systemImage: "arrow.right.circle") {
                                 ForEach(otherDays) { entry in
@@ -132,26 +137,67 @@ struct DayStopListView: View {
 private struct HotelStartRow: View {
     let name: String
     let from: CLLocationCoordinate2D
-    let to: CLLocationCoordinate2D
+    let first: Stop
+    let day: Day
 
     var body: some View {
+        let to = first.coordinate
         let distance = RoutingService.straightLine(from: from, to: to)
         let mode: TravelMode = distance > 2_500 ? .drive : .walk
         let time = RoutingService.estimate(from: from, to: to, mode: mode)
+        let text = "\(Format.duration(time)) · \(Format.distance(distance * 1.25)) to the first stop"
 
-        HStack(spacing: 12) {
-            HotelPin()
-            VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 12) {
+                HotelPin()
                 Text("Start from \(name)")
                     .font(.subheadline.weight(.medium))
-                Label("\(Format.duration(time)) · \(Format.distance(distance * 1.25)) to the first stop",
-                      systemImage: mode.symbol)
+                Spacer()
+            }
+            if let trip = day.trip, trip.transport == .transit {
+                TransitConnector(trip: trip, fromName: name, toName: first.name, from: from, to: to,
+                                 timing: first.plannedTime.map { .arriveBy($0) } ?? .departAt(day.defaultWallClock(hour: 9)),
+                                 fallback: text)
+            } else {
+                Label(text, systemImage: mode.symbol)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
+                    .padding(.leading, 36)
             }
-            Spacer()
         }
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
+    }
+}
+
+/// The way from one stop to the next: a straight-line estimate, or the real public transport route.
+private struct LegConnector: View {
+    let day: Day
+    let stop: Stop
+    let next: Stop
+
+    var body: some View {
+        let distance = RoutingService.straightLine(from: stop.coordinate, to: next.coordinate)
+        let mode: TravelMode = distance > 2_500 ? .drive : .walk
+        let time = RoutingService.estimate(from: stop.coordinate, to: next.coordinate, mode: mode)
+        let text = "\(Format.duration(time)) · \(Format.distance(distance * 1.25))"
+
+        if let trip = day.trip, trip.transport == .transit {
+            TransitConnector(trip: trip, fromName: stop.name, toName: next.name,
+                             from: stop.coordinate, to: next.coordinate,
+                             timing: timing, fallback: text)
+        } else {
+            Label(text, systemImage: mode.symbol)
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .padding(.leading, 36)
+        }
+    }
+
+    private var timing: TransitTiming {
+        if let time = stop.plannedTime {
+            return .departAt(time.addingTimeInterval(TimeInterval(stop.durationMinutes * 60)))
+        }
+        return .departAt(day.defaultWallClock(hour: 10))
     }
 }
 
@@ -183,13 +229,7 @@ private struct DaySummary: View {
 struct StopRow: View {
     let stop: Stop
     let number: Int
-    var next: Stop?
     var warning: String?
-
-    private var legMode: TravelMode {
-        guard let next else { return .walk }
-        return RoutingService.straightLine(from: stop.coordinate, to: next.coordinate) > 2_500 ? .drive : .walk
-    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -226,15 +266,6 @@ struct StopRow: View {
                 Label(warning, systemImage: "exclamationmark.triangle.fill")
                     .font(.caption2)
                     .foregroundStyle(.orange)
-                    .padding(.leading, 36)
-            }
-
-            if let next {
-                let distance = RoutingService.straightLine(from: stop.coordinate, to: next.coordinate)
-                let time = RoutingService.estimate(from: stop.coordinate, to: next.coordinate, mode: legMode)
-                Label("\(Format.duration(time)) · \(Format.distance(distance * 1.25))", systemImage: legMode.symbol)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
                     .padding(.leading, 36)
             }
         }

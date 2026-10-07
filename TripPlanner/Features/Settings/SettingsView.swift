@@ -11,6 +11,7 @@ struct SettingsView: View {
     @State private var restoreMessage: String?
     @Environment(\.dismiss) private var dismiss
     @AppStorage(AIMode.storageKey) private var aiModeRaw = AIMode.automatic.rawValue
+    @AppStorage(TransitRouter.settingsKey) private var transitRoutes = true
 
     var body: some View {
         @Bindable var secrets = secrets
@@ -33,6 +34,14 @@ struct SettingsView: View {
                     Text("Ratings (Tripadvisor)")
                 } footer: {
                     Text("Adds ratings, review counts and rankings to Discover and to the Top rated view in I'm hungry. Has a free monthly allowance; results show Tripadvisor attribution.")
+                }
+
+                Section {
+                    Toggle("Public transport routes", isOn: $transitRoutes)
+                } header: {
+                    Text("Public transport")
+                } footer: {
+                    Text("Routes between stops come from Transitous (transitous.org), a free community service built on the official timetables of many countries, strongest in Europe and parts of North America. Each route is asked for once and then saved on this iPhone. How tickets and passes work comes from Wikivoyage. Times are scheduled times without live delays.")
                 }
 
                 Section {

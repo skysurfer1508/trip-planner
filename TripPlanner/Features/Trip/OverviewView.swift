@@ -24,6 +24,10 @@ struct OverviewView: View {
 
                 logisticsCard
 
+                if trip.transport == .transit {
+                    TransitGuideCard(trip: trip)
+                }
+
                 WeatherChip(date: trip.isActiveToday ? Date() : trip.startDate,
                             coordinate: trip.anyCoordinate)
 

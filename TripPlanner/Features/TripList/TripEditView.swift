@@ -14,6 +14,7 @@ struct TripEditView: View {
     @State private var startDate = Calendar.current.startOfDay(for: Date())
     @State private var endDate = Calendar.current.startOfDay(for: Date())
     @State private var isSaving = false
+    @State private var transport: TripPreferences.Transport = .walking
 
     private var canSave: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty && !isSaving
@@ -37,6 +38,18 @@ struct TripEditView: View {
                 Section("Dates") {
                     DatePicker("Start", selection: $startDate, displayedComponents: .date)
                     DatePicker("End", selection: $endDate, in: startDate..., displayedComponents: .date)
+                }
+
+                Section {
+                    Picker("Getting around", selection: $transport) {
+                        ForEach(TripPreferences.Transport.allCases) { option in
+                            Label(option.title, systemImage: option.symbol).tag(option)
+                        }
+                    }
+                } footer: {
+                    Text(transport == .transit
+                         ? "Between stops you'll see the best public transport route, with lines, stops and times."
+                         : "With public transport selected, routes between stops show real lines and times.")
                 }
             }
             .navigationTitle("Edit trip")
@@ -63,6 +76,7 @@ struct TripEditView: View {
         coordinate = trip.destinationCoordinate
         startDate = trip.startDate
         endDate = trip.endDate
+        transport = trip.transport
     }
 
     private func save() async {
@@ -82,6 +96,7 @@ struct TripEditView: View {
         trip.name = name.trimmingCharacters(in: .whitespaces)
         trip.startDate = start
         trip.endDate = end
+        trip.transport = transport
         trip.setDestination(name: cleanDestination, coordinate: finalCoordinate)
         trip.syncDays()
         dismiss()

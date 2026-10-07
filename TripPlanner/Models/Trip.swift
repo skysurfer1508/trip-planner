@@ -16,6 +16,14 @@ final class Trip {
     var currencyCode: String = "EUR"
     /// Encoded `TripPreferences` from the last Auto plan, to pre-fill the questions.
     var planPreferences: Data?
+    /// How you get around: "walking", "transit" or "car".
+    var transportRaw: String = "walking"
+    /// Identifier of the destination's time zone, filled in when first needed.
+    var timeZoneID: String = ""
+    /// "Get around" text from Wikivoyage, its page title, and the AI notes (JSON), kept for offline use.
+    var transitGuide: String = ""
+    var transitGuideTitle: String = ""
+    var transitNotes: String = ""
     @Relationship(deleteRule: .cascade, inverse: \Day.trip) var days: [Day] = []
     @Relationship(deleteRule: .cascade, inverse: \Expense.trip) var expenses: [Expense] = []
     @Relationship(deleteRule: .cascade, inverse: \ChecklistItem.trip) var checklist: [ChecklistItem] = []
@@ -29,6 +37,15 @@ final class Trip {
         self.startDate = startDate
         self.endDate = endDate
         self.currencyCode = Locale.current.currency?.identifier ?? "EUR"
+    }
+
+    var transport: TripPreferences.Transport {
+        get { TripPreferences.Transport(rawValue: transportRaw) ?? .walking }
+        set { transportRaw = newValue.rawValue }
+    }
+
+    var timeZone: TimeZone {
+        TimeZone(identifier: timeZoneID) ?? .current
     }
 
     var sortedDays: [Day] {
@@ -83,6 +100,13 @@ final class Trip {
     }
 
     func setDestination(name: String, coordinate: CLLocationCoordinate2D?) {
+        if name != destination {
+            // Time zone and the public transport guide belong to the old destination.
+            timeZoneID = ""
+            transitGuide = ""
+            transitGuideTitle = ""
+            transitNotes = ""
+        }
         destination = name
         if let coordinate {
             destinationLatitude = coordinate.latitude

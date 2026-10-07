@@ -79,6 +79,11 @@ final class Day {
         }
     }
 
+    /// This day at the given hour, as a wall-clock time.
+    func defaultWallClock(hour: Int) -> Date {
+        Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: date) ?? date
+    }
+
     /// Returns this day's date with the hour and minute of `time`.
     func combine(time: Date) -> Date {
         let calendar = Calendar.current

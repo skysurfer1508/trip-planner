@@ -49,6 +49,18 @@ the hotel is where every day starts from (Auto plan and Optimize route), stops o
 Trip Mode shows landing, check-in/out and when to leave for the airport. One tap adds landing, check-in/out, leaving
 for the airport and take-off to the plan, and you get reminders (evening before a flight, time to leave, check-out).
 
+**Public transport** (when "Getting around" is public transport, set in Auto plan or Edit trip): between every two
+stops, and from the hotel to the first stop, the app finds the best route (lines, changes, stops, times) with
+[Transitous](https://transitous.org), a free community service built on the official timetables of many countries.
+Tap a connector for the details: line badges in the line's colour, headsigns, times, and a map with the route. The
+day map can draw the transit lines for the whole day, Trip Mode shows the route from where you are, and **Set times**
+and Auto plan use the real travel times. Each route is requested once and saved on the phone. A card explains how
+public transport works at the destination (tickets, apps, tips) from Wikivoyage, summarised by the AI when
+available. Where Transitous has no data you see Apple's travel time and a button to open Apple Maps. Times are
+scheduled times (no live delays); dates too far ahead for timetables use the typical timetable for that weekday.
+Transitous asks for open-source, non-commercial, low-volume use and that you contact them before relying on it
+(Matrix chat, see transitous.org); the app sends an identifying User-Agent and keeps requests low.
+
 **Trip Mode** (location arrow in the toolbar): today's plan with progress, next stop with walk/transit/drive ETA
 and a "Leave by" countdown, Navigate in Apple Maps, quick lookups (coffee, ATM, pharmacy, restrooms),
 **I'm hungry** (cuisine/takeaway/vegetarian filters, Tripadvisor "Top rated"), **What now?** (AI ranks real
