@@ -21,6 +21,10 @@ struct PlanCandidate: Identifiable {
     /// When the traveller wants to be there (minutes after midnight) and on which day (1 = first).
     var preferredMinute: Int?
     var preferredDay: Int?
+    /// How long to stay, for a stop that is already in the trip (else a typical length is used).
+    var fixedDuration: Int?
+    /// Set for a stop that is already in the trip; its details are kept when the plan is added.
+    var existingKey: String?
 }
 
 enum PlanSlot: String {
@@ -155,13 +159,29 @@ enum AutoPlanner {
                 return nil
             }
 
+            // A restaurant the traveller already chose is that day's lunch or dinner.
+            var untimedFood = reserved[dayIndex].filter { $0.kind == .food }
+            reserved[dayIndex].removeAll { $0.kind == .food }
+            let timedFood = timed[dayIndex].filter { $0.kind == .food }
+            let lunchCovered = timedFood.contains { ($0.preferredMinute ?? 0) < 16 * 60 }
+            let dinnerCovered = timedFood.contains { ($0.preferredMinute ?? 0) >= 16 * 60 }
+            var lunchFixed: PlanCandidate?
+            var dinnerFixed: PlanCandidate?
+            if prefs.includeLunch && !lunchCovered && !untimedFood.isEmpty { lunchFixed = untimedFood.removeFirst() }
+            if prefs.includeDinner && !dinnerCovered && !untimedFood.isEmpty { dinnerFixed = untimedFood.removeFirst() }
+            reserved[dayIndex].append(contentsOf: untimedFood)
+
             let activities = max(prefs.pace.activitiesPerDay - timed[dayIndex].count, reserved[dayIndex].count)
             let before = (activities + 1) / 2
             for _ in 0..<before { add(nextActivity(rng: &rng), .activity) }
-            if prefs.includeLunch { add(pick(kind: .food, near: current, rng: &rng), .lunch) }
+            if prefs.includeLunch && !lunchCovered {
+                add(lunchFixed ?? pick(kind: .food, near: current, rng: &rng), .lunch)
+            }
             for _ in 0..<(activities - before) { add(nextActivity(rng: &rng), .activity) }
             if prefs.wantsCafes { add(pick(kind: .cafe, near: current, rng: &rng), .cafe) }
-            if prefs.includeDinner { add(pick(kind: .food, near: current, rng: &rng), .dinner) }
+            if prefs.includeDinner && !dinnerCovered {
+                add(dinnerFixed ?? pick(kind: .food, near: current, rng: &rng), .dinner)
+            }
             if prefs.wantsNightlife { add(pick(kind: .nightlife, near: current, rng: &rng), .nightlife) }
 
             let startMinute = max(prefs.dayStart.minutes, window.startMinute ?? 0)
@@ -174,6 +194,116 @@ enum AutoPlanner {
             days.append(PlannedDay(stops: stops, theme: theme(for: stops)))
         }
         return days
+    }
+
+    struct Arrangement {
+        var days: [PlannedDay]
+        /// Places that did not fit on any day.
+        var leftOut: [PlanCandidate]
+    }
+
+    /// Plans a trip with exactly the given places and nothing else: they are spread over the days by
+    /// location, put in a short walking order and timed. Places with a wanted day or time keep it.
+    static func arrange(places given: [PlanCandidate],
+                        prefs: TripPreferences,
+                        center: CLLocationCoordinate2D,
+                        windows: [DayWindow] = []) -> Arrangement {
+        let dayCount = max(prefs.days, 1)
+        let places = dedupe(given)
+        guard !places.isEmpty else {
+            return Arrangement(days: Array(repeating: PlannedDay(stops: [], theme: "Free day"), count: dayCount),
+                               leftOut: [])
+        }
+
+        // Compact areas, then fill the days evenly.
+        var centres = dayCentres(points: places.map(\.coordinate), weights: places.map { _ in 1.0 }, count: dayCount)
+        while centres.count < dayCount { centres.append(centres.last ?? center) }
+        let capacity = Int((Double(places.count) / Double(dayCount)).rounded(.up)) + 1
+
+        func distance(_ place: PlanCandidate, _ centre: CLLocationCoordinate2D) -> Double {
+            RoutingService.straightLine(from: place.coordinate, to: centre)
+        }
+
+        var buckets = Array(repeating: [PlanCandidate](), count: dayCount)
+        var rest: [PlanCandidate] = []
+        for place in places {
+            if let day = place.preferredDay, (1...dayCount).contains(day) {
+                buckets[day - 1].append(place)
+            } else {
+                rest.append(place)
+            }
+        }
+        rest.sort { a, b in
+            (centres.map { distance(a, $0) }.min() ?? 0) < (centres.map { distance(b, $0) }.min() ?? 0)
+        }
+        for place in rest {
+            let byDistance = centres.indices.sorted { distance(place, centres[$0]) < distance(place, centres[$1]) }
+            let index = byDistance.first { buckets[$0].count < capacity } ?? byDistance[0]
+            buckets[index].append(place)
+        }
+
+        func build(_ bucket: [PlanCandidate], dayIndex: Int) -> [PlannedStop] {
+            let window = windows.indices.contains(dayIndex) ? windows[dayIndex] : DayWindow()
+            let startMinute = max(prefs.dayStart.minutes, window.startMinute ?? 0)
+            let limit = min(prefs.endLimitMinutes, window.endMinute ?? Int.max)
+
+            let wanted = bucket.filter { $0.preferredMinute != nil }
+            let flexible = bucket.filter { $0.preferredMinute == nil }
+
+            // Short walking order, starting from the hotel when there is one.
+            var order: [Int]
+            if let anchor = window.anchor {
+                order = RouteOptimizer.order([anchor] + flexible.map(\.coordinate)).dropFirst().map { $0 - 1 }
+            } else {
+                order = RouteOptimizer.order(flexible.map(\.coordinate))
+            }
+            let ordered = order.map { flexible[$0] }
+
+            // Sights in walking order, then meals, cafés and nightlife where they belong in the day.
+            var entries: [PlanEditor.Entry] = []
+            for place in ordered where PlanEditor.slot(for: place, among: []) == .activity {
+                entries.append((place, .activity))
+            }
+            for place in ordered where PlanEditor.slot(for: place, among: []) != .activity {
+                let slot = PlanEditor.slot(for: place, among: entries)
+                entries.insert((place, slot), at: min(PlanEditor.defaultIndex(for: slot, in: entries), entries.count))
+            }
+
+            var stops = schedule(entries.map { ($0.place, $0.slot) }, prefs: prefs, from: window.anchor,
+                                 startMinute: startMinute, limit: limit)
+            if !wanted.isEmpty {
+                stops = insertTimed(wanted, into: stops, prefs: prefs, anchor: window.anchor,
+                                    startMinute: startMinute, limit: limit)
+            }
+            return stops
+        }
+
+        var plans = buckets.indices.map { build(buckets[$0], dayIndex: $0) }
+
+        // Whatever did not fit on its day goes to the day with the most room.
+        var overflow: [PlanCandidate] = []
+        for index in buckets.indices {
+            let kept = Set(plans[index].map { $0.candidate.id })
+            overflow += buckets[index].filter { !kept.contains($0.id) }
+            buckets[index].removeAll { !kept.contains($0.id) }
+        }
+        var leftOut: [PlanCandidate] = []
+        for place in overflow {
+            var placed = false
+            for index in plans.indices.sorted(by: { plans[$0].count < plans[$1].count }) {
+                let attempt = build(buckets[index] + [place], dayIndex: index)
+                if attempt.count == buckets[index].count + 1 {
+                    buckets[index].append(place)
+                    plans[index] = attempt
+                    placed = true
+                    break
+                }
+            }
+            if !placed { leftOut.append(place) }
+        }
+
+        let days = plans.map { PlannedDay(stops: $0, theme: $0.isEmpty ? "Free day" : theme(for: $0)) }
+        return Arrangement(days: days, leftOut: leftOut)
     }
 
     /// Puts places with a wanted time where they belong in the day, then schedules the day again
@@ -338,7 +468,7 @@ enum AutoPlanner {
             }
             if start >= limit { continue }
 
-            let length = duration(for: entry.slot, kind: entry.place.kind)
+            let length = entry.place.fixedDuration ?? duration(for: entry.slot, kind: entry.place.kind)
             result.append(PlannedStop(candidate: entry.place, slot: entry.slot, startMinute: start, durationMinutes: length))
             cursor = start + length
             previous = entry.place.coordinate

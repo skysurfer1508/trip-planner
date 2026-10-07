@@ -171,24 +171,43 @@ struct ItineraryReviewView: View {
         let tripDays = trip.sortedDays
         guard !tripDays.isEmpty else { return }
         let calendar = Calendar.current
-        onBeforeAdd?()
 
+        // Build every stop first: stops that were already in the trip are copied before the old
+        // ones are removed.
+        var created: [(day: Day, stop: Stop, isNew: Bool)] = []
         for draftDay in draft.days {
             let day = tripDays[min(max(draftDay.targetIndex, 0), tripDays.count - 1)]
             for draftStop in draftDay.stops where draftStop.include {
                 guard let item = draftStop.item else { continue }
-                let stop = Stop.from(item)
-                if item.pointOfInterestCategory == nil {
-                    stop.category = draftStop.category
+                let stop: Stop
+                if let old = draftStop.existing {
+                    stop = old.clone()
+                } else {
+                    stop = Stop.from(item)
+                    if item.pointOfInterestCategory == nil {
+                        stop.category = draftStop.category
+                    }
+                    stop.notes = draftStop.notes
+                    if stop.address.isEmpty { stop.address = draftStop.address }
                 }
                 if let hour = draftStop.hour {
                     stop.plannedTime = calendar.date(bySettingHour: hour, minute: draftStop.minute ?? 0, second: 0, of: day.date)
                 }
-                stop.notes = draftStop.notes
-                if stop.address.isEmpty { stop.address = draftStop.address }
-                day.append(stop)
-                PlacePreviewStore.shared.apply(to: stop)
+                created.append((day, stop, draftStop.existing == nil))
             }
+        }
+
+        onBeforeAdd?()
+
+        for entry in created {
+            entry.day.append(entry.stop)
+            if entry.isNew {
+                PlacePreviewStore.shared.apply(to: entry.stop)
+            }
+        }
+        // Kept bookings (flights, check-in) and the new stops end up in time order.
+        for day in Set(created.map { $0.day.persistentModelID }) {
+            tripDays.first { $0.persistentModelID == day }?.sortByTime()
         }
         onAdded()
     }

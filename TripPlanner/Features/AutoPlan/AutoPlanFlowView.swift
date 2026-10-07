@@ -11,7 +11,59 @@ struct AutoPlanFlowView: View {
     @Environment(Secrets.self) private var secrets
 
     private enum Step: Hashable {
-        case who, rhythm, interests, food, nightlife, transport, budget, mustSee, summary
+        case approach, who, rhythm, interests, food, nightlife, transport, budget, mustSee, summary
+    }
+
+    /// How the plan is made: from suggestions only, around the traveller's places, or from them alone.
+    private enum Approach: String, CaseIterable, Identifiable {
+        case surprise, around, only
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .surprise: "Suggest everything"
+            case .around: "Build around my places"
+            case .only: "Only my places"
+            }
+        }
+
+        var detail: String {
+            switch self {
+            case .surprise: "I pick the best places for you"
+            case .around: "Start with places you give me or already added, and fill the rest with suggestions"
+            case .only: "Plan the trip with just your places and the stops already in it"
+            }
+        }
+
+        var symbol: String {
+            switch self {
+            case .surprise: "sparkles"
+            case .around: "mappin.and.ellipse"
+            case .only: "list.bullet.clipboard"
+            }
+        }
+    }
+
+    /// What happens to the stops that are already in the trip.
+    private enum ExistingMode: String, CaseIterable, Identifiable {
+        case keep, replace, add
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .keep: "Keep them and plan around them"
+            case .replace: "Replace them"
+            case .add: "Add the plan next to them"
+            }
+        }
+
+        var symbol: String {
+            switch self {
+            case .keep: "pin.fill"
+            case .replace: "arrow.triangle.2.circlepath"
+            case .add: "plus.circle"
+            }
+        }
     }
 
     private enum Phase {
@@ -23,12 +75,14 @@ struct AutoPlanFlowView: View {
     }
 
     @State private var prefs = TripPreferences()
-    @State private var step: Step = .who
+    @State private var step: Step = .approach
+    @State private var approach: Approach = .surprise
+    @State private var existingMode: ExistingMode = .add
+    @State private var existingStops: [String: Stop] = [:]
     @State private var phase: Phase = .questions
     @State private var mustSees: [MustSee] = []
     @State private var popularSights: [MKMapItem] = []
     @State private var showMustSeeSheet = false
-    @State private var replaceExisting = false
     @State private var draft = ImportDraft()
     @State private var notice: String?
     @State private var plan: [PlannedDay] = []
@@ -36,17 +90,36 @@ struct AutoPlanFlowView: View {
     @State private var dayWindows: [DayWindow] = []
     @State private var transitMinutes: [String: Int] = [:]
 
-    private var hasExistingStops: Bool {
-        trip.days.contains { !$0.stops.isEmpty }
+    /// Stops the traveller put in the trip (not the flights and hotel check-ins made from bookings).
+    private var ownStopCount: Int {
+        trip.days.reduce(0) { $0 + $1.stops.filter { !ExistingStops.isLogistics($0) }.count }
     }
+
+    private var hasExistingStops: Bool { ownStopCount > 0 }
 
     /// Questions that don't apply are skipped.
     private var steps: [Step] {
-        var list: [Step] = [.who, .rhythm, .interests]
-        if prefs.interests.contains(.food) { list.append(.food) }
-        if prefs.wantsNightlife { list.append(.nightlife) }
-        list += [.transport, .budget, .mustSee, .summary]
+        var list: [Step] = [.approach]
+        switch approach {
+        case .surprise:
+            list += [.who, .rhythm, .interests]
+            if prefs.interests.contains(.food) { list.append(.food) }
+            if prefs.wantsNightlife { list.append(.nightlife) }
+            list += [.transport, .budget, .mustSee, .summary]
+        case .around:
+            list += [.mustSee, .who, .rhythm, .interests]
+            if prefs.interests.contains(.food) { list.append(.food) }
+            if prefs.wantsNightlife { list.append(.nightlife) }
+            list += [.transport, .budget, .summary]
+        case .only:
+            list += [.mustSee, .rhythm, .transport, .summary]
+        }
         return list
+    }
+
+    /// Stops of the trip that would be planned around (not flights and hotel check-ins).
+    private var keptStopCount: Int {
+        ExistingStops.collect(trip: trip, dayCount: prefs.days).candidates.count
     }
 
     private var stepIndex: Int {
@@ -54,7 +127,11 @@ struct AutoPlanFlowView: View {
     }
 
     private var canContinue: Bool {
-        step != .interests || !prefs.interests.isEmpty
+        switch step {
+        case .interests: !prefs.interests.isEmpty
+        case .mustSee: approach != .only || !mustSees.isEmpty || (existingMode == .keep && keptStopCount > 0)
+        default: true
+        }
     }
 
     var body: some View {
@@ -67,7 +144,7 @@ struct AutoPlanFlowView: View {
                     ItineraryReviewView(trip: trip,
                                         draft: draft,
                                         notice: notice,
-                                        onBeforeAdd: replaceExisting ? clearTargetDays : nil,
+                                        onBeforeAdd: existingMode == .add ? nil : clearTargetDays,
                                         onRegenerate: { Task { await create() } },
                                         onWalkThrough: { phase = .walkthrough }) {
                         dismiss()
@@ -139,6 +216,7 @@ struct AutoPlanFlowView: View {
     @ViewBuilder
     private var page: some View {
         switch step {
+        case .approach: approachPage
         case .who: whoPage
         case .rhythm: rhythmPage
         case .interests: interestsPage
@@ -148,6 +226,23 @@ struct AutoPlanFlowView: View {
         case .budget: budgetPage
         case .mustSee: mustSeePage
         case .summary: summaryPage
+        }
+    }
+
+    private var approachPage: some View {
+        QuestionPage(title: "How do you want to plan?", subtitle: "You can change anything afterwards, day by day.") {
+            ForEach(Approach.allCases) { option in
+                OptionCard(title: option.title, detail: option.detail, symbol: option.symbol,
+                           isSelected: approach == option) {
+                    approach = option
+                }
+            }
+            if hasExistingStops {
+                Label("This trip already has \(ownStopCount) \(ownStopCount == 1 ? "stop" : "stops"). You choose what happens to them on the last page.",
+                      systemImage: "info.circle")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
@@ -174,11 +269,13 @@ struct AutoPlanFlowView: View {
                     .foregroundStyle(.secondary)
             }
 
-            Text("Pace").font(.headline).padding(.top, 6)
-            ForEach(TripPreferences.Pace.allCases) { pace in
-                OptionCard(title: pace.title, detail: pace.detail, symbol: pace.symbol,
-                           isSelected: prefs.pace == pace) {
-                    prefs.pace = pace
+            if approach != .only {
+                Text("Pace").font(.headline).padding(.top, 6)
+                ForEach(TripPreferences.Pace.allCases) { pace in
+                    OptionCard(title: pace.title, detail: pace.detail, symbol: pace.symbol,
+                               isSelected: prefs.pace == pace) {
+                        prefs.pace = pace
+                    }
                 }
             }
 
@@ -280,7 +377,16 @@ struct AutoPlanFlowView: View {
     }
 
     private var mustSeePage: some View {
-        QuestionPage(title: "Anything you must see?", subtitle: "Optional. These always make it into the plan. Say when you want to be there and the plan is built around it.") {
+        QuestionPage(title: approach == .surprise ? "Anything you must see?" : "Your places",
+                     subtitle: approach == .surprise
+                        ? "Optional. These always make it into the plan. Say when you want to be there and the plan is built around it."
+                        : "Add the places you want, one by one or as a pasted list. Say when you want to be somewhere and the plan is built around it.") {
+            if hasExistingStops && existingMode == .keep {
+                Label("\(keptStopCount) \(keptStopCount == 1 ? "stop" : "stops") already in this trip \(keptStopCount == 1 ? "is" : "are") included.",
+                      systemImage: "checkmark.circle.fill")
+                    .font(.footnote)
+                    .foregroundStyle(.green)
+            }
             ForEach(mustSees) { entry in
                 HStack(spacing: 12) {
                     Image(systemName: "mappin.circle.fill")
@@ -338,19 +444,24 @@ struct AutoPlanFlowView: View {
     private var summaryPage: some View {
         QuestionPage(title: "Ready?", subtitle: "Here's what I'll plan.") {
             VStack(alignment: .leading, spacing: 10) {
+                summaryRow(approach.symbol, approach.title)
                 summaryRow("person.2.fill", "\(prefs.group.title), \(prefs.travelers) \(prefs.travelers == 1 ? "person" : "people")")
                 summaryRow("calendar", "\(prefs.days) \(prefs.days == 1 ? "day" : "days"), \(prefs.pace.title.lowercased()) pace, starting \(prefs.dayStart.title.lowercased())")
-                summaryRow("heart.fill", prefs.interests.map(\.title).sorted().joined(separator: ", "))
-                if prefs.interests.contains(.food) {
+                if approach != .only {
+                    summaryRow("heart.fill", prefs.interests.map(\.title).sorted().joined(separator: ", "))
+                }
+                if approach != .only && prefs.interests.contains(.food) {
                     summaryRow("fork.knife", [prefs.includeLunch ? "Lunch" : nil, prefs.includeDinner ? "Dinner" : nil,
                                               prefs.vegetarian ? "Vegetarian" : nil]
                         .compactMap { $0 }.joined(separator: ", "))
                 }
-                if prefs.wantsNightlife {
+                if approach != .only && prefs.wantsNightlife {
                     summaryRow("moon.stars.fill", "\(prefs.nightlifeStyle.title) until \(prefs.nightEndHour == 24 ? "midnight" : "\(prefs.nightEndHour):00")")
                 }
                 summaryRow(prefs.transport.symbol, prefs.transport.title)
-                summaryRow(prefs.budget.symbol, prefs.budget.title)
+                if approach != .only {
+                    summaryRow(prefs.budget.symbol, prefs.budget.title)
+                }
                 if !mustSees.isEmpty {
                     summaryRow("mappin.and.ellipse", mustSees.map { entry in
                         entry.whenText.map { "\(entry.name) (\($0.lowercased()))" } ?? entry.name
@@ -360,13 +471,26 @@ struct AutoPlanFlowView: View {
             .card()
 
             if hasExistingStops {
-                Toggle("Replace the stops already in this trip", isOn: $replaceExisting)
-                Text(replaceExisting
-                     ? "Stops on the days the plan fills will be removed when you add the new plan."
-                     : "The new plan is added to what you already have.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Stops already in this trip").font(.headline)
+                    ForEach(ExistingMode.allCases) { mode in
+                        OptionCard(title: mode.title, symbol: mode.symbol, isSelected: existingMode == mode) {
+                            existingMode = mode
+                        }
+                    }
+                    Text(existingFooter)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
             }
+        }
+    }
+
+    private var existingFooter: String {
+        switch existingMode {
+        case .keep: "Your stops stay, with their notes and photos, and the plan fits around their day and time. Flights and hotel check-ins are never touched."
+        case .replace: "Stops on the days the plan fills are removed when you add the new plan. Flights and hotel check-ins stay."
+        case .add: "The new plan is added to what you already have."
         }
     }
 
@@ -412,6 +536,7 @@ struct AutoPlanFlowView: View {
             prefs.transport = trip.transport
         }
         prefs.days = min(max(trip.days.count, 1), 14)
+        existingMode = hasExistingStops ? .keep : .add
     }
 
     /// The destination's best-known sights, offered as one-tap must-sees.
@@ -459,9 +584,16 @@ struct AutoPlanFlowView: View {
             }
         }
 
+        let collected = existingMode == .keep
+            ? ExistingStops.collect(trip: trip, dayCount: prefs.days)
+            : ExistingStops.Collected()
+        existingStops = collected.stops
+
         let output = await AutoPlanService.build(prefs: prefs,
                                                  center: center,
                                                  mustSees: mustSees,
+                                                 fixed: collected.candidates,
+                                                 fillGaps: approach != .only,
                                                  keys: secrets.keys,
                                                  windows: windows)
         guard output.days.contains(where: { !$0.stops.isEmpty }) else {
@@ -508,14 +640,15 @@ struct AutoPlanFlowView: View {
     /// The review list always mirrors `plan`, so changes from the walk-through show up there.
     private func rebuildDraft() {
         draft = ImportDraft()
-        draft.load(plan: plan, themes: plan.map(\.theme), tripDays: trip.sortedDays)
+        draft.load(plan: plan, themes: plan.map(\.theme), tripDays: trip.sortedDays, existing: existingStops)
     }
 
     /// Removes the stops of the days the new plan is about to fill.
     private func clearTargetDays() {
         let days = trip.sortedDays
         for index in Set(draft.days.map(\.targetIndex)) where days.indices.contains(index) {
-            for stop in Array(days[index].stops) {
+            // Flights and hotel check-ins come from the bookings and stay.
+            for stop in Array(days[index].stops) where !ExistingStops.isLogistics(stop) {
                 context.delete(stop)
             }
         }

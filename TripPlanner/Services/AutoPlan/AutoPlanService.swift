@@ -15,6 +15,8 @@ enum AutoPlanService {
     static func build(prefs: TripPreferences,
                       center: CLLocationCoordinate2D,
                       mustSees: [MustSee],
+                      fixed: [PlanCandidate] = [],
+                      fillGaps: Bool = true,
                       keys: APIKeys,
                       windows: [DayWindow] = [],
                       variation: Double = 0.3) async -> Output {
@@ -74,8 +76,24 @@ enum AutoPlanService {
         // 3. Places the user insists on.
         candidates.append(contentsOf: mustSees.map { $0.candidate() })
 
-        if keys.openTripMap.isEmpty && keys.tripadvisor.isEmpty {
+        if fillGaps && keys.openTripMap.isEmpty && keys.tripadvisor.isEmpty {
             notices.append("Only Apple Maps places were available, so there is no popularity ranking. Add a free OpenTripMap key in Settings for better picks.")
+        }
+
+        candidates.append(contentsOf: fixed)
+
+        if !fillGaps {
+            // Only the traveller's own places: arrange them, don't add anything.
+            let own = candidates.filter(\.isMustSee)
+            let arranged = AutoPlanner.arrange(places: own, prefs: prefs, center: center, windows: windows)
+            if !arranged.leftOut.isEmpty {
+                let names = arranged.leftOut.map(\.name).joined(separator: ", ")
+                notices.append("These places didn't fit in the days available: \(names). Add a day or move them in the walk-through.")
+            }
+            return Output(days: arranged.days,
+                          notices: Array(Set(notices)).sorted(),
+                          candidateCount: own.count,
+                          candidates: AutoPlanner.dedupe(candidates))
         }
 
         var generator = SystemRandomNumberGenerator()

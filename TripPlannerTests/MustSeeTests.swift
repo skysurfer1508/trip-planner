@@ -201,3 +201,107 @@ final class PickedPlaceTests: XCTestCase {
         XCTAssertEqual(outcome.day.stops.map(\.candidate.id), [candidate.id])
     }
 }
+
+final class ArrangeTests: XCTestCase {
+    private let center = CLLocationCoordinate2D(latitude: 52.2297, longitude: 21.0122)
+
+    private func place(_ id: String, dLat: Double, dLon: Double, kind: DiscoverKind = .sights) -> PlanCandidate {
+        var candidate = PlanCandidate(id: id, name: "Place \(id)",
+                                      coordinate: CLLocationCoordinate2D(latitude: center.latitude + dLat,
+                                                                         longitude: center.longitude + dLon),
+                                      kind: kind, score: 1)
+        candidate.isMustSee = true
+        return candidate
+    }
+
+    private func prefs(days: Int) -> TripPreferences {
+        var value = TripPreferences()
+        value.days = days
+        value.group = .couple
+        return value
+    }
+
+    func testOnlyTheGivenPlacesAreUsed() {
+        let places = (0..<6).map { place("p\($0)", dLat: Double($0) * 0.004, dLon: 0) }
+        let result = AutoPlanner.arrange(places: places, prefs: prefs(days: 2), center: center)
+        let ids = Set(result.days.flatMap { $0.stops.map(\.candidate.id) })
+        XCTAssertEqual(ids, Set(places.map(\.id)))
+        XCTAssertTrue(result.leftOut.isEmpty)
+    }
+
+    func testPlacesAreSpreadOverTheDaysByArea() {
+        // Two clusters about 9 km apart.
+        let west = (0..<3).map { place("w\($0)", dLat: Double($0) * 0.002, dLon: -0.06) }
+        let east = (0..<3).map { place("e\($0)", dLat: Double($0) * 0.002, dLon: 0.06) }
+        let result = AutoPlanner.arrange(places: west + east, prefs: prefs(days: 2), center: center)
+        let dayIDs = result.days.map { Set($0.stops.map(\.candidate.id)) }
+        XCTAssertTrue(dayIDs.contains(Set(west.map(\.id))))
+        XCTAssertTrue(dayIDs.contains(Set(east.map(\.id))))
+    }
+
+    func testWantedDayAndTimeAreKept() {
+        var tower = place("tower", dLat: 0, dLon: 0)
+        tower.preferredDay = 2
+        tower.preferredMinute = 19 * 60
+        let others = (0..<3).map { place("o\($0)", dLat: Double($0) * 0.003, dLon: 0.002) }
+        let result = AutoPlanner.arrange(places: others + [tower], prefs: prefs(days: 2), center: center)
+        let stop = result.days[1].stops.first { $0.candidate.id == "tower" }
+        XCTAssertNotNil(stop)
+        XCTAssertGreaterThanOrEqual(stop?.startMinute ?? 0, 19 * 60)
+        let times = result.days[1].stops.map(\.startMinute)
+        XCTAssertEqual(times, times.sorted())
+    }
+
+    func testTooManyPlacesAreReportedNotLost() {
+        let places = (0..<30).map { place("p\($0)", dLat: Double($0) * 0.001, dLon: 0) }
+        let result = AutoPlanner.arrange(places: places, prefs: prefs(days: 1), center: center)
+        let planned = result.days.flatMap { $0.stops.map(\.candidate.id) }
+        XCTAssertEqual(planned.count + result.leftOut.count, 30)
+        XCTAssertFalse(result.leftOut.isEmpty)
+    }
+
+    func testRestaurantBecomesLunchNotAMorningStop() {
+        let sights = (0..<2).map { place("s\($0)", dLat: Double($0) * 0.003, dLon: 0) }
+        let cafe = place("food", dLat: 0.002, dLon: 0, kind: .food)
+        let result = AutoPlanner.arrange(places: sights + [cafe], prefs: prefs(days: 1), center: center)
+        let meal = result.days[0].stops.first { $0.candidate.id == "food" }
+        XCTAssertEqual(meal?.slot, .lunch)
+        XCTAssertGreaterThanOrEqual(meal?.startMinute ?? 0, 12 * 60 + 15)
+    }
+
+    func testEmptyListGivesFreeDays() {
+        let result = AutoPlanner.arrange(places: [], prefs: prefs(days: 3), center: center)
+        XCTAssertEqual(result.days.count, 3)
+        XCTAssertTrue(result.days.allSatisfy { $0.stops.isEmpty })
+    }
+
+    func testFixedDurationIsUsed() {
+        var stop = place("long", dLat: 0, dLon: 0)
+        stop.fixedDuration = 200
+        let result = AutoPlanner.arrange(places: [stop], prefs: prefs(days: 1), center: center)
+        XCTAssertEqual(result.days[0].stops.first?.durationMinutes, 200)
+    }
+
+    func testFixedRestaurantReplacesThatDaysLunch() {
+        var prefs = prefs(days: 1)
+        prefs.interests = [.sights, .food]
+        prefs.includeLunch = true
+        prefs.includeDinner = false
+        var chosen = place("mine", dLat: 0, dLon: 0, kind: .food)
+        chosen.preferredDay = 1
+        var pool: [PlanCandidate] = [chosen]
+        for i in 0..<10 {
+            pool.append(PlanCandidate(id: "f\(i)", name: "Food \(i)",
+                                      coordinate: CLLocationCoordinate2D(latitude: center.latitude + Double(i) * 0.001,
+                                                                         longitude: center.longitude),
+                                      kind: .food, score: 0.9))
+            pool.append(PlanCandidate(id: "s\(i)", name: "Sight \(i)",
+                                      coordinate: CLLocationCoordinate2D(latitude: center.latitude, longitude: center.longitude + Double(i) * 0.001),
+                                      kind: .sights, score: 0.8))
+        }
+        var rng = SplitMix64(seed: 3)
+        let day = AutoPlanner.generate(candidates: pool, prefs: prefs, center: center, variation: 0, using: &rng)[0]
+        XCTAssertEqual(day.stops.filter { $0.slot == .lunch }.map(\.candidate.id), ["mine"])
+        XCTAssertEqual(day.stops.filter { $0.candidate.kind == .food }.count, 1, "no second restaurant is added")
+    }
+}
