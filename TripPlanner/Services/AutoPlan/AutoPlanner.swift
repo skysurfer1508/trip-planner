@@ -23,6 +23,8 @@ struct PlanCandidate: Identifiable {
     var preferredDay: Int?
     /// How long to stay, for a stop that is already in the trip (else a typical length is used).
     var fixedDuration: Int?
+    /// The wanted time was chosen as the best time for this place, not asked for.
+    var timeIsSuggested = false
     /// Set for a stop that is already in the trip; its details are kept when the plan is added.
     var existingKey: String?
 }

@@ -13,6 +13,11 @@ struct GeminiAI: AIEngine {
         return ItineraryJSON.parse(try await generate(prompt: prompt, schema: AISchema.itinerary))
     }
 
+    func extractPlaces(text: String, destination: String) async throws -> [PlaceWish] {
+        let prompt = AIPrompts.places(text: String(text.prefix(20_000)), destination: destination)
+        return PlaceWishJSON.parse(try await generate(prompt: prompt, schema: AISchema.places))
+    }
+
     func dayThemes(_ days: [DayThemeInput], destination: String) async throws -> [String] {
         let json = try await generate(prompt: AIPrompts.themes(days, destination: destination), schema: AISchema.themes)
         return (json["themes"] as? [String] ?? []).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -128,6 +133,17 @@ enum AISchema {
             ], required: ["title"])),
         ], required: ["stops"])),
     ], required: ["days"])
+
+    static let places: [String: Any] = object([
+        "places": array(object([
+            "name": string("Proper name of the place as on a map"),
+            "localName": string("Local-language name if different, else empty"),
+            "kind": choice(["sight", "food", "cafe", "nightlife", "other"]),
+            "statedTime": string("HH:mm if the text says when to go, else empty"),
+            "bestTime": string("HH:mm best time to visit when no time is stated"),
+            "day": string("Day number only if stated, else empty"),
+        ], required: ["name", "kind"])),
+    ], required: ["places"])
 
     static let picks: [String: Any] = object([
         "picks": array(object([

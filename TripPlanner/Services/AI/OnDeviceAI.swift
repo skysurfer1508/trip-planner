@@ -33,6 +33,29 @@ struct GenItinerary {
 
 @available(iOS 26.0, *)
 @Generable
+struct GenPlaceWish {
+    @Guide(description: "Proper name of the place as on a map, without descriptions")
+    var name: String
+    @Guide(description: "Local-language name if different, otherwise an empty string")
+    var localName: String
+    @Guide(description: "One of: sight, food, cafe, nightlife, other")
+    var kind: String
+    @Guide(description: "HH:mm if the text says when to go there, otherwise an empty string")
+    var statedTime: String
+    @Guide(description: "HH:mm for the best time to visit this place when no time is stated")
+    var bestTime: String
+    @Guide(description: "Day number only if the text states it, otherwise an empty string")
+    var day: String
+}
+
+@available(iOS 26.0, *)
+@Generable
+struct GenPlaceWishes {
+    var places: [GenPlaceWish]
+}
+
+@available(iOS 26.0, *)
+@Generable
 struct GenPick {
     @Guide(description: "The candidate id exactly as given")
     var id: String
@@ -139,6 +162,19 @@ struct OnDeviceAI: AIEngine {
             }
         }
         return ParsedItinerary(days: days)
+    }
+
+    func extractPlaces(text: String, destination: String) async throws -> [PlaceWish] {
+        var all: [PlaceWish] = []
+        for chunk in TextChunker.chunks(text, limit: 1800).prefix(8) {
+            let result = try await respond(AIPrompts.places(text: chunk, destination: destination), as: GenPlaceWishes.self)
+            let rows: [[String: Any]] = result.places.map { place in
+                ["name": place.name, "localName": place.localName, "kind": place.kind,
+                 "statedTime": place.statedTime, "bestTime": place.bestTime, "day": place.day]
+            }
+            all.append(contentsOf: PlaceWishJSON.parse(["places": rows]))
+        }
+        return all
     }
 
     func dayThemes(_ days: [DayThemeInput], destination: String) async throws -> [String] {

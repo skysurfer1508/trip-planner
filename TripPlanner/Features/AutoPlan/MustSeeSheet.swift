@@ -26,6 +26,7 @@ struct MustSeeSheet: View {
     @State private var batch: [BatchEntry] = []
     @State private var batchBusy = false
     @State private var batchMessage: String?
+    @State private var changingID: UUID?
     @FocusState private var focused: Bool
 
     /// One place found in a pasted list.
@@ -33,8 +34,15 @@ struct MustSeeSheet: View {
         let id = UUID()
         var title: String
         var minute: Int?
+        /// The time was chosen for the place (best time to visit), not stated in the text.
+        var suggested = false
         var day: Int?
+        var kind: DiscoverKind?
         var item: MKMapItem?
+        /// Other places the name could mean, best first.
+        var options: [MKMapItem] = []
+        /// The match is a sure one; otherwise the row asks the traveller to check it.
+        var confident = true
         var include = true
     }
 
@@ -72,6 +80,13 @@ struct MustSeeSheet: View {
             }
             .task(id: query) { await search() }
             .onAppear { focused = true }
+            .sheet(isPresented: Binding(get: { changingID != nil }, set: { if !$0 { changingID = nil } })) {
+                PlacePickerView(query: batch.first { $0.id == changingID }?.title ?? "", region: region) { item in
+                    if let id = changingID {
+                        update(id) { $0.item = item; $0.confident = true; $0.include = true }
+                    }
+                }
+            }
         }
         .presentationDetents([.large])
     }
@@ -230,12 +245,19 @@ struct MustSeeSheet: View {
                                     .font(.caption)
                                     .foregroundStyle(.orange)
                             }
+                            if entry.item != nil && !entry.confident {
+                                Label("Check this match", systemImage: "exclamationmark.triangle.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(.orange)
+                            }
                             if let when = whenText(entry) {
-                                Label(when, systemImage: "clock")
+                                Label(when, systemImage: entry.suggested && entry.minute != nil ? "sparkles" : "clock")
                                     .font(.caption)
                                     .foregroundStyle(.tint)
                             }
                         }
+                        Spacer(minLength: 0)
+                        entryMenu(entry.id)
                     }
                 }
             }
@@ -257,68 +279,124 @@ struct MustSeeSheet: View {
     private func whenText(_ entry: BatchEntry) -> String? {
         let time = entry.minute ?? (useTime ? minute : nil)
         let number = entry.day ?? (day > 0 ? day : nil)
-        return MustSee.whenText(minute: time, day: number)
+        return MustSee.whenText(minute: time, day: number, suggested: entry.minute != nil && entry.suggested)
+    }
+
+    /// The time, day and place options of one found place.
+    private func entryMenu(_ id: UUID) -> some View {
+        Menu {
+            Section("Time") {
+                Button("Let the plan decide", systemImage: "wand.and.stars") { update(id) { $0.minute = nil; $0.suggested = false } }
+                ForEach([("Morning", 9 * 60 + 30), ("Afternoon", 14 * 60 + 30), ("Evening", 18 * 60 + 30), ("Night", 21 * 60)], id: \.0) { entry in
+                    Button(entry.0) { update(id) { $0.minute = entry.1; $0.suggested = false } }
+                }
+            }
+            if dayCount > 1 {
+                Section("Day") {
+                    Button("Any day") { update(id) { $0.day = nil } }
+                    ForEach(1...dayCount, id: \.self) { number in
+                        Button("Day \(number)") { update(id) { $0.day = number } }
+                    }
+                }
+            }
+            if let entry = batch.first(where: { $0.id == id }), entry.options.count > 1 {
+                Section("Other matches") {
+                    ForEach(Array(entry.options.dropFirst().prefix(3)), id: \.self) { option in
+                        Button(option.name ?? "Place") { update(id) { $0.item = option; $0.confident = true } }
+                    }
+                }
+            }
+            Section {
+                Button("Search for another place…", systemImage: "magnifyingglass") { changingID = id }
+            }
+        } label: {
+            Image(systemName: "ellipsis.circle")
+                .font(.title3)
+        }
+    }
+
+    private func update(_ id: UUID, _ change: (inout BatchEntry) -> Void) {
+        guard let index = batch.firstIndex(where: { $0.id == id }) else { return }
+        change(&batch[index])
     }
 
     private func addBatch() {
         for entry in batch where entry.include {
             guard let item = entry.item else { continue }
-            onAdd(MustSee(item: item,
-                          preferredMinute: entry.minute ?? (useTime ? minute : nil),
-                          preferredDay: entry.day ?? (day > 0 ? day : nil)))
+            let time = entry.minute ?? (useTime ? minute : nil)
+            var wish = MustSee(item: item,
+                               preferredMinute: time,
+                               preferredDay: entry.day ?? (day > 0 ? day : nil))
+            wish.timeIsSuggested = entry.minute != nil && entry.suggested
+            wish.kindHint = entry.kind
+            onAdd(wish)
         }
         dismiss()
     }
 
-    /// Picks the places out of the text (AI when available, else by splitting) and searches each on the map.
+    /// Picks the places out of the text (the AI when there is one, else by splitting it), keeps the
+    /// times the text states, suggests a time for the rest, and finds each place on the map.
     private func findBatch() async {
         batchBusy = true
         batchMessage = nil
         defer { batchBusy = false }
 
-        var wanted: [(title: String, minute: Int?, day: Int?)] = []
+        // What a plain reading of the text says: names, times, days.
+        let plain = MustSeeParser.split(text)
+
+        var wishes: [PlaceWish] = []
         if let engine = AIRouter.current(geminiKey: secrets.keys.gemini),
-           let result = try? await engine.extractItinerary(text: text, context: AIContext(destination: destinationName)) {
-            for stop in result.days.flatMap(\.stops) {
-                let hint = MustSeeParser.parse(stop.title + " " + stop.notes)
-                let minute = stop.hour.map { $0 * 60 + (stop.minute ?? 0) } ?? hint.minute
-                wanted.append((stop.title, minute, hint.day))
+           let result = try? await engine.extractPlaces(text: text, destination: destinationName), !result.isEmpty {
+            wishes = result
+            // The AI can miss a time that is written plainly; the text reading catches it.
+            for index in wishes.indices where wishes[index].statedMinute == nil || wishes[index].day == nil {
+                guard let match = plain.first(where: { PlaceFinder.similarity($0.query, wishes[index].name) > 0.45 }) else { continue }
+                if wishes[index].statedMinute == nil, let minute = match.minute {
+                    wishes[index].statedMinute = minute
+                    wishes[index].suggestedMinute = nil
+                }
+                if wishes[index].day == nil { wishes[index].day = match.day }
+            }
+        } else {
+            wishes = plain.map { parsed in
+                var wish = PlaceWish(name: parsed.query)
+                wish.statedMinute = parsed.minute
+                wish.day = parsed.day
+                return wish
             }
         }
-        if wanted.isEmpty {
-            wanted = MustSeeParser.split(text).map { ($0.query, $0.minute, $0.day) }
-        }
-        guard !wanted.isEmpty else {
+        guard !wishes.isEmpty else {
             batch = []
             batchMessage = "I couldn't find any place names in that text."
             return
         }
 
         var entries: [BatchEntry] = []
-        for place in wanted.prefix(15) {
-            var entry = BatchEntry(title: place.title, minute: place.minute, day: place.day)
-            entry.item = await lookUp(place.title)
+        for wish in wishes.prefix(25) {
+            var entry = BatchEntry(title: wish.name)
+            entry.day = wish.day
+            entry.kind = wish.kind == "food" ? .food : wish.kind == "cafe" ? .cafe : wish.kind == "nightlife" ? .nightlife : nil
+            if let stated = wish.statedMinute {
+                entry.minute = stated
+            } else if let suggestion = wish.suggestedMinute ?? MustSeeParser.suggestedMinute(forName: wish.name) {
+                entry.minute = suggestion
+                entry.suggested = true
+            }
+            let matches = await PlaceFinder.find(name: wish.name, alternatives: wish.alternativeNames,
+                                                 center: center, region: region, city: destinationName)
+            entry.options = matches.map(\.item)
+            entry.item = matches.first?.item
+            entry.confident = matches.first?.isConfident ?? false
             entry.include = entry.item != nil
             entries.append(entry)
             batch = entries
-            // MapKit limits how fast searches can follow each other.
-            try? await Task.sleep(for: .milliseconds(150))
         }
         let missing = entries.filter { $0.item == nil }.count
-        batchMessage = missing == 0 ? nil : "\(missing) not found on the map. Search them one by one, or add the city to the name."
-    }
-
-    /// The best match close to the destination; tries again with the destination's name added.
-    private func lookUp(_ name: String) async -> MKMapItem? {
-        var queries = [name]
-        if !destinationName.isEmpty { queries.append("\(name), \(destinationName)") }
-        for query in queries {
-            let items = (try? await PlaceSearchService.search(query: query, region: region)) ?? []
-            if let match = PlaceSearchService.partition(items, around: center, within: 150_000).near.first {
-                return match
-            }
-        }
-        return nil
+        let unsure = entries.filter { $0.item != nil && !$0.confident }.count
+        var notes: [String] = []
+        if missing > 0 { notes.append("\(missing) not found on the map. Use ⋯ → Search for another place.") }
+        if unsure > 0 { notes.append("\(unsure) \(unsure == 1 ? "match is" : "matches are") not certain: check the ones marked.") }
+        batchMessage = notes.isEmpty ? nil : notes.joined(separator: " ")
     }
 
     private func row(_ item: MKMapItem) -> some View {
@@ -376,9 +454,9 @@ struct MustSeeSheet: View {
         try? await Task.sleep(for: .milliseconds(400))
         guard !Task.isCancelled else { return }
         searching = true
-        let items = (try? await PlaceSearchService.search(query: wanted, region: region)) ?? []
+        let matches = await PlaceFinder.search(query: wanted, center: center, region: region)
         guard !Task.isCancelled else { return }
-        let split = PlaceSearchService.partition(items, around: center, within: 150_000)
+        let split = PlaceSearchService.partition(matches.map(\.item), around: center, within: 150_000)
         near = split.near
         far = split.far
         searching = false

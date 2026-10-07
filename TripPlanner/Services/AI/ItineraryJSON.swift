@@ -87,3 +87,39 @@ enum DayEditJSON {
         return DayEditResponse(summary: (root["summary"] as? String) ?? "", commands: commands)
     }
 }
+
+/// Turns the answer to the "places in this text" request into `PlaceWish`es.
+enum PlaceWishJSON {
+    static func parse(_ root: [String: Any]) -> [PlaceWish] {
+        let rows = root["places"] as? [[String: Any]] ?? []
+        var seen = Set<String>()
+        var result: [PlaceWish] = []
+        for row in rows {
+            guard let name = (row["name"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines), name.count >= 2 else { continue }
+            let key = name.lowercased()
+            guard !seen.contains(key) else { continue }
+            seen.insert(key)
+
+            var wish = PlaceWish(name: name)
+            let local = (row["localName"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if !local.isEmpty, local.lowercased() != key { wish.alternativeNames = [local] }
+            wish.kind = (row["kind"] as? String).flatMap { ["sight", "food", "cafe", "nightlife", "other"].contains($0) ? $0 : nil } ?? "sight"
+            wish.statedMinute = minute(row["statedTime"] as? String)
+            if wish.statedMinute == nil {
+                wish.suggestedMinute = minute(row["bestTime"] as? String)
+            }
+            if let day = (row["day"] as? String).flatMap({ Int($0.filter(\.isNumber)) }), day > 0 { wish.day = day }
+            result.append(wish)
+        }
+        return result
+    }
+
+    /// "18:30" -> 1110.
+    static func minute(_ text: String?) -> Int? {
+        guard let text else { return nil }
+        let parts = text.split(separator: ":")
+        guard parts.count >= 2, let hour = Int(parts[0].filter(\.isNumber)), let minute = Int(parts[1].filter(\.isNumber).prefix(2)),
+              (0..<24).contains(hour), (0..<60).contains(minute) else { return nil }
+        return hour * 60 + minute
+    }
+}

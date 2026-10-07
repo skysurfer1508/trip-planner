@@ -9,21 +9,28 @@ struct MustSee: Identifiable {
     var preferredMinute: Int?
     /// 1 = first day of the plan.
     var preferredDay: Int?
+    /// The time was chosen for the traveller (best time to visit), not asked for.
+    var timeIsSuggested = false
+    /// What the place is, when the map doesn't say (a place found without a category).
+    var kindHint: DiscoverKind?
 
     var name: String { item.name ?? "Place" }
 
     /// "Around 18:30 · Day 2", or nil when the traveller has no preference.
-    var whenText: String? { Self.whenText(minute: preferredMinute, day: preferredDay) }
+    var whenText: String? { Self.whenText(minute: preferredMinute, day: preferredDay, suggested: timeIsSuggested) }
 
-    static func whenText(minute: Int?, day: Int?) -> String? {
+    static func whenText(minute: Int?, day: Int?, suggested: Bool = false) -> String? {
         var parts: [String] = []
-        if let minute { parts.append("Around \(TripLogistics.timeText(minute))") }
+        if let minute { parts.append("\(suggested ? "Best around" : "Around") \(TripLogistics.timeText(minute))") }
         if let day { parts.append("Day \(day)") }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     /// The kind of place the planner should treat it as: a restaurant stays a meal, not a sight.
-    var kind: DiscoverKind { Self.kind(of: item) }
+    var kind: DiscoverKind {
+        if item.pointOfInterestCategory == nil, let kindHint { return kindHint }
+        return Self.kind(of: item)
+    }
 
     static func kind(of item: MKMapItem) -> DiscoverKind {
         switch StopCategory(poi: item.pointOfInterestCategory) {
@@ -45,6 +52,7 @@ struct MustSee: Identifiable {
                                       isMustSee: true)
         candidate.preferredMinute = preferredMinute
         candidate.preferredDay = preferredDay
+        candidate.timeIsSuggested = timeIsSuggested
         return candidate
     }
 }
@@ -121,6 +129,22 @@ enum MustSeeParser {
         }
 
         return Parsed(query: clean(rest), minute: minute, day: day)
+    }
+
+    // MARK: Best time without an AI
+
+    /// A sensible time for places whose name says when they are at their best. Nil when it doesn't matter.
+    static func suggestedMinute(forName name: String) -> Int? {
+        let folded = PlaceFinder.fold(name)
+        let words = Set(folded.split { !$0.isLetter && !$0.isNumber }.map(String.init))
+        let rules: [(words: Set<String>, minute: Int)] = [
+            (["observatory", "skybar", "rooftop", "skyline", "nightlife", "club", "pub", "lounge", "bar"], 21 * 60),
+            (["sunset", "viewpoint", "mirador", "belvedere", "lookout"], 19 * 60),
+            (["market", "bazaar", "bakery", "farmers"], 10 * 60),
+            (["sunrise"], 7 * 60),
+        ]
+        if folded.contains("night market") { return 20 * 60 }
+        return rules.first { !$0.words.isDisjoint(with: words) }?.minute
     }
 
     // MARK: Several places in one text

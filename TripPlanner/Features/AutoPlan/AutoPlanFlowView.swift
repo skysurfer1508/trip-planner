@@ -305,6 +305,11 @@ struct AutoPlanFlowView: View {
                     .font(.footnote)
                     .foregroundStyle(.orange)
             }
+            if !prefs.interests.contains(.nightlife) && approach != .only {
+                Label("No nightlife: the days end after dinner.", systemImage: "moon.zzz")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
             if prefs.isFamily && prefs.interests.contains(.nightlife) {
                 Label("Nightlife is skipped on family trips.", systemImage: "moon.zzz")
                     .font(.footnote)
@@ -339,6 +344,10 @@ struct AutoPlanFlowView: View {
 
     private var nightlifePage: some View {
         QuestionPage(title: "Nightlife", subtitle: "What kind of evening do you want?") {
+            OptionCard(title: "No nightlife", detail: "Dinner, then the day is done", symbol: "moon.zzz.fill",
+                       isSelected: false) {
+                skipNightlife()
+            }
             ForEach(TripPreferences.NightlifeStyle.allCases) { style in
                 OptionCard(title: style.title, symbol: style.symbol, isSelected: prefs.nightlifeStyle == style) {
                     prefs.nightlifeStyle = style
@@ -537,6 +546,13 @@ struct AutoPlanFlowView: View {
         }
         prefs.days = min(max(trip.days.count, 1), 14)
         existingMode = hasExistingStops ? .keep : .add
+    }
+
+    /// "No nightlife": takes it out of the interests and moves on to the next question.
+    private func skipNightlife() {
+        let next = steps.indices.contains(stepIndex + 1) ? steps[stepIndex + 1] : Step.transport
+        prefs.interests.remove(.nightlife)
+        step = next
     }
 
     /// The destination's best-known sights, offered as one-tap must-sees.

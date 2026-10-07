@@ -92,9 +92,9 @@ struct PlacePickerView: View {
             try? await Task.sleep(for: .milliseconds(400))
             guard !Task.isCancelled else { return }
         }
-        let items = (try? await PlaceSearchService.search(query: text, region: region)) ?? []
+        let matches = await PlaceFinder.search(query: text, center: center, region: region)
         guard !Task.isCancelled else { return }
-        let split = PlaceSearchService.partition(items, around: center, within: 150_000)
+        let split = PlaceSearchService.partition(matches.map(\.item), around: center, within: 150_000)
         near = split.near
         far = split.far
         searched = true

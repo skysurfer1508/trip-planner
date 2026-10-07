@@ -74,7 +74,14 @@ enum AutoPlanService {
         }
 
         // 3. Places the user insists on.
-        candidates.append(contentsOf: mustSees.map { $0.candidate() })
+        candidates.append(contentsOf: mustSees.map { entry in
+            var candidate = entry.candidate()
+            // A suggested time must leave room before the day ends (night views when there is no nightlife).
+            if candidate.timeIsSuggested, let minute = candidate.preferredMinute {
+                candidate.preferredMinute = min(minute, max(prefs.endLimitMinutes - 120, 9 * 60))
+            }
+            return candidate
+        })
 
         if fillGaps && keys.openTripMap.isEmpty && keys.tripadvisor.isEmpty {
             notices.append("Only Apple Maps places were available, so there is no popularity ranking. Add a free OpenTripMap key in Settings for better picks.")

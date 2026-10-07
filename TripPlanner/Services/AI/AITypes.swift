@@ -75,9 +75,27 @@ enum AIError: LocalizedError {
 }
 
 /// One AI backend (on-device or Gemini). Features only talk to this protocol.
+/// A place someone wants to visit, read from free text.
+struct PlaceWish: Identifiable {
+    let id = UUID()
+    /// The place's proper name, with typos and descriptions removed.
+    var name: String
+    /// Other names it may be listed under on a map (the local name, another language).
+    var alternativeNames: [String] = []
+    /// One of: sight, food, cafe, nightlife, other.
+    var kind = "sight"
+    /// Minutes after midnight when the text says when to go there.
+    var statedMinute: Int?
+    /// The best time to visit when the text says nothing.
+    var suggestedMinute: Int?
+    var day: Int?
+}
+
 protocol AIEngine {
     var label: String { get }
     func extractItinerary(text: String, context: AIContext) async throws -> ParsedItinerary
+    /// Picks the places out of a pasted list or paragraph and chooses a good time for those without one.
+    func extractPlaces(text: String, destination: String) async throws -> [PlaceWish]
     /// A short title for each planned day, in the same order as `days`.
     func dayThemes(_ days: [DayThemeInput], destination: String) async throws -> [String]
     /// Turns a free-text change request for one day into a few edits that only use the listed ids.
@@ -99,6 +117,27 @@ enum AIPrompts {
         Trip destination: \(context.destination.isEmpty ? "unknown" : context.destination). Trip dates: \(context.dates).
 
         DOCUMENT:
+        \(text)
+        """
+    }
+
+    static func places(text: String, destination: String) -> String {
+        """
+        A traveller pasted a list or paragraph of places they want to visit\(destination.isEmpty ? "" : " in \(destination)"). \
+        List every place once, in the order given. For each place:
+        - name: its proper, official name as it appears on a map. Fix typos and remove descriptions \
+        ("observatory with a skyline view" is not part of a name). If the text describes a place without naming it \
+        well, give the name of the place that is meant.
+        - localName: the name used locally or in the local language, if it differs; otherwise empty.
+        - kind: sight, food, cafe, nightlife or other.
+        - statedTime: HH:mm (24 hour) only if the text says when to go there. Translate parts of the day: \
+        morning 09:30, noon 12:30, afternoon 14:30, evening 18:30, sunset 19:00, night 21:00. Otherwise empty.
+        - bestTime: when statedTime is empty, HH:mm for the best time of day to visit this particular place \
+        (views and observatories at dusk or night, markets in the morning, museums during the day, bars in the evening).
+        - day: the day number only if the text says which day, otherwise empty.
+        Do not invent places that are not in the text.
+
+        TEXT:
         \(text)
         """
     }

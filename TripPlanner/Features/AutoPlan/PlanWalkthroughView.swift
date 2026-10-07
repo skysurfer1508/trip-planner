@@ -155,6 +155,13 @@ struct PlanWalkthroughView: View {
                         Button("Shuffle this day", systemImage: "shuffle") { shuffle(index) }
                         Button("Start 1 hour earlier", systemImage: "sunrise") { shift(index, by: -60) }
                         Button("Start 1 hour later", systemImage: "sunset") { shift(index, by: 60) }
+                        Divider()
+                        Button("Remove nightlife from this day", systemImage: "moon.zzz") { removeNightlife(from: [index]) }
+                            .disabled(!hasNightlife(index))
+                        Button("Remove nightlife from every day", systemImage: "moon.zzz.fill") {
+                            removeNightlife(from: Array(plan.indices))
+                        }
+                        .disabled(!plan.indices.contains { hasNightlife($0) })
                     } label: {
                         Image(systemName: "ellipsis.circle")
                             .font(.title3)
@@ -265,7 +272,9 @@ struct PlanWalkthroughView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 if candidate.isMustSee, let wanted = candidate.preferredMinute {
-                    Label("You asked for around \(TripLogistics.timeText(wanted))", systemImage: "star.fill")
+                    Label(candidate.timeIsSuggested
+                          ? "Best around \(TripLogistics.timeText(wanted))"
+                          : "You asked for around \(TripLogistics.timeText(wanted))", systemImage: "star.fill")
                         .font(.caption2)
                         .foregroundStyle(.orange)
                 }
@@ -418,6 +427,35 @@ struct PlanWalkthroughView: View {
             pool.append(candidate)
         }
         applyEdits([.add(candidate.id, after: nil)], message: "Added \(candidate.name) to day \(dayIndex + 1).")
+    }
+
+    private func hasNightlife(_ index: Int) -> Bool {
+        plan.indices.contains(index) && plan[index].stops.contains { $0.slot == .nightlife || $0.candidate.kind == .nightlife }
+    }
+
+    /// Takes the bars and clubs out of some days; the rest of each day is scheduled again.
+    private func removeNightlife(from days: [Int]) {
+        var updated = plan
+        var removed = 0
+        for index in days where plan.indices.contains(index) {
+            let ids = plan[index].stops
+                .filter { $0.slot == .nightlife || $0.candidate.kind == .nightlife }
+                .map { $0.candidate.id }
+            guard !ids.isEmpty else { continue }
+            let outcome = PlanEditor.apply(ids.map { .remove($0) },
+                                           to: plan[index],
+                                           pool: pool,
+                                           usedElsewhere: usedElsewhere(index),
+                                           prefs: prefs,
+                                           window: window(index),
+                                           travelOverride: travelOverride)
+            updated[index] = outcome.day
+            removed += ids.count
+        }
+        guard removed > 0 else { return }
+        history.append(plan)
+        plan = updated
+        reply = Reply(text: "Removed \(removed) nightlife \(removed == 1 ? "stop" : "stops").")
     }
 
     private func shuffle(_ index: Int) {
