@@ -40,6 +40,38 @@ struct DayEditResponse {
     var commands: [DayEditCommand]
 }
 
+/// One day of the whole plan, for changes that reach across days.
+struct PlanChatDay {
+    var number: Int
+    var title: String
+    /// Limits of the day, e.g. when you land.
+    var note: String
+    var stops: [DayEditItem]
+}
+
+struct PlanChatRequest {
+    var instruction: String
+    var destination: String
+    var travellers: String
+    var days: [PlanChatDay]
+    var places: [DayEditItem]
+}
+
+struct PlanChatCommand {
+    var action: String
+    var stop: String = ""
+    var place: String = ""
+    var after: String = ""
+    var day: Int?
+    var otherDay: Int?
+    var time: String = ""
+}
+
+struct PlanChatResponse {
+    var summary: String
+    var commands: [PlanChatCommand]
+}
+
 struct PickCandidate {
     let id: String
     let name: String
@@ -98,6 +130,8 @@ protocol AIEngine {
     func extractPlaces(text: String, destination: String) async throws -> [PlaceWish]
     /// A short title for each planned day, in the same order as `days`.
     func dayThemes(_ days: [DayThemeInput], destination: String) async throws -> [String]
+    /// Turns a free-text change request for the whole plan into edits that only use the listed ids.
+    func editPlan(_ request: PlanChatRequest) async throws -> PlanChatResponse
     /// Turns a free-text change request for one day into a few edits that only use the listed ids.
     func editDay(_ request: DayEditRequest) async throws -> DayEditResponse
     /// Short notes about tickets, apps and tips, using only the given text.
@@ -167,6 +201,37 @@ enum AIPrompts {
                      + "add (candidate = a p-id, after = an s-id or empty), set_start (time = HH:mm). "
                      + "Leave unused fields empty. If nothing fits, return no edits and say why. "
                      + "The summary is one short sentence for the traveller about what you changed.")
+        return lines.joined(separator: "\n")
+    }
+
+    static func editPlan(_ request: PlanChatRequest) -> String {
+        var lines = [
+            "You change a travel plan for a trip to \(request.destination). Travellers: \(request.travellers).",
+            "The plan:",
+        ]
+        for day in request.days {
+            var header = "Day \(day.number) (\(day.title))"
+            if !day.note.isEmpty { header += ", \(day.note)" }
+            lines.append(header + ":")
+            if day.stops.isEmpty { lines.append("- nothing planned") }
+            lines += day.stops.map { "- \($0.alias): \($0.name) (\($0.detail))" }
+        }
+        lines.append("Real places you may add:")
+        lines += request.places.map { "- \($0.alias): \($0.name) (\($0.detail))" }
+        lines.append("The traveller says: \"\(request.instruction)\"")
+        lines.append("""
+        Answer with the smallest set of edits that does what they ask, using only the ids listed above. Actions:
+        remove (stop = an s-id);
+        move (stop = an s-id, day = the day number, after = an s-id, "first", or empty for last);
+        set_time (stop = an s-id, time = HH:mm);
+        shift_day (day = the day number, or 0 for every day, time = minutes such as +60 or -30);
+        swap_days (day = a day number, otherDay = another day number);
+        retime (day = the day number): lay out that day's times again in its current order;
+        add (place = a p-id, day = the day number, after = an s-id, "first" or empty, time = HH:mm or empty);
+        replace (stop = an s-id, place = a p-id).
+        Leave unused fields empty. Never invent places or ids. If nothing can be done, return no edits and say why. \
+        The summary is one or two short sentences for the traveller about what you changed.
+        """)
         return lines.joined(separator: "\n")
     }
 

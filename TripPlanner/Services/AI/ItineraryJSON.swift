@@ -123,3 +123,26 @@ enum PlaceWishJSON {
         return hour * 60 + minute
     }
 }
+
+/// Turns the AI's answer to a whole-plan change request into commands.
+enum PlanChatJSON {
+    static func parse(_ root: [String: Any]) -> PlanChatResponse {
+        func number(_ value: Any?) -> Int? {
+            if let int = value as? Int { return int }
+            if let text = value as? String { return Int(text.filter { $0.isNumber }) }
+            return nil
+        }
+        let rows = root["edits"] as? [[String: Any]] ?? []
+        let commands = rows.compactMap { row -> PlanChatCommand? in
+            guard let action = row["action"] as? String, !action.isEmpty else { return nil }
+            return PlanChatCommand(action: action,
+                                   stop: row["stop"] as? String ?? "",
+                                   place: row["place"] as? String ?? "",
+                                   after: row["after"] as? String ?? "",
+                                   day: number(row["day"]),
+                                   otherDay: number(row["otherDay"]),
+                                   time: row["time"] as? String ?? "")
+        }
+        return PlanChatResponse(summary: (root["summary"] as? String) ?? "", commands: commands)
+    }
+}

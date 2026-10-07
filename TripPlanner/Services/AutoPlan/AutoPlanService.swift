@@ -128,7 +128,7 @@ enum AutoPlanService {
                       leftOut: leftOut)
     }
 
-    private static func candidate(from place: SuggestedPlace) -> PlanCandidate {
+    static func candidate(from place: SuggestedPlace) -> PlanCandidate {
         PlanCandidate(id: place.id,
                       name: place.name,
                       coordinate: place.coordinate,

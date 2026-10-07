@@ -86,6 +86,33 @@ struct GenEdit {
 
 @available(iOS 26.0, *)
 @Generable
+struct GenPlanEdit {
+    @Guide(description: "One of: remove, move, set_time, shift_day, swap_days, retime, add, replace")
+    var action: String
+    @Guide(description: "An s-id from the plan, or an empty string")
+    var stop: String
+    @Guide(description: "A p-id from the places list, or an empty string")
+    var place: String
+    @Guide(description: "An s-id, the word first, or an empty string")
+    var after: String
+    @Guide(description: "A day number, or an empty string")
+    var day: String
+    @Guide(description: "A second day number for swap_days, or an empty string")
+    var otherDay: String
+    @Guide(description: "HH:mm, or minutes such as +60 or -30, or an empty string")
+    var time: String
+}
+
+@available(iOS 26.0, *)
+@Generable
+struct GenPlanChange {
+    @Guide(description: "One or two short sentences about what changed, or why nothing could change")
+    var summary: String
+    var edits: [GenPlanEdit]
+}
+
+@available(iOS 26.0, *)
+@Generable
 struct GenDayEdit {
     @Guide(description: "One short sentence about what changed, or why nothing could change")
     var summary: String
@@ -180,6 +207,15 @@ struct OnDeviceAI: AIEngine {
     func dayThemes(_ days: [DayThemeInput], destination: String) async throws -> [String] {
         let result = try await respond(AIPrompts.themes(days, destination: destination), as: GenThemes.self)
         return result.themes.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+    }
+
+    func editPlan(_ request: PlanChatRequest) async throws -> PlanChatResponse {
+        let result = try await respond(AIPrompts.editPlan(request), as: GenPlanChange.self)
+        let rows: [[String: Any]] = result.edits.map { edit in
+            ["action": edit.action, "stop": edit.stop, "place": edit.place, "after": edit.after,
+             "day": edit.day, "otherDay": edit.otherDay, "time": edit.time]
+        }
+        return PlanChatJSON.parse(["summary": result.summary, "edits": rows])
     }
 
     func editDay(_ request: DayEditRequest) async throws -> DayEditResponse {

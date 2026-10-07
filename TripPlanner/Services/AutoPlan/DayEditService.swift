@@ -123,7 +123,7 @@ enum DayEditService {
         return base / (1 + distance / prefs.transport.legScale)
     }
 
-    private static func describe(_ prefs: TripPreferences) -> String {
+    static func describe(_ prefs: TripPreferences) -> String {
         let interests = prefs.interests.map(\.title).sorted().joined(separator: ", ")
         return "\(prefs.group.title), \(prefs.travelers) \(prefs.travelers == 1 ? "person" : "people"), "
             + "\(prefs.pace.title.lowercased()) pace, \(prefs.transport.title.lowercased()), likes: \(interests)"

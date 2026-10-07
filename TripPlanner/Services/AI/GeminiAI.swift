@@ -23,6 +23,10 @@ struct GeminiAI: AIEngine {
         return (json["themes"] as? [String] ?? []).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
     }
 
+    func editPlan(_ request: PlanChatRequest) async throws -> PlanChatResponse {
+        PlanChatJSON.parse(try await generate(prompt: AIPrompts.editPlan(request), schema: AISchema.planEdit))
+    }
+
     func editDay(_ request: DayEditRequest) async throws -> DayEditResponse {
         let json = try await generate(prompt: AIPrompts.editDay(request), schema: AISchema.dayEdit)
         return DayEditJSON.parse(json)
@@ -151,6 +155,19 @@ enum AISchema {
             "reason": string("One sentence why it fits now"),
         ], required: ["id", "reason"])),
     ], required: ["picks"])
+
+    static let planEdit: [String: Any] = object([
+        "summary": string("One or two short sentences about what changed, or why nothing could change"),
+        "edits": array(object([
+            "action": choice(["remove", "move", "set_time", "shift_day", "swap_days", "retime", "add", "replace"]),
+            "stop": string("An s-id, or empty"),
+            "place": string("A p-id, or empty"),
+            "after": string("An s-id, first, or empty"),
+            "day": string("A day number, or empty"),
+            "otherDay": string("A second day number for swap_days, or empty"),
+            "time": string("HH:mm, or minutes like +60, or empty"),
+        ], required: ["action"])),
+    ], required: ["summary", "edits"])
 
     static let dayEdit: [String: Any] = object([
         "summary": string("One short sentence about what changed, or why nothing could change"),

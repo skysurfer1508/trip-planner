@@ -8,6 +8,8 @@ struct DayStopListView: View {
     var onSelect: (Stop) -> Void
 
     @Environment(\.modelContext) private var context
+    @State private var orderChanged = false
+    @State private var showTimes = false
 
     private struct OtherDay: Identifiable {
         let number: Int
@@ -60,6 +62,32 @@ struct DayStopListView: View {
         let window = day.trip?.window(for: day.date) ?? DayWindow()
 
         List {
+            if orderChanged && stops.count > 1 {
+                Section {
+                    HStack(spacing: 12) {
+                        Image(systemName: "clock.arrow.2.circlepath")
+                            .foregroundStyle(.tint)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("You changed the order")
+                                .font(.subheadline.weight(.semibold))
+                            Text("The times may not fit anymore.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Button("Adjust times") { showTimes = true }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                        Button {
+                            orderChanged = false
+                        } label: {
+                            Image(systemName: "xmark")
+                        }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel("Dismiss")
+                    }
+                }
+            }
             if !window.items.isEmpty {
                 Section {
                     ForEach(window.items) { item in
@@ -134,6 +162,7 @@ struct DayStopListView: View {
                         var ordered = day.sortedStops
                         ordered.move(fromOffsets: offsets, toOffset: destination)
                         day.renumber(ordered)
+                        orderChanged = true
                     }
                     .onDelete { offsets in
                         var ordered = day.sortedStops
@@ -148,6 +177,9 @@ struct DayStopListView: View {
             }
         }
         .listStyle(.plain)
+        .sheet(isPresented: $showTimes, onDismiss: { orderChanged = false }) {
+            AutoTimeSheet(day: day)
+        }
     }
 }
 

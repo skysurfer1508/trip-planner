@@ -11,6 +11,7 @@ struct PlannerView: View {
     @State private var showSaved = false
     @State private var showExport = false
     @State private var showMap = false
+    @State private var showChat = false
     @State private var showTimes = false
     @State private var editingStop: Stop?
     @State private var feedback = 0
@@ -64,10 +65,21 @@ struct PlannerView: View {
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .top, spacing: 0) {
             TabHeader(title: trip.name) {
+                if editMode.isEditing {
+                    Button("Adjust times") { showTimes = true }
+                        .font(.body)
+                        .disabled((selectedDay?.stops.count ?? 0) < 1)
+                }
                 Button(editMode.isEditing ? "Done" : "Edit") {
                     withAnimation { editMode = editMode.isEditing ? .inactive : .active }
                 }
                 .font(.body)
+                Button {
+                    showChat = true
+                } label: {
+                    Image(systemName: "sparkles")
+                }
+                .accessibilityLabel("Ask the AI to change the plan")
                 actionsMenu
             }
         }
@@ -76,6 +88,9 @@ struct PlannerView: View {
             if let day = selectedDay {
                 AddPlaceView(day: day)
             }
+        }
+        .sheet(isPresented: $showChat) {
+            PlanChatView(trip: trip)
         }
         .sheet(isPresented: $showImport) {
             ImportFlowView(trip: trip)
@@ -111,6 +126,7 @@ struct PlannerView: View {
                 Button("Add place", systemImage: "mappin.and.ellipse") { showAddPlace = true }
                     .disabled(selectedDay == nil)
                 Button("Auto plan…", systemImage: "wand.and.stars") { showAutoPlan = true }
+                Button("Ask the AI to change the plan…", systemImage: "sparkles") { showChat = true }
                 Button("Import program (PDF, Word, photo)", systemImage: "doc.viewfinder") { showImport = true }
                 Button("Saved places (\(trip.savedPlaces.count))", systemImage: "bookmark") { showSaved = true }
             }
@@ -123,7 +139,7 @@ struct PlannerView: View {
                     if let day = selectedDay { sortByTime(day) }
                 }
                 .disabled((selectedDay?.stops.count ?? 0) < 2)
-                Button("Set times…", systemImage: "clock.badge.checkmark") { showTimes = true }
+                Button("Adjust times…", systemImage: "clock.badge.checkmark") { showTimes = true }
                     .disabled((selectedDay?.stops.count ?? 0) < 1)
                 Menu("Copy day to…", systemImage: "doc.on.doc") {
                     ForEach(Array(days.enumerated()), id: \.element.persistentModelID) { index, target in
