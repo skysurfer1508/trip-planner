@@ -38,6 +38,9 @@ struct TripDTO: Codable {
     var transitGuide: String?
     var transitGuideTitle: String?
     var transitNotes: String?
+    var countryCode: String?
+    var countryName: String?
+    var practicalInfo: String?
 }
 
 struct BookingDTO: Codable {
@@ -80,6 +83,7 @@ struct StopDTO: Codable {
     var phone: String
     var website: String
     var aiTips: String
+    var openingHours: String?
     var summary: String?
     var wikiURL: String?
     /// Only a photo the user chose is saved; Wikipedia photos are fetched again.
@@ -156,6 +160,7 @@ enum TripArchiver {
                             durationMinutes: stop.durationMinutes, notes: stop.notes, order: stop.order,
                             isDone: stop.isDone, estimatedCost: stop.estimatedCost, phone: stop.phone,
                             website: stop.website, aiTips: stop.aiTips,
+                            openingHours: stop.openingHours,
                             summary: stop.summary, wikiURL: stop.wikiURL,
                             userImage: stop.imageSource == "user" ? stop.imageData : nil)
                 })
@@ -188,7 +193,10 @@ enum TripArchiver {
             transportRaw: trip.transportRaw,
             transitGuide: trip.transitGuide,
             transitGuideTitle: trip.transitGuideTitle,
-            transitNotes: trip.transitNotes
+            transitNotes: trip.transitNotes,
+            countryCode: trip.countryCode,
+            countryName: trip.countryName,
+            practicalInfo: trip.practicalInfo
         )
     }
 
@@ -245,6 +253,9 @@ enum TripArchiver {
             trip.transitGuide = dto.transitGuide ?? ""
             trip.transitGuideTitle = dto.transitGuideTitle ?? ""
             trip.transitNotes = dto.transitNotes ?? ""
+            trip.countryCode = dto.countryCode ?? ""
+            trip.countryName = dto.countryName ?? ""
+            trip.practicalInfo = dto.practicalInfo ?? ""
 
             for dayDTO in dto.days {
                 let day = Day(date: dayDTO.date)
@@ -265,6 +276,8 @@ enum TripArchiver {
                     stop.phone = stopDTO.phone
                     stop.website = stopDTO.website
                     stop.aiTips = stopDTO.aiTips
+                    stop.openingHours = stopDTO.openingHours ?? ""
+                    if !stop.openingHours.isEmpty { stop.hoursCheckedAt = Date() }
                     stop.summary = stopDTO.summary ?? ""
                     stop.wikiURL = stopDTO.wikiURL ?? ""
                     if let image = stopDTO.userImage {

@@ -61,6 +61,25 @@ scheduled times (no live delays); dates too far ahead for timetables use the typ
 Transitous asks for open-source, non-commercial, low-volume use and that you contact them before relying on it
 (Matrix chat, see transitous.org); the app sends an identifying User-Agent and keeps requests low.
 
+**Opening hours and holidays**: each stop's opening hours are looked up on OpenStreetMap (free; good coverage in
+Europe and big cities) and saved on the stop. When a planned time doesn't fit ("Closed on Mondays", "Opens at 10:00",
+"Closes at 17:30, before your visit ends") the row shows a warning, the stop's detail lists the whole week with
+seasonal hours, and days that are public holidays at the destination (Nager.Date) show a banner. Places without hours
+data are left alone.
+
+**Rain plan**: when the forecast for a day shows rain and the day has outdoor stops (parks, viewpoints, beaches,
+squares), a banner offers to swap them for indoor places nearby (museums, galleries, indoor attractions). The outdoor
+stops move to Saved places so you can put them back on a dry day.
+
+**Practical info** (More, and a card on the Overview): emergency numbers, currency, calling code, mains voltage and
+driving side from Wikidata, plus short notes on safety, money and tipping, internet, electricity, health and manners
+from Wikivoyage, summarised by the AI from that text only (the original text is available). Stored on the trip for
+offline use.
+
+**PDF itinerary** (Plan → Share & export → PDF itinerary): an A4 document with a cover (flights, hotel, emergency
+numbers), one page per day (map with the hotel and route, times, addresses, photos, notes, opening-hours warnings)
+and practical notes. Save, share or print it.
+
 **Trip Mode** (location arrow in the toolbar): today's plan with progress, next stop with walk/transit/drive ETA
 and a "Leave by" countdown, Navigate in Apple Maps, quick lookups (coffee, ATM, pharmacy, restrooms),
 **I'm hungry** (cuisine/takeaway/vegetarian filters, Tripadvisor "Top rated"), **What now?** (AI ranks real

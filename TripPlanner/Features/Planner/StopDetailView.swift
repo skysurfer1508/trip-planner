@@ -38,6 +38,8 @@ struct StopDetailView: View {
             Form {
                 photoSection
 
+                hoursSection
+
                 Section {
                     TextField("Name", text: $stop.name)
                     Picker("Category", selection: $stop.category) {
@@ -116,6 +118,7 @@ struct StopDetailView: View {
                 loadingInfo = stop.infoCheckedAt == nil
                 await PlaceInfoLoader.ensureInfo(for: stop)
                 loadingInfo = false
+                await OpeningHoursLoader.ensureHours(for: stop)
             }
             .onChange(of: photoItem) { _, item in
                 guard let item else { return }
@@ -126,6 +129,67 @@ struct StopDetailView: View {
                         stop.imageSource = "user"
                     }
                     photoItem = nil
+                }
+            }
+        }
+    }
+
+    // MARK: Opening hours
+
+    @ViewBuilder
+    private var hoursSection: some View {
+        if OpeningHoursLoader.shouldLookUp(stop) {
+            let trip = stop.day?.trip
+            let isHoliday: (Date) -> Bool = { trip?.isNationalHoliday($0) ?? false }
+            let date = stop.plannedTime ?? stop.day?.date ?? Date()
+
+            Section("Opening hours") {
+                if stop.openingHours.isEmpty {
+                    if stop.hoursCheckedAt == nil {
+                        HStack(spacing: 10) {
+                            ProgressView()
+                            Text("Looking up opening hours…")
+                                .foregroundStyle(.secondary)
+                        }
+                    } else {
+                        Text("No opening hours are listed for this place on OpenStreetMap. Check the website or ask on the spot.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                } else if let hours = OpeningHours.parse(stop.openingHours) {
+                    if let planned = stop.plannedTime,
+                       let warning = OpeningHours.warning(for: hours.verdict(visitAt: planned, minutes: stop.durationMinutes,
+                                                                            isHoliday: isHoliday)) {
+                        Label(warning, systemImage: "exclamationmark.triangle.fill")
+                            .font(.footnote)
+                            .foregroundStyle(.orange)
+                    }
+                    ForEach(Array(hours.week(around: date, isHoliday: isHoliday).enumerated()), id: \.offset) { _, entry in
+                        HStack {
+                            Text(entry.day)
+                            Spacer()
+                            Text(entry.text)
+                                .foregroundStyle(.secondary)
+                        }
+                        .font(.subheadline)
+                    }
+                    Text("Seasons and public holidays are applied for the week of \(date.formatted(date: .abbreviated, time: .omitted)).")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text(stop.openingHours)
+                        .font(.subheadline)
+                    Text("These hours use a format the app can't check automatically.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                if !stop.openingHours.isEmpty || stop.hoursCheckedAt != nil {
+                    Button("Check again", systemImage: "arrow.clockwise") {
+                        Task { await OpeningHoursLoader.ensureHours(for: stop, force: true) }
+                    }
+                    Text("Source: OpenStreetMap contributors (ODbL). Hours can be out of date; confirm before a long trip.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
             }
         }

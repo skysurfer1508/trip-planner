@@ -22,6 +22,16 @@ struct ExportView: View {
                 }
 
                 Section {
+                    NavigationLink {
+                        PDFExportView(trip: trip)
+                    } label: {
+                        Label("PDF itinerary (save or print)", systemImage: "doc.richtext")
+                    }
+                } footer: {
+                    Text("A clean day-by-day document with maps, times and addresses.")
+                }
+
+                Section {
                     if let tripFileURL {
                         ShareLink(item: tripFileURL) {
                             Label("Send the trip file", systemImage: "paperplane")

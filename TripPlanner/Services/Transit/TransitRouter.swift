@@ -163,13 +163,16 @@ enum TransitRouter {
 @MainActor
 enum TripTimeZone {
     static func ensure(_ trip: Trip) async -> TimeZone {
-        if let zone = TimeZone(identifier: trip.timeZoneID), !trip.timeZoneID.isEmpty { return zone }
-        guard let coordinate = trip.destinationCoordinate ?? trip.anyCoordinate else { return .current }
-        let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
-        if let zone = (try? await CLGeocoder().reverseGeocodeLocation(location))?.first?.timeZone {
-            trip.timeZoneID = zone.identifier
+        if let zone = TimeZone(identifier: trip.timeZoneID), !trip.timeZoneID.isEmpty, !trip.countryCode.isEmpty {
             return zone
         }
-        return .current
+        guard let coordinate = trip.destinationCoordinate ?? trip.anyCoordinate else { return trip.timeZone }
+        let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        if let placemark = (try? await CLGeocoder().reverseGeocodeLocation(location))?.first {
+            if let zone = placemark.timeZone { trip.timeZoneID = zone.identifier }
+            if let code = placemark.isoCountryCode { trip.countryCode = code }
+            if let country = placemark.country { trip.countryName = country }
+        }
+        return trip.timeZone
     }
 }

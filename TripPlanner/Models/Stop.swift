@@ -29,6 +29,9 @@ final class Stop {
     var imageSource: String = ""
     /// When the photo/description lookup last finished; nil means it still has to run.
     var infoCheckedAt: Date?
+    /// OpenStreetMap `opening_hours` text for the place ("" = none found) and when it was checked.
+    var openingHours: String = ""
+    var hoursCheckedAt: Date?
     var day: Day?
 
     init(name: String,
@@ -67,6 +70,8 @@ final class Stop {
         copy.imageData = imageData
         copy.imageSource = imageSource
         copy.infoCheckedAt = infoCheckedAt
+        copy.openingHours = openingHours
+        copy.hoursCheckedAt = hoursCheckedAt
         return copy
     }
 

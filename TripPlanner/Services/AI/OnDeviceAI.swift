@@ -82,6 +82,25 @@ struct GenTransitNotes {
 
 @available(iOS 26.0, *)
 @Generable
+struct GenPractical {
+    @Guide(description: "Emergency numbers and who to call, only from the text")
+    var emergency: [String]
+    @Guide(description: "Safety notes, only from the text")
+    var safety: [String]
+    @Guide(description: "Money, cards and tipping notes, only from the text")
+    var money: [String]
+    @Guide(description: "SIM, eSIM and wifi notes, only from the text")
+    var connectivity: [String]
+    @Guide(description: "Plug type and voltage, only if stated")
+    var electricity: [String]
+    @Guide(description: "Health notes, only from the text")
+    var health: [String]
+    @Guide(description: "Customs and manners, only from the text")
+    var etiquette: [String]
+}
+
+@available(iOS 26.0, *)
+@Generable
 struct GenThemes {
     @Guide(description: "One short day title of at most 4 words per day, in order")
     var themes: [String]
@@ -142,6 +161,16 @@ struct OnDeviceAI: AIEngine {
         return TransitNotes(tickets: result.tickets.filter { !$0.isEmpty },
                             apps: result.apps.filter { !$0.isEmpty },
                             tips: result.tips.filter { !$0.isEmpty })
+    }
+
+    func summarizePractical(text: String, country: String) async throws -> PracticalNotes {
+        let result = try await respond(AIPrompts.practical(text: String(text.prefix(3_000)), country: country),
+                                       as: GenPractical.self)
+        func clean(_ list: [String]) -> [String] { list.filter { !$0.isEmpty } }
+        return PracticalNotes(emergency: clean(result.emergency), safety: clean(result.safety),
+                              money: clean(result.money), connectivity: clean(result.connectivity),
+                              electricity: clean(result.electricity), health: clean(result.health),
+                              etiquette: clean(result.etiquette))
     }
 
     func rankPicks(_ request: PicksRequest) async throws -> [AIPick] {

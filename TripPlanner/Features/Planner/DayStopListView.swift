@@ -23,8 +23,26 @@ struct DayStopListView: View {
             .map { OtherDay(number: $0.offset + 1, day: $0.element) }
     }
 
+    /// Everything that is wrong with a stop's time: flights, and opening hours.
+    private func warnings(for stop: Stop, window: DayWindow) -> [String] {
+        var result: [String] = []
+        if let message = flightWarning(for: stop, window: window) { result.append(message) }
+        if let message = hoursWarning(for: stop) { result.append(message) }
+        return result
+    }
+
+    /// "Closed on Mondays", "Opens at 10:00, after your planned time", from the saved OSM hours.
+    private func hoursWarning(for stop: Stop) -> String? {
+        guard let planned = stop.plannedTime, !stop.openingHours.isEmpty,
+              let hours = OpeningHours.parse(stop.openingHours) else { return nil }
+        let trip = day.trip
+        let verdict = hours.verdict(visitAt: planned, minutes: stop.durationMinutes,
+                                    isHoliday: { trip?.isNationalHoliday($0) ?? false })
+        return OpeningHours.warning(for: verdict).map { "\($0) (opening hours)" }
+    }
+
     /// Why a stop's time doesn't fit the flights, if it doesn't.
-    private func warning(for stop: Stop, window: DayWindow) -> String? {
+    private func flightWarning(for stop: Stop, window: DayWindow) -> String? {
         guard let time = stop.plannedTime else { return nil }
         let parts = Calendar.current.dateComponents([.hour, .minute], from: time)
         let minute = (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
@@ -80,7 +98,7 @@ struct DayStopListView: View {
                             } label: {
                                 StopRow(stop: stop,
                                         number: index + 1,
-                                        warning: warning(for: stop, window: window))
+                                        warnings: warnings(for: stop, window: window))
                             }
                             .buttonStyle(.plain)
 
@@ -229,7 +247,7 @@ private struct DaySummary: View {
 struct StopRow: View {
     let stop: Stop
     let number: Int
-    var warning: String?
+    var warnings: [String] = []
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -262,7 +280,7 @@ struct StopRow: View {
                 StopThumbnail(stop: stop, size: 56)
             }
 
-            if let warning {
+            ForEach(warnings, id: \.self) { warning in
                 Label(warning, systemImage: "exclamationmark.triangle.fill")
                     .font(.caption2)
                     .foregroundStyle(.orange)
@@ -271,6 +289,9 @@ struct StopRow: View {
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
-        .task { await PlaceInfoLoader.ensureInfo(for: stop) }
+        .task {
+            await PlaceInfoLoader.ensureInfo(for: stop)
+            await OpeningHoursLoader.ensureHours(for: stop)
+        }
     }
 }

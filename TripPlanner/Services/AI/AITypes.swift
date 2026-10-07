@@ -84,6 +84,8 @@ protocol AIEngine {
     func editDay(_ request: DayEditRequest) async throws -> DayEditResponse
     /// Short notes about tickets, apps and tips, using only the given text.
     func summarizeTransit(text: String, city: String) async throws -> TransitNotes
+    /// Short practical notes (safety, money, internet, electricity...) using only the given text.
+    func summarizePractical(text: String, country: String) async throws -> PracticalNotes
     func rankPicks(_ request: PicksRequest) async throws -> [AIPick]
     func placeTips(name: String, city: String) async throws -> [String]
 }
@@ -133,6 +135,15 @@ enum AIPrompts {
             + "tickets and passes (what exists, where to buy; prices only if the text states them), "
             + "apps or websites to use, and practical tips. Each item under 25 words. "
             + "Do not add anything that is not in the text. If the text says nothing about a list, leave it empty.\n\nTEXT:\n\(text)"
+    }
+
+    static func practical(text: String, country: String) -> String {
+        "Using ONLY the text below about visiting \(country), write short notes for a traveller in these lists: "
+            + "emergency (numbers and who to call), safety (scams, risky situations, precautions), "
+            + "money (currency, cards, ATMs, tipping), connectivity (SIM, eSIM, wifi, roaming), "
+            + "electricity (plug type and voltage, only if stated), health (water, pharmacies, insurance), "
+            + "etiquette (customs and manners). Each item under 25 words. "
+            + "Do not add anything that is not in the text. Leave a list empty if the text does not cover it.\n\nTEXT:\n\(text)"
     }
 
     static func picks(_ request: PicksRequest) -> String {

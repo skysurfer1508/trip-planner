@@ -24,6 +24,14 @@ final class Trip {
     var transitGuide: String = ""
     var transitGuideTitle: String = ""
     var transitNotes: String = ""
+    /// ISO country code and name of the destination, found with the time zone.
+    var countryCode: String = ""
+    var countryName: String = ""
+    /// Public holidays on the trip's dates (JSON of `[Holiday]`) and the country they were loaded for.
+    var holidaysJSON: String = ""
+    var holidaysCountry: String = ""
+    /// Facts and notes about the destination (JSON of `PracticalInfo`).
+    var practicalInfo: String = ""
     @Relationship(deleteRule: .cascade, inverse: \Day.trip) var days: [Day] = []
     @Relationship(deleteRule: .cascade, inverse: \Expense.trip) var expenses: [Expense] = []
     @Relationship(deleteRule: .cascade, inverse: \ChecklistItem.trip) var checklist: [ChecklistItem] = []
@@ -42,6 +50,21 @@ final class Trip {
     var transport: TripPreferences.Transport {
         get { TripPreferences.Transport(rawValue: transportRaw) ?? .walking }
         set { transportRaw = newValue.rawValue }
+    }
+
+    var holidays: [Holiday] {
+        guard !holidaysJSON.isEmpty else { return [] }
+        return (try? JSONDecoder().decode([Holiday].self, from: Data(holidaysJSON.utf8))) ?? []
+    }
+
+    func holiday(on date: Date) -> Holiday? {
+        PublicHolidays.holiday(on: date, in: holidays)
+    }
+
+    /// A holiday for the whole country (regional ones are shown but not used to mark places closed).
+    func isNationalHoliday(_ date: Date) -> Bool {
+        let key = PublicHolidays.key(date)
+        return holidays.contains { $0.date == key && !$0.isRegional }
     }
 
     var timeZone: TimeZone {
@@ -103,6 +126,11 @@ final class Trip {
         if name != destination {
             // Time zone and the public transport guide belong to the old destination.
             timeZoneID = ""
+            countryCode = ""
+            countryName = ""
+            holidaysJSON = ""
+            holidaysCountry = ""
+            practicalInfo = ""
             transitGuide = ""
             transitGuideTitle = ""
             transitNotes = ""

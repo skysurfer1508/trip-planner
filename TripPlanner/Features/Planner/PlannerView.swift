@@ -49,6 +49,10 @@ struct PlannerView: View {
                     .padding(.horizontal)
                     .padding(.top, 8)
 
+                DayAlertsView(trip: trip, day: day)
+                    .padding(.horizontal)
+                    .padding(.top, 4)
+
                 DayStopListView(day: day) { editingStop = $0 }
             } else {
                 ContentUnavailableView("No days", systemImage: "calendar",

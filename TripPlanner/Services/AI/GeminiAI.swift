@@ -30,6 +30,15 @@ struct GeminiAI: AIEngine {
         return TransitNotes(tickets: list("tickets"), apps: list("apps"), tips: list("tips"))
     }
 
+    func summarizePractical(text: String, country: String) async throws -> PracticalNotes {
+        let json = try await generate(prompt: AIPrompts.practical(text: String(text.prefix(7_000)), country: country),
+                                      schema: AISchema.practical)
+        func list(_ key: String) -> [String] { (json[key] as? [String] ?? []).filter { !$0.isEmpty } }
+        return PracticalNotes(emergency: list("emergency"), safety: list("safety"), money: list("money"),
+                              connectivity: list("connectivity"), electricity: list("electricity"),
+                              health: list("health"), etiquette: list("etiquette"))
+    }
+
     func rankPicks(_ request: PicksRequest) async throws -> [AIPick] {
         let json = try await generate(prompt: AIPrompts.picks(request), schema: AISchema.picks)
         let rows = json["picks"] as? [[String: Any]] ?? []
@@ -143,6 +152,16 @@ enum AISchema {
         "apps": array(string("A short note about an app or website")),
         "tips": array(string("A short practical tip")),
     ], required: ["tickets", "apps", "tips"])
+
+    static let practical: [String: Any] = object([
+        "emergency": array(string("Emergency number or who to call")),
+        "safety": array(string("A safety note")),
+        "money": array(string("A money or tipping note")),
+        "connectivity": array(string("A SIM, eSIM or wifi note")),
+        "electricity": array(string("Plug type or voltage")),
+        "health": array(string("A health note")),
+        "etiquette": array(string("A customs or manners note")),
+    ], required: ["emergency", "safety", "money", "connectivity", "electricity", "health", "etiquette"])
 
     static let themes: [String: Any] = object([
         "themes": array(string("Short day title, at most 4 words")),

@@ -95,6 +95,8 @@ struct TodayView: View {
 
                     logisticsToday(for: day)
 
+                    DayAlertsView(trip: trip, day: day)
+
                     if location.isDenied {
                         Label("Location is off. Enable it in Settings for travel times and nearby search.",
                               systemImage: "location.slash")

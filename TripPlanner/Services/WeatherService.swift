@@ -44,7 +44,31 @@ enum WeatherService {
         let daily: Daily
     }
 
+    private actor Cache {
+        private var store: [String: (date: Date, weather: DayWeather?)] = [:]
+
+        func get(_ key: String) -> (DayWeather?)? {
+            guard let entry = store[key], Date().timeIntervalSince(entry.date) < 1_800 else { return nil }
+            return .some(entry.weather)
+        }
+
+        func set(_ key: String, _ weather: DayWeather?) {
+            store[key] = (Date(), weather)
+        }
+    }
+
+    private static let cache = Cache()
+
+    /// Forecast for one day, remembered for half an hour so screens don't ask again and again.
     static func forecast(for date: Date, at coordinate: CLLocationCoordinate2D) async -> DayWeather? {
+        let key = "\(Int(date.timeIntervalSince1970 / 86_400))|\(String(format: "%.2f,%.2f", coordinate.latitude, coordinate.longitude))"
+        if let cached = await cache.get(key) { return cached }
+        let fresh = await fetchForecast(for: date, at: coordinate)
+        await cache.set(key, fresh)
+        return fresh
+    }
+
+    private static func fetchForecast(for date: Date, at coordinate: CLLocationCoordinate2D) async -> DayWeather? {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.locale = Locale(identifier: "en_US_POSIX")

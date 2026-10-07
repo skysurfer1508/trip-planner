@@ -18,6 +18,11 @@ struct MoreView: View {
                     row("Flights & hotel", symbol: "airplane", detail: trip.bookings.isEmpty ? nil : "\(trip.bookings.count)")
                 }
                 NavigationLink {
+                    PracticalInfoView(trip: trip)
+                } label: {
+                    row("Practical info", symbol: "info.circle", detail: trip.countryName.isEmpty ? nil : trip.countryName)
+                }
+                NavigationLink {
                     ChecklistView(trip: trip)
                 } label: {
                     row("Packing & to-do", symbol: "checklist", detail: checklistDetail)
