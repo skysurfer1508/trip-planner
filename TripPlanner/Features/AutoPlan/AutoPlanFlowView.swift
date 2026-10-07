@@ -75,7 +75,7 @@ struct AutoPlanFlowView: View {
                 case .walkthrough:
                     PlanWalkthroughView(trip: trip,
                                         plan: $plan,
-                                        pool: pool,
+                                        pool: $pool,
                                         prefs: prefs,
                                         windows: dayWindows,
                                         transitMinutes: transitMinutes) {

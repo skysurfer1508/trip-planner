@@ -30,8 +30,13 @@ struct PlacePickerView: View {
                 }
             }
             .overlay {
-                if near.isEmpty && far.isEmpty && searched {
-                    ContentUnavailableView.search(text: query)
+                if near.isEmpty && far.isEmpty {
+                    if searched {
+                        ContentUnavailableView.search(text: query)
+                    } else {
+                        ContentUnavailableView("Search for a place", systemImage: "magnifyingglass",
+                                               description: Text("Type a name, a sight or a kind of place."))
+                    }
                 }
             }
             .navigationTitle("Choose place")

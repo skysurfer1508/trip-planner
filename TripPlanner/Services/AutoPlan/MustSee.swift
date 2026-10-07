@@ -23,7 +23,9 @@ struct MustSee: Identifiable {
     }
 
     /// The kind of place the planner should treat it as: a restaurant stays a meal, not a sight.
-    var kind: DiscoverKind {
+    var kind: DiscoverKind { Self.kind(of: item) }
+
+    static func kind(of item: MKMapItem) -> DiscoverKind {
         switch StopCategory(poi: item.pointOfInterestCategory) {
         case .food: .food
         case .cafe: .cafe
@@ -44,6 +46,19 @@ struct MustSee: Identifiable {
         candidate.preferredMinute = preferredMinute
         candidate.preferredDay = preferredDay
         return candidate
+    }
+}
+
+extension PlanCandidate {
+    /// A place the traveller searched for and added to a day by hand.
+    init(picked item: MKMapItem) {
+        let coordinate = item.placemark.coordinate
+        self.init(id: "picked-\(item.name ?? "")-\(coordinate.latitude)",
+                  name: item.name ?? "Place",
+                  coordinate: coordinate,
+                  kind: MustSee.kind(of: item),
+                  score: 0.5,
+                  address: item.placemark.title ?? "")
     }
 }
 

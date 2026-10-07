@@ -182,3 +182,22 @@ final class MustSeeListTests: XCTestCase {
         XCTAssertEqual(MustSeeParser.split("Louvre\nlouvre\nEiffel Tower").map(\.query), ["Louvre", "Eiffel Tower"])
     }
 }
+
+final class PickedPlaceTests: XCTestCase {
+    func testSearchedPlaceCanBeAddedToADay() {
+        let center = CLLocationCoordinate2D(latitude: 38.7223, longitude: -9.1393)
+        let item = MKMapItem(placemark: MKPlacemark(coordinate: center))
+        item.name = "Time Out Market"
+        let candidate = PlanCandidate(picked: item)
+        XCTAssertEqual(candidate.name, "Time Out Market")
+        XCTAssertFalse(candidate.isMustSee)
+
+        var prefs = TripPreferences()
+        prefs.interests = [.sights]
+        let day = PlannedDay(stops: [], theme: "")
+        let outcome = PlanEditor.apply([.add(candidate.id, after: nil)], to: day, pool: [candidate], usedElsewhere: [],
+                                       prefs: prefs, window: DayWindow())
+        XCTAssertTrue(outcome.changed)
+        XCTAssertEqual(outcome.day.stops.map(\.candidate.id), [candidate.id])
+    }
+}

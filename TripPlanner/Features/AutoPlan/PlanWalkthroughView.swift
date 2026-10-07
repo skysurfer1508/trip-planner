@@ -7,7 +7,7 @@ import MapKit
 struct PlanWalkthroughView: View {
     let trip: Trip
     @Binding var plan: [PlannedDay]
-    let pool: [PlanCandidate]
+    @Binding var pool: [PlanCandidate]
     let prefs: TripPreferences
     let windows: [DayWindow]
     /// Real public transport minutes found while planning, used when a day is scheduled again.
@@ -37,6 +37,7 @@ struct PlanWalkthroughView: View {
     @State private var busy = false
     @State private var reply: Reply?
     @State private var alternatives: AlternativeTarget?
+    @State private var showAddPlace = false
 
     private var engine: (any AIEngine)? { AIRouter.current(geminiKey: secrets.keys.gemini) }
     private var tripDays: [Day] { trip.sortedDays }
@@ -78,8 +79,20 @@ struct PlanWalkthroughView: View {
                 Button("Done", action: onDone)
             }
         }
+        .sheet(isPresented: $showAddPlace) {
+            PlacePickerView(query: "", region: trip.searchRegion) { item in
+                addPicked(item)
+            }
+        }
         .sheet(item: $alternatives) { target in
             AlternativesSheet(stop: target.stop,
+                              region: trip.searchRegion,
+                              onSearchPick: { item in
+                                  let candidate = PlanCandidate(picked: item)
+                                  if !pool.contains(where: { $0.id == candidate.id }) { pool.append(candidate) }
+                                  applyEdits([.replace(target.stop.candidate.id, with: candidate.id)],
+                                             message: "Replaced \(target.stop.candidate.name) with \(candidate.name).")
+                              },
                               options: PlanEditor.alternatives(for: target.stop, pool: pool,
                                                                taken: usedElsewhere(dayIndex)
                                                                    .union(plan[dayIndex].stops.map { $0.candidate.id }),
@@ -184,6 +197,17 @@ struct PlanWalkthroughView: View {
                     }
                     .card()
                 }
+
+                Button {
+                    dayIndex = index
+                    showAddPlace = true
+                } label: {
+                    Label("Add a place to day \(index + 1)", systemImage: "plus.circle.fill")
+                        .font(.subheadline.weight(.medium))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
             }
             .padding(.horizontal)
             .padding(.bottom, 24)
@@ -387,6 +411,15 @@ struct PlanWalkthroughView: View {
         reply = Reply(text: [message, notes].filter { !$0.isEmpty }.joined(separator: " "))
     }
 
+    /// A place found by searching: it joins the pool and is scheduled into the current day.
+    private func addPicked(_ item: MKMapItem) {
+        let candidate = PlanCandidate(picked: item)
+        if !pool.contains(where: { $0.id == candidate.id }) {
+            pool.append(candidate)
+        }
+        applyEdits([.add(candidate.id, after: nil)], message: "Added \(candidate.name) to day \(dayIndex + 1).")
+    }
+
     private func shuffle(_ index: Int) {
         guard plan.indices.contains(index) else { return }
         let center = tripDays.indices.contains(index) ? (trip.destinationCoordinate ?? window(index).anchor) : nil
@@ -423,10 +456,14 @@ struct PlanWalkthroughView: View {
 /// The places that could take a stop's place.
 private struct AlternativesSheet: View {
     let stop: PlannedStop
+    let region: MKCoordinateRegion?
+    /// A place found with the search instead of the list.
+    let onSearchPick: (MKMapItem) -> Void
     let options: [PlanCandidate]
     let onPick: (PlanCandidate) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @State private var showSearch = false
 
     var body: some View {
         NavigationStack {
@@ -462,6 +499,15 @@ private struct AlternativesSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Button("Search", systemImage: "magnifyingglass") { showSearch = true }
+                }
+            }
+            .sheet(isPresented: $showSearch) {
+                PlacePickerView(query: "", region: region) { item in
+                    onSearchPick(item)
+                    dismiss()
                 }
             }
         }
