@@ -5,10 +5,14 @@ import CoreLocation
 
 @MainActor
 final class PlanChatTests: XCTestCase {
+    /// An in-memory store only lives as long as its container: keep every one until the test is over.
+    private var containers: [ModelContainer] = []
+
     private func makeTrip(days: Int = 3) throws -> (ModelContainer, Trip) {
         let container = try ModelContainer(for: Trip.self, Day.self, Stop.self, Expense.self,
                                            ChecklistItem.self, TripDocument.self, SavedPlace.self, Booking.self,
                                            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        containers.append(container)
         let start = Calendar.current.startOfDay(for: Date())
         let end = Calendar.current.date(byAdding: .day, value: days - 1, to: start)!
         let trip = Trip(name: "Warsaw", destination: "Warsaw", startDate: start, endDate: end)
@@ -194,10 +198,13 @@ final class GeminiCheckTests: XCTestCase {
 
 @MainActor
 final class AuditFixTests: XCTestCase {
+    private var containers: [ModelContainer] = []
+
     private func makeTrip() throws -> (ModelContainer, Trip) {
         let container = try ModelContainer(for: Trip.self, Day.self, Stop.self, Expense.self,
                                            ChecklistItem.self, TripDocument.self, SavedPlace.self, Booking.self,
                                            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        containers.append(container)
         let start = Calendar.current.startOfDay(for: Date())
         let trip = Trip(name: "T", destination: "Warsaw", startDate: start, endDate: start)
         container.mainContext.insert(trip)
@@ -426,6 +433,7 @@ final class CalendarExportTests: XCTestCase {
         stop.durationMinutes = 90
         stop.website = "https://zamek-krolewski.pl"
 
+        withExtendedLifetime(container) {}
         let events = CalendarExport.events(for: trip)
         let castle = try XCTUnwrap(events.first { $0.title == "Royal Castle" })
         // 10:00 in Warsaw (summer time, UTC+2) is 08:00 UTC, whatever the phone's own zone.
@@ -436,5 +444,6 @@ final class CalendarExportTests: XCTestCase {
         XCTAssertEqual(castle.alarmMinutes, 30)
         // The same trip gives the same ids again.
         XCTAssertEqual(CalendarExport.events(for: trip).map(\.key), events.map(\.key))
+        withExtendedLifetime(container) {}
     }
 }
