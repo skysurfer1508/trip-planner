@@ -16,7 +16,7 @@ struct SavedPlacesView: View {
         NavigationStack {
             List {
                 ForEach(places) { place in
-                    HStack(spacing: 12) {
+                    HStack(spacing: Spacing.m) {
                         Image(systemName: place.category.symbol)
                             .frame(width: 32, height: 32)
                             .background(place.category.color.opacity(0.15), in: Circle())

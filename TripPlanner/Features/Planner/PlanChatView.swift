@@ -43,14 +43,14 @@ struct PlanChatView: View {
             VStack(spacing: 0) {
                 ScrollViewReader { proxy in
                     ScrollView {
-                        VStack(alignment: .leading, spacing: 12) {
+                        VStack(alignment: .leading, spacing: Spacing.m) {
                             intro
                             ForEach(messages) { message in
                                 bubble(message)
                                     .id(message.id)
                             }
                             if busy {
-                                HStack(spacing: 8) {
+                                HStack(spacing: Spacing.s) {
                                     ProgressView()
                                     Text("Thinking…").foregroundStyle(.secondary)
                                 }
@@ -87,7 +87,7 @@ struct PlanChatView: View {
     // MARK: Pieces
 
     private var intro: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: Spacing.s) {
             Label("Tell me what to change in the plan.", systemImage: "bubble.left.and.text.bubble.right")
                 .font(.headline)
             Text("I can move places between days, change times, swap days, add places nearby or remove some. I only use places that are really there, and you can undo every change.")
@@ -102,7 +102,7 @@ struct PlanChatView: View {
     }
 
     private func bubble(_ message: Message) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: Spacing.s) {
             Text(message.text)
                 .font(.subheadline)
             ForEach(message.changes, id: \.self) { change in
@@ -111,9 +111,9 @@ struct PlanChatView: View {
                     .foregroundStyle(.green)
             }
         }
-        .padding(12)
+        .padding(Spacing.m)
         .frame(maxWidth: .infinity, alignment: message.role == .traveller ? .trailing : .leading)
-        .background(background(for: message.role), in: RoundedRectangle(cornerRadius: 14))
+        .background(background(for: message.role), in: Radius.shape(Radius.card))
         .padding(.leading, message.role == .traveller ? 40 : 0)
         .padding(.trailing, message.role == .traveller ? 0 : 40)
     }
@@ -127,9 +127,9 @@ struct PlanChatView: View {
     }
 
     private var composer: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: Spacing.s) {
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
+                HStack(spacing: Spacing.s) {
                     ForEach(Self.suggestions, id: \.self) { suggestion in
                         Button {
                             prompt = suggestion
@@ -137,15 +137,15 @@ struct PlanChatView: View {
                         } label: {
                             Text(suggestion)
                                 .font(.footnote)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
+                                .padding(.horizontal, Spacing.m)
+                                .padding(.vertical, Spacing.s)
                                 .background(Color(.secondarySystemBackground), in: Capsule())
                         }
                         .buttonStyle(.plain)
                     }
                 }
             }
-            HStack(alignment: .bottom, spacing: 8) {
+            HStack(alignment: .bottom, spacing: Spacing.s) {
                 TextField(engine == nil ? "No AI engine turned on" : "What should change?", text: $prompt, axis: .vertical)
                     .lineLimit(1...4)
                     .textFieldStyle(.roundedBorder)
@@ -164,7 +164,7 @@ struct PlanChatView: View {
             }
         }
         .padding(.horizontal)
-        .padding(.vertical, 10)
+        .padding(.vertical, Spacing.m)
         .background(.bar)
     }
 

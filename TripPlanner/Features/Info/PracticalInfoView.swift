@@ -16,7 +16,7 @@ struct PracticalInfoView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: Spacing.l) {
                 if let info {
                     emergency(info)
                     facts(info)
@@ -24,7 +24,7 @@ struct PracticalInfoView: View {
                     original(info)
                     sources
                 } else if loading {
-                    HStack(spacing: 10) {
+                    HStack(spacing: Spacing.m) {
                         ProgressView()
                         Text("Loading information about \(country)…")
                             .foregroundStyle(.secondary)
@@ -65,7 +65,7 @@ struct PracticalInfoView: View {
         let numbers = info.emergencyNumbers
         let lines = info.notes?.emergency ?? []
         if !numbers.isEmpty || !lines.isEmpty {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: Spacing.m) {
                 Label("Emergency", systemImage: "cross.case.fill")
                     .font(.headline)
                     .foregroundStyle(.red)
@@ -100,7 +100,7 @@ struct PracticalInfoView: View {
         ].filter { !$0.2.isEmpty }
 
         if !rows.isEmpty {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: Spacing.m) {
                 ForEach(rows, id: \.0) { row in
                     HStack {
                         Label(row.0, systemImage: row.1)
@@ -119,7 +119,7 @@ struct PracticalInfoView: View {
     @ViewBuilder
     private func notes(_ info: PracticalInfo) -> some View {
         if let notes = info.notes, !notes.isEmpty {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: Spacing.l) {
                 noteList("Safety", "exclamationmark.shield", notes.safety)
                 noteList("Money and tipping", "creditcard", notes.money)
                 noteList("Phone and internet", "antenna.radiowaves.left.and.right", notes.connectivity)
@@ -139,7 +139,7 @@ struct PracticalInfoView: View {
     @ViewBuilder
     private func noteList(_ title: String, _ symbol: String, _ items: [String]) -> some View {
         if !items.isEmpty {
-            VStack(alignment: .leading, spacing: 5) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
                 Label(title, systemImage: symbol)
                     .font(.subheadline.bold())
                 ForEach(items, id: \.self) { item in
@@ -158,14 +158,14 @@ struct PracticalInfoView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, 6)
+                    .padding(.top, Spacing.s)
             }
             .card()
         }
     }
 
     private var sources: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
             Text("Facts: Wikidata (CC0). Advice: Wikivoyage (CC BY-SA), summarised by the AI from that text only. It can be out of date, so check official sources for entry rules, health and safety.")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
@@ -195,7 +195,7 @@ struct PracticalInfoCard: View {
         NavigationLink {
             PracticalInfoView(trip: trip)
         } label: {
-            HStack(spacing: 12) {
+            HStack(spacing: Spacing.m) {
                 Image(systemName: "info.circle.fill")
                     .font(.title3)
                     .foregroundStyle(.tint)

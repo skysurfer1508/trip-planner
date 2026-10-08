@@ -8,7 +8,7 @@ struct OfflinePackCard: View {
     @State private var runner = OfflinePackRunner()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: Spacing.m) {
             Label("Ready for offline", systemImage: "arrow.down.circle")
                 .font(.headline)
 

@@ -22,7 +22,7 @@ private struct PDFPage<Content: View>: View {
             }
             .font(.system(size: 8))
             .foregroundStyle(.gray)
-            .padding(.top, 8)
+            .padding(.top, Spacing.s)
         }
         .padding(margin)
         .frame(width: pageWidth, height: pageHeight, alignment: .topLeading)
@@ -40,8 +40,8 @@ struct PDFCoverPage: View {
 
     var body: some View {
         PDFPage(tripName: tripName, page: page, total: total) {
-            VStack(alignment: .leading, spacing: 18) {
-                VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: Spacing.l) {
+                VStack(alignment: .leading, spacing: Spacing.s) {
                     Text(cover.name)
                         .font(.system(size: 30, weight: .bold))
                     if !cover.destination.isEmpty {
@@ -53,7 +53,7 @@ struct PDFCoverPage: View {
                         .font(.system(size: 12))
                         .foregroundStyle(.gray)
                 }
-                .padding(.bottom, 6)
+                .padding(.bottom, Spacing.s)
 
                 section("Flights and hotel", cover.bookings)
 
@@ -70,7 +70,7 @@ struct PDFCoverPage: View {
     @ViewBuilder
     private func section(_ title: String, _ items: [String]) -> some View {
         if !items.isEmpty {
-            VStack(alignment: .leading, spacing: 5) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(title.uppercased())
                     .font(.system(size: 9, weight: .bold))
                     .foregroundStyle(.gray)
@@ -95,7 +95,7 @@ struct PDFDayPage: View {
 
     var body: some View {
         PDFPage(tripName: tripName, page: page, total: total) {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: Spacing.m) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(day.title + (continued ? " (continued)" : ""))
                         .font(.system(size: 22, weight: .bold))
@@ -120,7 +120,7 @@ struct PDFDayPage: View {
                             .resizable()
                             .scaledToFill()
                             .frame(width: pageWidth - margin * 2, height: 190)
-                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                            .clipShape(Radius.shape(Radius.small))
                     }
                     if !day.startFrom.isEmpty {
                         Label(day.startFrom, systemImage: "bed.double.fill")
@@ -143,7 +143,7 @@ struct PDFDayPage: View {
     }
 
     private func row(_ stop: PDFStop) -> some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: Spacing.m) {
             Text("\(stop.number)")
                 .font(.system(size: 9, weight: .bold))
                 .foregroundStyle(.white)
@@ -183,9 +183,9 @@ struct PDFDayPage: View {
                     .resizable()
                     .scaledToFill()
                     .frame(width: 52, height: 52)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .clipShape(Radius.shape(Radius.small))
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, Spacing.xs)
     }
 }

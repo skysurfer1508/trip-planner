@@ -182,7 +182,7 @@ struct AutoPlanFlowView: View {
         VStack(spacing: 0) {
             ProgressView(value: Double(stepIndex + 1), total: Double(steps.count))
                 .padding(.horizontal)
-                .padding(.top, 8)
+                .padding(.top, Spacing.s)
 
             page
                 .id(step)
@@ -191,7 +191,7 @@ struct AutoPlanFlowView: View {
         }
         .animation(.snappy, value: step)
         .safeAreaInset(edge: .bottom) {
-            HStack(spacing: 12) {
+            HStack(spacing: Spacing.m) {
                 if stepIndex > 0 {
                     Button("Back") { go(-1) }
                         .buttonStyle(.bordered)
@@ -258,7 +258,7 @@ struct AutoPlanFlowView: View {
                 }
             }
             Stepper("People: \(prefs.travelers)", value: $prefs.travelers, in: 1...30)
-                .padding(.top, 4)
+                .padding(.top, Spacing.xs)
         }
     }
 
@@ -272,7 +272,7 @@ struct AutoPlanFlowView: View {
             }
 
             if approach != .only {
-                Text("Pace").font(.headline).padding(.top, 6)
+                Text("Pace").font(.headline).padding(.top, Spacing.s)
                 ForEach(TripPreferences.Pace.allCases) { pace in
                     OptionCard(title: pace.title, detail: pace.detail, symbol: pace.symbol,
                                isSelected: prefs.pace == pace) {
@@ -281,7 +281,7 @@ struct AutoPlanFlowView: View {
                 }
             }
 
-            Text("Start the day").font(.headline).padding(.top, 6)
+            Text("Start the day").font(.headline).padding(.top, Spacing.s)
             Picker("Start", selection: $prefs.dayStart) {
                 ForEach(TripPreferences.DayStart.allCases) { Text($0.title).tag($0) }
             }
@@ -291,7 +291,7 @@ struct AutoPlanFlowView: View {
 
     private var interestsPage: some View {
         QuestionPage(title: "What do you like?", subtitle: "Pick everything that sounds good.") {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 105), spacing: 10)], spacing: 10) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 105), spacing: Spacing.m)], spacing: Spacing.m) {
                 ForEach(TripPreferences.Interest.allCases) { interest in
                     SelectTile(title: interest.title, symbol: interest.symbol, isOn: prefs.interests.contains(interest)) {
                         if prefs.interests.contains(interest) {
@@ -326,8 +326,8 @@ struct AutoPlanFlowView: View {
             Toggle("Plan dinner", isOn: $prefs.includeDinner)
             Toggle("Vegetarian", isOn: $prefs.vegetarian)
 
-            Text("Favourite cuisines").font(.headline).padding(.top, 6)
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 8)], alignment: .leading, spacing: 8) {
+            Text("Favourite cuisines").font(.headline).padding(.top, Spacing.s)
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: Spacing.s)], alignment: .leading, spacing: Spacing.s) {
                 ForEach(Cuisine.allCases) { cuisine in
                     FilterChip(title: cuisine.title, isOn: prefs.cuisines.contains(cuisine.rawValue)) {
                         if prefs.cuisines.contains(cuisine.rawValue) {
@@ -361,7 +361,7 @@ struct AutoPlanFlowView: View {
                 Text("Midnight").tag(24)
             }
             .pickerStyle(.segmented)
-            .padding(.top, 4)
+            .padding(.top, Spacing.xs)
         }
     }
 
@@ -399,7 +399,7 @@ struct AutoPlanFlowView: View {
                     .foregroundStyle(.green)
             }
             ForEach(mustSees) { entry in
-                HStack(spacing: 12) {
+                HStack(spacing: Spacing.m) {
                     Image(systemName: "mappin.circle.fill")
                         .font(.title3)
                         .foregroundStyle(.red)
@@ -427,8 +427,8 @@ struct AutoPlanFlowView: View {
                     }
                     .accessibilityLabel("Remove \(entry.name)")
                 }
-                .padding(12)
-                .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+                .padding(Spacing.m)
+                .background(Color(.secondarySystemBackground), in: Radius.shape(Radius.small))
             }
             Button {
                 showMustSeeSheet = true
@@ -454,7 +454,7 @@ struct AutoPlanFlowView: View {
 
     private var summaryPage: some View {
         QuestionPage(title: "Ready?", subtitle: "Here's what I'll plan.") {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: Spacing.m) {
                 summaryRow(approach.symbol, approach.title)
                 summaryRow("person.2.fill", groupSummary)
                 summaryRow("calendar", daysSummary)
@@ -478,7 +478,7 @@ struct AutoPlanFlowView: View {
             .card()
 
             if hasExistingStops {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: Spacing.s) {
                     Text("Stops already in this trip").font(.headline)
                     ForEach(ExistingMode.allCases) { mode in
                         OptionCard(title: mode.title, symbol: mode.symbol, isSelected: existingMode == mode) {
@@ -541,7 +541,7 @@ struct AutoPlanFlowView: View {
     }
 
     private func summaryRow(_ symbol: String, _ text: String) -> some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: Spacing.m) {
             Image(systemName: symbol)
                 .frame(width: 22)
                 .foregroundStyle(.tint)
@@ -553,7 +553,7 @@ struct AutoPlanFlowView: View {
     // MARK: Other phases
 
     private func workingView(_ message: String) -> some View {
-        VStack(spacing: 16) {
+        VStack(spacing: Spacing.l) {
             ProgressView()
             Text(message)
                 .foregroundStyle(.secondary)

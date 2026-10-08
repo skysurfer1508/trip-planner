@@ -7,7 +7,7 @@ struct TabHeader<Actions: View>: View {
     @ViewBuilder var actions: () -> Actions
 
     var body: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: Spacing.l) {
             Text(title)
                 .font(.headline)
                 .lineLimit(1)
@@ -16,7 +16,7 @@ struct TabHeader<Actions: View>: View {
                 .font(.title3)
         }
         .padding(.horizontal)
-        .padding(.vertical, 8)
+        .padding(.vertical, Spacing.s)
         .frame(maxWidth: .infinity)
         .background(.bar)
     }

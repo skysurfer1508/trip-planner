@@ -65,7 +65,7 @@ struct WhatNowView: View {
     }
 
     private func row(_ pick: Pick) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: Spacing.s) {
             HStack {
                 Image(systemName: pick.category.symbol)
                     .foregroundStyle(pick.category.color)
@@ -75,7 +75,7 @@ struct WhatNowView: View {
                 if pick.isPlanned {
                     Text("Planned")
                         .font(.caption2.bold())
-                        .padding(.horizontal, 6)
+                        .padding(.horizontal, Spacing.s)
                         .padding(.vertical, 2)
                         .background(Color.accentColor.opacity(0.15), in: Capsule())
                 }
@@ -112,7 +112,7 @@ struct WhatNowView: View {
             }
             .controlSize(.small)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, Spacing.xs)
     }
 
     private func load() async {

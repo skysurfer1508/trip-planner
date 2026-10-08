@@ -18,8 +18,8 @@ struct WeatherChip: View {
     var body: some View {
         Group {
             if let weather {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    HStack(spacing: Spacing.s) {
                         Image(systemName: weather.symbol)
                             .symbolRenderingMode(.multicolor)
                         Text(weather.summary)
@@ -35,10 +35,10 @@ struct WeatherChip: View {
                             .foregroundStyle(.orange)
                     }
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .padding(.horizontal, Spacing.m)
+                .padding(.vertical, Spacing.s)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+                .background(.thinMaterial, in: Radius.shape(Radius.small))
             }
         }
         .task(id: taskKey) {

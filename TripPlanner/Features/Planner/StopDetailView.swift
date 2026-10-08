@@ -146,7 +146,7 @@ struct StopDetailView: View {
             Section("Opening hours") {
                 if stop.openingHours.isEmpty {
                     if stop.hoursCheckedAt == nil {
-                        HStack(spacing: 10) {
+                        HStack(spacing: Spacing.m) {
                             ProgressView()
                             Text("Looking up opening hours…")
                                 .foregroundStyle(.secondary)
@@ -218,16 +218,16 @@ struct StopDetailView: View {
     @ViewBuilder
     private var photoSection: some View {
         Section {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: Spacing.m) {
                 if let data = stop.imageData, let image = UIImage(data: data) {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFill()
                         .frame(height: 210)
                         .frame(maxWidth: .infinity)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .clipShape(Radius.shape(Radius.card))
                 } else if loadingInfo {
-                    HStack(spacing: 10) {
+                    HStack(spacing: Spacing.m) {
                         ProgressView()
                         Text("Looking for a photo…")
                             .foregroundStyle(.secondary)

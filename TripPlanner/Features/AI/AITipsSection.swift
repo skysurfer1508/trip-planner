@@ -18,7 +18,7 @@ struct AITipsSection: View {
 
         Group {
             if !tips.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: Spacing.s) {
                     ForEach(tips, id: \.self) { tip in
                         Label(tip, systemImage: "lightbulb")
                             .font(.subheadline)

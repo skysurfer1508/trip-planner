@@ -105,15 +105,15 @@ struct TransitBadge: View {
     let leg: TransitLeg
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: Spacing.xs) {
             Image(systemName: leg.mode.symbol)
             Text(leg.routeShortName ?? leg.mode.title)
                 .lineLimit(1)
         }
         .font(.caption.bold())
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(leg.color, in: RoundedRectangle(cornerRadius: 7))
+        .padding(.horizontal, Spacing.s)
+        .padding(.vertical, Spacing.xs)
+        .background(leg.color, in: Radius.shape(Radius.small))
         .foregroundStyle(.white)
     }
 }
@@ -208,14 +208,14 @@ struct TransitConnector: View {
     private var content: some View {
         switch outcome {
         case .none:
-            HStack(spacing: 6) {
+            HStack(spacing: Spacing.s) {
                 ProgressView().controlSize(.mini)
                 Text(fallback).foregroundStyle(.tertiary)
             }
         case .routes(let result):
             if let best = result.best {
                 VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: Spacing.s) {
                         Image(systemName: best.headlineMode.symbol)
                         Text((result.isTypical ? "≈ " : "") + best.summary)
                             .lineLimit(2)
@@ -274,7 +274,7 @@ struct TransitRouteView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: Spacing.l) {
                     Text("\(fromName) → \(toName)")
                         .font(.headline)
 
@@ -342,7 +342,7 @@ struct TransitRouteView: View {
                  plainWalk: walkPath)
             .id(current.id ?? "\(index)-\(current.duration)")
             .frame(height: 280)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .clipShape(Radius.shape(Radius.card))
             .task(id: current.id ?? "\(index)-\(current.duration)") { await loadExtras(current) }
 
         alerts(current, in: itineraries)
@@ -376,8 +376,8 @@ struct TransitRouteView: View {
 
     /// Total time, changes and walking, at a glance.
     private func header(_ current: TransitItinerary, result: TransitResult) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: Spacing.s) {
+            HStack(spacing: Spacing.s) {
                 chip(Format.duration(TimeInterval(current.duration)), "clock")
                 if !current.transitLegs.isEmpty {
                     chip(current.transfers == 0 ? "Direct" : "\(current.transfers) \(current.transfers == 1 ? "change" : "changes")",
@@ -434,7 +434,7 @@ struct TransitRouteView: View {
     @ViewBuilder
     private func alerts(_ current: TransitItinerary, in all: [TransitItinerary]) -> some View {
         if current.hasCancelledLeg {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: Spacing.s) {
                 Label("A vehicle on this route is cancelled.", systemImage: "xmark.octagon.fill")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.red)
@@ -443,18 +443,18 @@ struct TransitRouteView: View {
                         .font(.subheadline.bold())
                 }
             }
-            .padding(12)
+            .padding(Spacing.m)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.red.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
+            .background(Color.red.opacity(0.1), in: Radius.shape(Radius.small))
         }
         let tight = current.changeSlackMinutes.filter { $0 < 3 }
         if !tight.isEmpty && !current.hasCancelledLeg {
             Label(tightText(tight), systemImage: "exclamationmark.triangle.fill")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.orange)
-                .padding(12)
+                .padding(Spacing.m)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+                .background(Color.orange.opacity(0.12), in: Radius.shape(Radius.small))
         }
     }
 
@@ -492,8 +492,8 @@ struct TransitRouteView: View {
     private func chip(_ text: String, _ symbol: String) -> some View {
         Label(text, systemImage: symbol)
             .font(.caption.weight(.semibold))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
+            .padding(.horizontal, Spacing.m)
+            .padding(.vertical, Spacing.xs)
             .background(Color(.secondarySystemBackground), in: Capsule())
     }
 
@@ -551,7 +551,7 @@ struct TransitRouteView: View {
     }
 
     private func message(_ title: String, detail: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: Spacing.s) {
             Label(title, systemImage: "exclamationmark.triangle.fill")
                 .font(.subheadline.bold())
                 .foregroundStyle(.orange)
@@ -573,7 +573,7 @@ private struct LegRow: View {
     var onDepartures: ((TransitLeg) -> Void)?
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: Spacing.m) {
             VStack(alignment: .trailing, spacing: 0) {
                 LiveTime(date: leg.departure, delay: leg.departureDelayMinutes, cancelled: leg.isCancelled, zone: zone)
                     .font(.caption.monospacedDigit().weight(.semibold))
@@ -589,14 +589,14 @@ private struct LegRow: View {
             Rail(color: leg.color, dotted: leg.isWalking)
                 .frame(width: 10)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
                 if leg.isWalking {
                     walkText
                 } else {
                     vehicleText
                 }
             }
-            .padding(.vertical, 8)
+            .padding(.vertical, Spacing.s)
             Spacer(minLength: 0)
         }
         .fixedSize(horizontal: false, vertical: true)
@@ -621,7 +621,7 @@ private struct LegRow: View {
 
     @ViewBuilder
     private var vehicleText: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: Spacing.s) {
             TransitBadge(leg: leg)
             if let headsign = leg.headsign {
                 Text("towards \(headsign)")
@@ -719,7 +719,7 @@ struct DepartureLine: View {
     var body: some View {
         if let departure = leg.departure {
             TimelineView(.periodic(from: .now, by: 30)) { context in
-                HStack(spacing: 5) {
+                HStack(spacing: Spacing.xs) {
                     if leg.isCancelled {
                         Label("Cancelled", systemImage: "xmark.circle.fill")
                             .foregroundStyle(.red)
@@ -881,8 +881,8 @@ private struct EntrancePin: View {
             .font(.system(size: 11, weight: .bold))
             .foregroundStyle(.white)
             .frame(width: 24, height: 24)
-            .background(color, in: RoundedRectangle(cornerRadius: 7))
-            .overlay(RoundedRectangle(cornerRadius: 7).stroke(.white, lineWidth: 2))
+            .background(color, in: Radius.shape(Radius.small))
+            .overlay(Radius.shape(Radius.small).stroke(.white, lineWidth: 2))
             .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
     }
 }
@@ -920,7 +920,7 @@ struct TransitGuideCard: View {
     private var city: String { TransitGuide.parts(of: trip.destination).city }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: Spacing.m) {
             Label("Public transport in \(city.isEmpty ? "your destination" : city)", systemImage: "tram.fill")
                 .font(.headline)
 
@@ -943,7 +943,7 @@ struct TransitGuideCard: View {
                     }
                     .font(.footnote.bold())
                 }
-                HStack(spacing: 4) {
+                HStack(spacing: Spacing.xs) {
                     Text("From Wikivoyage (CC BY-SA)")
                     if let url = URL(string: "https://en.wikivoyage.org/wiki/\(trip.transitGuideTitle.replacingOccurrences(of: " ", with: "_"))#Get_around") {
                         Link("Read more", destination: url)
@@ -952,7 +952,7 @@ struct TransitGuideCard: View {
                 .font(.caption2)
                 .foregroundStyle(.secondary)
             } else if loading {
-                HStack(spacing: 8) {
+                HStack(spacing: Spacing.s) {
                     ProgressView()
                     Text("Loading the travel guide…")
                         .font(.footnote)
@@ -977,7 +977,7 @@ struct TransitGuideCard: View {
     @ViewBuilder
     private func noteList(_ title: String, _ symbol: String, _ items: [String]) -> some View {
         if !items.isEmpty {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(title.uppercased())
                     .font(.caption.bold())
                     .foregroundStyle(.secondary)

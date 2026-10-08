@@ -143,7 +143,7 @@ struct BudgetView: View {
 
     private var summarySection: some View {
         Section {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: Spacing.m) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(money(spent))
                         .font(.title.bold())
@@ -162,7 +162,7 @@ struct BudgetView: View {
                         .font(.subheadline)
                 }
             }
-            .padding(.vertical, 4)
+            .padding(.vertical, Spacing.xs)
 
             if planned > 0 {
                 LabeledContent("Planned in stops", value: money(planned))
@@ -183,7 +183,7 @@ private struct ExpenseRow: View {
     let converted: Double
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: Spacing.m) {
             Image(systemName: expense.category.symbol)
                 .frame(width: 32, height: 32)
                 .background(expense.category.color.opacity(0.15), in: Circle())
@@ -246,7 +246,7 @@ struct ExpenseEditView: View {
                             }
                         }
                         if scanning {
-                            HStack(spacing: 10) {
+                            HStack(spacing: Spacing.m) {
                                 ProgressView()
                                 Text("Reading the receipt…").foregroundStyle(.secondary)
                             }

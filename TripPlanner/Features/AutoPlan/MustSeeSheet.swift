@@ -136,7 +136,7 @@ struct MustSeeSheet: View {
             Toggle("Preferred time", isOn: $useTime.animation())
             if useTime {
                 DatePicker("Time", selection: $time, displayedComponents: .hourAndMinute)
-                HStack(spacing: 8) {
+                HStack(spacing: Spacing.s) {
                     quickTime("Morning", hour: 9, minute: 30)
                     quickTime("Afternoon", hour: 14, minute: 30)
                     quickTime("Evening", hour: 18, minute: 30)
@@ -179,7 +179,7 @@ struct MustSeeSheet: View {
         } else {
             Section {
                 if searching && near.isEmpty && far.isEmpty {
-                    HStack(spacing: 10) {
+                    HStack(spacing: Spacing.m) {
                         ProgressView()
                         Text("Searching…").foregroundStyle(.secondary)
                     }
@@ -237,7 +237,7 @@ struct MustSeeSheet: View {
         if !batch.isEmpty {
             Section("Found") {
                 ForEach($batch) { $entry in
-                    HStack(alignment: .top, spacing: 12) {
+                    HStack(alignment: .top, spacing: Spacing.m) {
                         Toggle("Include", isOn: $entry.include)
                             .labelsHidden()
                             .disabled(entry.item == nil)
@@ -481,7 +481,7 @@ struct MustSeeSheet: View {
         Button {
             add(item)
         } label: {
-            HStack(spacing: 12) {
+            HStack(spacing: Spacing.m) {
                 Image(systemName: StopCategory(poi: item.pointOfInterestCategory).symbol)
                     .frame(width: 28)
                     .foregroundStyle(.tint)

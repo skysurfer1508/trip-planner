@@ -98,10 +98,10 @@ struct DayMapView: View {
                 if dropMode {
                     Label("Tap the map to drop a pin", systemImage: "hand.tap")
                         .font(.subheadline.bold())
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
+                        .padding(.horizontal, Spacing.l)
+                        .padding(.vertical, Spacing.s)
                         .background(.thinMaterial, in: Capsule())
-                        .padding(.top, 8)
+                        .padding(.top, Spacing.s)
                 }
             }
             .navigationTitle(scope < 0 ? "All days" : "Day \(scope + 1)")

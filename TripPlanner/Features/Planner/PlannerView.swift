@@ -38,10 +38,10 @@ struct PlannerView: View {
                         } label: {
                             Image(systemName: "arrow.up.left.and.arrow.down.right")
                                 .font(.subheadline.bold())
-                                .padding(9)
+                                .padding(Spacing.s)
                                 .background(.thinMaterial, in: Circle())
                         }
-                        .padding(10)
+                        .padding(Spacing.m)
                         .accessibilityLabel("Open full-screen map")
                     }
 
@@ -49,11 +49,11 @@ struct PlannerView: View {
                             coordinate: day.sortedStops.first?.coordinate ?? trip.anyCoordinate,
                             outdoorStops: day.stops.filter { $0.category.isOutdoor }.count)
                     .padding(.horizontal)
-                    .padding(.top, 8)
+                    .padding(.top, Spacing.s)
 
                 DayAlertsView(trip: trip, day: day)
                     .padding(.horizontal)
-                    .padding(.top, 4)
+                    .padding(.top, Spacing.xs)
 
                 DayStopListView(day: day) { editingStop = $0 }
                     .id(day.persistentModelID)
@@ -165,7 +165,7 @@ struct PlannerView: View {
 
     private var dayPicker: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: Spacing.s) {
                 ForEach(Array(days.enumerated()), id: \.element.persistentModelID) { index, day in
                     Button {
                         selectedIndex = index
@@ -179,10 +179,10 @@ struct PlannerView: View {
                                 .fill(day.stops.isEmpty ? Color.clear : (index == selectedIndex ? Color.white : Color.accentColor))
                                 .frame(width: 5, height: 5)
                         }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
+                        .padding(.horizontal, Spacing.l)
+                        .padding(.vertical, Spacing.s)
                         .background(index == selectedIndex ? Color.accentColor : Color(.secondarySystemBackground),
-                                    in: RoundedRectangle(cornerRadius: 10))
+                                    in: Radius.shape(Radius.small))
                         .foregroundStyle(index == selectedIndex ? Color.white : Color.primary)
                     }
                     .buttonStyle(.plain)
@@ -190,7 +190,7 @@ struct PlannerView: View {
                 }
             }
             .padding(.horizontal)
-            .padding(.vertical, 8)
+            .padding(.vertical, Spacing.s)
         }
     }
 

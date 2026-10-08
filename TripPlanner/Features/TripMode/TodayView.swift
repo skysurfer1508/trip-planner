@@ -88,7 +88,7 @@ struct TodayView: View {
     var body: some View {
         ScrollView {
             if let day {
-                VStack(spacing: 16) {
+                VStack(spacing: Spacing.l) {
                     header(for: day)
 
                     quickActions
@@ -101,18 +101,18 @@ struct TodayView: View {
                         Label("Location is off. Enable it in Settings for travel times and nearby search.",
                               systemImage: "location.slash")
                             .font(.footnote)
-                            .padding(10)
+                            .padding(Spacing.m)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.orange.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
+                            .background(Color.orange.opacity(0.15), in: Radius.shape(Radius.small))
                     }
 
                     if isAwayFromDestination {
                         Label("You're not at \(trip.destination.isEmpty ? "your destination" : trip.destination) yet. Travel times and nearby search use the trip's destination.",
                               systemImage: "airplane")
                             .font(.footnote)
-                            .padding(10)
+                            .padding(Spacing.m)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.blue.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+                            .background(Color.blue.opacity(0.12), in: Radius.shape(Radius.small))
                     }
 
                     StopsMapView(stops: day.sortedStops, showsUser: true, highlighted: nextStop,
@@ -120,7 +120,7 @@ struct TodayView: View {
                                  start: trip.window(for: day.date).anchor,
                                  startName: trip.window(for: day.date).anchorName)
                         .frame(height: 220)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .clipShape(Radius.shape(Radius.card))
 
                     if isToday {
                         reflowBanner
@@ -162,8 +162,8 @@ struct TodayView: View {
             } label: {
                 Label("I'm hungry", systemImage: "fork.knife")
                     .font(.headline)
-                    .padding(.horizontal, 18)
-                    .padding(.vertical, 12)
+                    .padding(.horizontal, Spacing.l)
+                    .padding(.vertical, Spacing.m)
                     .background(Color.orange, in: Capsule())
                     .foregroundStyle(.white)
                     .shadow(radius: 4, y: 2)
@@ -210,14 +210,14 @@ struct TodayView: View {
     private func header(for day: Day) -> some View {
         let index = (days.firstIndex(where: { $0.persistentModelID == day.persistentModelID }) ?? 0) + 1
         let total = day.stops.count
-        return VStack(alignment: .leading, spacing: 6) {
+        return VStack(alignment: .leading, spacing: Spacing.s) {
             Text(isToday ? "Today" : day.date.formatted(.dateTime.weekday(.wide)))
                 .font(.largeTitle.bold())
             Text("\(trip.name) · Day \(index) of \(days.count) · \(day.date.formatted(date: .abbreviated, time: .omitted))")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             if total > 0 {
-                HStack(spacing: 10) {
+                HStack(spacing: Spacing.m) {
                     ProgressView(value: Double(doneCount), total: Double(total))
                     Text("\(doneCount)/\(total) done")
                         .font(.caption.bold())
@@ -234,12 +234,12 @@ struct TodayView: View {
     private func logisticsToday(for day: Day) -> some View {
         let window = trip.window(for: day.date)
         if !window.items.isEmpty {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: Spacing.m) {
                 Text("TRAVEL TODAY")
                     .font(.caption.bold())
                     .foregroundStyle(.secondary)
                 ForEach(window.items) { item in
-                    HStack(spacing: 12) {
+                    HStack(spacing: Spacing.m) {
                         Image(systemName: item.symbol)
                             .frame(width: 24)
                             .foregroundStyle(.tint)
@@ -271,14 +271,14 @@ struct TodayView: View {
     /// One-tap lookups for things you need on the road.
     private var quickActions: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: Spacing.s) {
                 Button {
                     showWhatNow = true
                 } label: {
                     Label("What now?", systemImage: "wand.and.stars")
                         .font(.subheadline.bold())
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
+                        .padding(.horizontal, Spacing.m)
+                        .padding(.vertical, Spacing.s)
                         .background(Color.accentColor, in: Capsule())
                         .foregroundStyle(.white)
                 }
@@ -290,8 +290,8 @@ struct TodayView: View {
                     } label: {
                         Label(kind.title, systemImage: kind.symbol)
                             .font(.subheadline)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
+                            .padding(.horizontal, Spacing.m)
+                            .padding(.vertical, Spacing.s)
                             .background(Color(.secondarySystemBackground), in: Capsule())
                     }
                     .buttonStyle(.plain)
@@ -307,7 +307,7 @@ struct TodayView: View {
             if !dismissedReflow,
                let late = ScheduleService.lateness(items: items, now: context.date),
                late >= 10 * 60 {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: Spacing.s) {
                     Label("You're about \(Format.duration(late)) behind schedule", systemImage: "clock.badge.exclamationmark")
                         .font(.subheadline.bold())
                     Text("Shift the rest of today's stops so nothing overlaps?")
@@ -322,13 +322,13 @@ struct TodayView: View {
                 }
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.orange.opacity(0.15), in: RoundedRectangle(cornerRadius: 16))
+                .background(Color.orange.opacity(0.15), in: Radius.shape(Radius.card))
             }
         }
     }
 
     private func allDoneCard(hasStops: Bool) -> some View {
-        VStack(spacing: 8) {
+        VStack(spacing: Spacing.s) {
             Image(systemName: hasStops ? "checkmark.seal.fill" : "calendar.badge.plus")
                 .font(.largeTitle)
                 .foregroundStyle(hasStops ? Color.green : Color.secondary)
@@ -340,7 +340,7 @@ struct TodayView: View {
         }
         .padding()
         .frame(maxWidth: .infinity)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .background(.thinMaterial, in: Radius.shape(Radius.card))
     }
 
     @ToolbarContentBuilder

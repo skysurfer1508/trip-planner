@@ -61,7 +61,7 @@ struct NearbyView: View {
                     ContentUnavailableView("Nothing within 1.5 km", systemImage: kind.symbol)
                 } else {
                     List(results) { result in
-                        HStack(spacing: 12) {
+                        HStack(spacing: Spacing.m) {
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(result.name)
                                     .font(.headline)

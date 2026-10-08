@@ -64,7 +64,7 @@ struct DayStopListView: View {
         List {
             if orderChanged && stops.count > 1 {
                 Section {
-                    HStack(spacing: 12) {
+                    HStack(spacing: Spacing.m) {
                         Image(systemName: "clock.arrow.2.circlepath")
                             .foregroundStyle(.tint)
                         VStack(alignment: .leading, spacing: 2) {
@@ -91,7 +91,7 @@ struct DayStopListView: View {
             if !window.items.isEmpty {
                 Section {
                     ForEach(window.items) { item in
-                        HStack(spacing: 12) {
+                        HStack(spacing: Spacing.m) {
                             Image(systemName: item.symbol)
                                 .frame(width: 24)
                                 .foregroundStyle(.tint)
@@ -120,7 +120,7 @@ struct DayStopListView: View {
                         HotelStartRow(name: window.anchorName ?? "Hotel", from: anchor, first: first, day: day)
                     }
                     ForEach(Array(stops.enumerated()), id: \.element.persistentModelID) { index, stop in
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: Spacing.s) {
                             Button {
                                 onSelect(stop)
                             } label: {
@@ -188,8 +188,8 @@ private struct HotelStartRow: View {
     let day: Day
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: Spacing.s) {
+            HStack(spacing: Spacing.m) {
                 HotelPin()
                 Text("Start from \(name)")
                     .font(.subheadline.weight(.medium))
@@ -234,7 +234,7 @@ private struct DaySummary: View {
         let route = RouteOptimizer.length(path) * 1.25
         let cost = stops.reduce(0) { $0 + $1.estimatedCost }
 
-        HStack(spacing: 10) {
+        HStack(spacing: Spacing.m) {
             Label("\(stops.count) \(stops.count == 1 ? "stop" : "stops")", systemImage: "mappin")
             Label(Format.minutes(stay), systemImage: "clock")
             if path.count > 1 {
@@ -255,8 +255,8 @@ struct StopRow: View {
     var warnings: [String] = []
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: Spacing.s) {
+            HStack(spacing: Spacing.m) {
                 StopPin(number: number, category: stop.category, isDone: stop.isDone, showsCategory: true)
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -264,7 +264,7 @@ struct StopRow: View {
                         .font(.body)
                         .strikethrough(stop.isDone)
                         .foregroundStyle(stop.isDone ? .secondary : .primary)
-                    HStack(spacing: 6) {
+                    HStack(spacing: Spacing.s) {
                         Image(systemName: stop.category.symbol)
                         if let time = stop.plannedTime {
                             Text(Format.time(time))

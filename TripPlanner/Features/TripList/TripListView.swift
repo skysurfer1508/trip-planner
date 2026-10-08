@@ -23,7 +23,7 @@ struct TripListView: View {
     var body: some View {
         NavigationStack(path: $path) {
             ScrollView {
-                LazyVStack(spacing: 16) {
+                LazyVStack(spacing: Spacing.l) {
                     ForEach(orderedTrips) { trip in
                         ZStack(alignment: .topTrailing) {
                             NavigationLink(value: trip) {
@@ -40,7 +40,7 @@ struct TripListView: View {
                                     .foregroundStyle(.white)
                                     .frame(width: 34, height: 34)
                                     .background(.black.opacity(0.35), in: Circle())
-                                    .padding(10)
+                                    .padding(Spacing.m)
                             }
                             .accessibilityLabel("Options for \(trip.name)")
                         }
@@ -131,7 +131,7 @@ private struct TripCard: View {
 
             LinearGradient(colors: [.clear, .black.opacity(0.7)], startPoint: .center, endPoint: .bottom)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
                 StatusPill(trip: trip)
                 Spacer(minLength: 0)
                 Text(trip.name)
@@ -148,11 +148,11 @@ private struct TripCard: View {
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.8))
             }
-            .padding(14)
+            .padding(Spacing.l)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         }
         .frame(height: 180)
-        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .clipShape(Radius.shape(Radius.card))
         .shadow(color: .black.opacity(0.12), radius: 6, y: 3)
     }
 }
@@ -164,8 +164,8 @@ private struct StatusPill: View {
         Text(trip.isActiveToday ? "LIVE" : trip.statusText)
             .font(.caption.bold())
             .foregroundStyle(.white)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
+            .padding(.horizontal, Spacing.m)
+            .padding(.vertical, Spacing.xs)
             .background(trip.isActiveToday ? Color.green : Color.black.opacity(0.4), in: Capsule())
     }
 }

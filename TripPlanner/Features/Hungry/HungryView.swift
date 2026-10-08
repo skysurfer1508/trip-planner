@@ -18,7 +18,7 @@ struct HungryView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 filters
-                    .padding(.bottom, 8)
+                    .padding(.bottom, Spacing.s)
                 Divider()
                 resultList
             }
@@ -39,7 +39,7 @@ struct HungryView: View {
     // MARK: Filters
 
     private var filters: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: Spacing.m) {
             if secrets.hasTripadvisor {
                 Picker("Source", selection: $model.source) {
                     ForEach(HungrySource.allCases) { Text($0.rawValue).tag($0) }
@@ -49,7 +49,7 @@ struct HungryView: View {
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
+                HStack(spacing: Spacing.s) {
                     FilterChip(title: "All", isOn: model.cuisine == nil) {
                         model.cuisine = nil
                     }
@@ -62,7 +62,7 @@ struct HungryView: View {
                 .padding(.horizontal)
             }
 
-            HStack(spacing: 8) {
+            HStack(spacing: Spacing.s) {
                 if model.source == .nearby || !secrets.hasTripadvisor {
                     FilterChip(title: "Takeaway", symbol: "bag.fill", isOn: model.takeaway) {
                         model.takeaway.toggle()
@@ -79,7 +79,7 @@ struct HungryView: View {
             }
             .padding(.horizontal)
         }
-        .padding(.top, 8)
+        .padding(.top, Spacing.s)
     }
 
     // MARK: Results
@@ -132,12 +132,12 @@ private struct ResultRow: View {
     let onNavigate: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: Spacing.m) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(result.name)
                     .font(.headline)
                 if let rating = result.rating {
-                    HStack(spacing: 6) {
+                    HStack(spacing: Spacing.s) {
                         Label(String(format: "%.1f", rating), systemImage: "star.fill")
                             .foregroundStyle(.orange)
                         if let reviews = result.reviews {
@@ -150,7 +150,7 @@ private struct ResultRow: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 }
-                HStack(spacing: 6) {
+                HStack(spacing: Spacing.s) {
                     Image(systemName: "figure.walk")
                     Text("\(result.walkMinutes) min · \(Format.distance(result.distance))")
                 }

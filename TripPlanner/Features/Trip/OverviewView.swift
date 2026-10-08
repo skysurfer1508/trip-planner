@@ -13,7 +13,7 @@ struct OverviewView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 16) {
+            VStack(spacing: Spacing.l) {
                 hero
 
                 if trip.isActiveToday {
@@ -55,7 +55,7 @@ struct OverviewView: View {
         ZStack(alignment: .bottomLeading) {
             TripHeroImage(trip: trip)
             LinearGradient(colors: [.clear, .black.opacity(0.7)], startPoint: .center, endPoint: .bottom)
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(trip.statusText.uppercased())
                     .font(.caption.bold())
                     .foregroundStyle(.white.opacity(0.9))
@@ -71,10 +71,10 @@ struct OverviewView: View {
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.8))
             }
-            .padding(16)
+            .padding(Spacing.l)
         }
         .frame(height: 210)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .clipShape(Radius.shape(Radius.card))
     }
 
     @ViewBuilder
@@ -82,7 +82,7 @@ struct OverviewView: View {
         let day = trip.todayDay
         let remaining = day?.sortedStops.filter { !$0.isDone } ?? []
 
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: Spacing.m) {
             Text("TODAY")
                 .font(.caption.bold())
                 .foregroundStyle(.secondary)
@@ -90,7 +90,7 @@ struct OverviewView: View {
             if let next = remaining.first {
                 Text(next.name)
                     .font(.title3.bold())
-                HStack(spacing: 10) {
+                HStack(spacing: Spacing.m) {
                     if let time = next.plannedTime {
                         Label(Format.time(time), systemImage: "clock")
                     }
@@ -122,7 +122,7 @@ struct OverviewView: View {
     @ViewBuilder
     private var upcomingCard: some View {
         let first = trip.sortedDays.first
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: Spacing.s) {
             Text(trip.statusText.uppercased())
                 .font(.caption.bold())
                 .foregroundStyle(.secondary)
@@ -151,7 +151,7 @@ struct OverviewView: View {
             .sorted { $0.keyDate < $1.keyDate }
 
         if !upcoming.isEmpty {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: Spacing.m) {
                 HStack {
                     Text("FLIGHTS & HOTEL")
                         .font(.caption.bold())
@@ -161,7 +161,7 @@ struct OverviewView: View {
                         .font(.caption.bold())
                 }
                 ForEach(upcoming.prefix(4)) { booking in
-                    HStack(spacing: 12) {
+                    HStack(spacing: Spacing.m) {
                         Image(systemName: booking.kind.symbol)
                             .frame(width: 24)
                             .foregroundStyle(.tint)
@@ -202,7 +202,7 @@ struct OverviewView: View {
     }
 
     private var statsRow: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: Spacing.m) {
             stat("\(dayCount)", dayCount == 1 ? "day" : "days", "calendar")
             stat("\(stopCount)", stopCount == 1 ? "stop" : "stops", "mappin.and.ellipse")
             stat(trip.budget > 0 ? trip.budget.formatted(.currency(code: trip.currencyCode).precision(.fractionLength(0))) : "–",
@@ -211,7 +211,7 @@ struct OverviewView: View {
     }
 
     private func stat(_ value: String, _ label: String, _ symbol: String) -> some View {
-        VStack(spacing: 4) {
+        VStack(spacing: Spacing.xs) {
             Image(systemName: symbol)
                 .foregroundStyle(.tint)
             Text(value)
@@ -223,8 +223,8 @@ struct OverviewView: View {
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
+        .padding(.vertical, Spacing.m)
+        .background(.thinMaterial, in: Radius.shape(Radius.card))
         .accessibilityElement(children: .combine)
     }
 
@@ -234,7 +234,7 @@ struct OverviewView: View {
         let done = steps.filter(\.isDone).count
 
         if done < steps.count {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: Spacing.m) {
                 HStack {
                     Text("Get ready")
                         .font(.headline)
@@ -246,7 +246,7 @@ struct OverviewView: View {
                 ProgressView(value: Double(done), total: Double(steps.count))
 
                 ForEach(steps) { step in
-                    HStack(spacing: 12) {
+                    HStack(spacing: Spacing.m) {
                         Image(systemName: step.isDone ? "checkmark.circle.fill" : "circle")
                             .font(.title3)
                             .foregroundStyle(step.isDone ? Color.green : Color.secondary)
@@ -274,7 +274,7 @@ struct OverviewView: View {
     }
 
     private var quickActions: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: Spacing.m) {
             quickAction("Add place", "plus.circle.fill", .addPlaces)
             quickAction("Import", "doc.viewfinder", .importProgram)
             quickAction("Auto plan", "wand.and.stars", .autoPlan)
@@ -285,15 +285,15 @@ struct OverviewView: View {
         Button {
             perform(action)
         } label: {
-            VStack(spacing: 6) {
+            VStack(spacing: Spacing.s) {
                 Image(systemName: symbol)
                     .font(.title2)
                 Text(title)
                     .font(.footnote)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(Color.accentColor.opacity(0.1), in: RoundedRectangle(cornerRadius: 14))
+            .padding(.vertical, Spacing.m)
+            .background(Color.accentColor.opacity(0.1), in: Radius.shape(Radius.card))
         }
         .buttonStyle(.plain)
     }

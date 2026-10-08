@@ -108,7 +108,7 @@ struct ImportFlowView: View {
     }
 
     private func workingView(_ message: String) -> some View {
-        VStack(spacing: 16) {
+        VStack(spacing: Spacing.l) {
             ProgressView()
             Text(message)
                 .foregroundStyle(.secondary)

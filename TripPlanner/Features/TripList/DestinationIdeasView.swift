@@ -21,7 +21,7 @@ struct DestinationIdeasView: View {
         List {
             Section {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: Spacing.s) {
                         FilterChip(title: "All", isOn: tag == nil) { tag = nil }
                         ForEach(DestinationIdea.tags, id: \.self) { t in
                             FilterChip(title: t, isOn: tag == t) { tag = (tag == t) ? nil : t }
@@ -59,7 +59,7 @@ private struct IdeaRow: View {
     @State private var summary: WikiSummary?
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: Spacing.m) {
             AsyncImage(url: summary?.thumbnail) { image in
                 image.resizable().scaledToFill()
             } placeholder: {
@@ -67,7 +67,7 @@ private struct IdeaRow: View {
                     .overlay(Image(systemName: "photo").foregroundStyle(.tertiary))
             }
             .frame(width: 72, height: 72)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .clipShape(Radius.shape(Radius.small))
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(idea.name)
@@ -86,7 +86,7 @@ private struct IdeaRow: View {
                     .foregroundStyle(.tint)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, Spacing.xs)
         .task { summary = await WikipediaService.summary(title: idea.wikiTitle) }
     }
 }

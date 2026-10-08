@@ -28,7 +28,7 @@ struct ItineraryReviewView: View {
     var body: some View {
         List {
             Section {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: Spacing.xs) {
                     Text("Found \(draft.days.reduce(0) { $0 + $1.stops.count }) possible stops")
                         .font(.headline)
                     Text("Untick anything that isn't a place, fix names, and pick the right day. Stops without a matching place can't be added until you choose one.")
@@ -48,7 +48,7 @@ struct ItineraryReviewView: View {
                         start
                     }
                     ForEach($day.stops) { $stop in
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: Spacing.s) {
                             DraftStopRow(stop: $stop) {
                                 pickerTarget = PickerTarget(dayID: day.id, stopID: stop.id, query: stop.title)
                             }
@@ -145,8 +145,8 @@ struct ItineraryReviewView: View {
         let name = trip.window(for: tripDays[day.targetIndex].date).anchorName ?? "Hotel"
         let arrive = first.hour == nil ? nil : wallClock(dayIndex: day.targetIndex, hour: first.hour, minute: first.minute)
         return AnyView(
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                HStack(spacing: Spacing.m) {
                     HotelPin()
                     Text("Start from \(name)")
                         .font(.subheadline.weight(.medium))
@@ -231,7 +231,7 @@ private struct DraftStopRow: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: Spacing.m) {
             Toggle("Include", isOn: $stop.include)
                 .labelsHidden()
                 .disabled(stop.item == nil)

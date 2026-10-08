@@ -19,9 +19,9 @@ struct DayAlertsView: View {
     }
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: Spacing.s) {
             if let holiday = trip.holiday(on: day.date) {
-                HStack(alignment: .top, spacing: 10) {
+                HStack(alignment: .top, spacing: Spacing.m) {
                     Image(systemName: "calendar.badge.exclamationmark")
                         .foregroundStyle(.orange)
                     VStack(alignment: .leading, spacing: 2) {
@@ -33,15 +33,15 @@ struct DayAlertsView: View {
                     }
                     Spacer(minLength: 0)
                 }
-                .padding(12)
-                .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+                .padding(Spacing.m)
+                .background(Color.orange.opacity(0.12), in: Radius.shape(Radius.small))
             }
 
             if let weather, weather.isWet, !outdoorStops.isEmpty {
                 Button {
                     showRain = true
                 } label: {
-                    HStack(alignment: .top, spacing: 10) {
+                    HStack(alignment: .top, spacing: Spacing.m) {
                         Image(systemName: "cloud.rain.fill")
                             .foregroundStyle(.blue)
                         VStack(alignment: .leading, spacing: 2) {
@@ -57,8 +57,8 @@ struct DayAlertsView: View {
                             .font(.caption)
                             .foregroundStyle(.tertiary)
                     }
-                    .padding(12)
-                    .background(Color.blue.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
+                    .padding(Spacing.m)
+                    .background(Color.blue.opacity(0.1), in: Radius.shape(Radius.small))
                 }
                 .buttonStyle(.plain)
             }
@@ -108,7 +108,7 @@ struct RainReplanSheet: View {
 
                 if loading {
                     Section {
-                        HStack(spacing: 10) {
+                        HStack(spacing: Spacing.m) {
                             ProgressView()
                             Text("Finding indoor places…")
                                 .foregroundStyle(.secondary)

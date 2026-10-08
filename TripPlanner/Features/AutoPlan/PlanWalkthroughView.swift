@@ -143,7 +143,7 @@ struct PlanWalkthroughView: View {
             .accessibilityLabel("Next day")
         }
         .padding(.horizontal)
-        .padding(.vertical, 10)
+        .padding(.vertical, Spacing.m)
     }
 
     // MARK: One day
@@ -153,7 +153,7 @@ struct PlanWalkthroughView: View {
         let dayWindow = window(index)
 
         return ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: Spacing.l) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(day.theme)
                         .font(.title2.bold())
@@ -184,7 +184,7 @@ struct PlanWalkthroughView: View {
 
                 PlanMapView(stops: day.stops, start: dayWindow.anchor, startName: dayWindow.anchorName)
                     .frame(height: 200)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .clipShape(Radius.shape(Radius.card))
 
                 if day.stops.isEmpty {
                     Text("Nothing planned for this day. Ask for something below.")
@@ -204,7 +204,7 @@ struct PlanWalkthroughView: View {
                                               from: stop.candidate.coordinate, to: next.candidate.coordinate,
                                               departAt: wallClock(index, minute: stop.startMinute + stop.durationMinutes),
                                               arriveBy: nil, inset: 36)
-                                    .padding(.bottom, 8)
+                                    .padding(.bottom, Spacing.s)
                                 Divider()
                             }
                         }
@@ -228,7 +228,7 @@ struct PlanWalkthroughView: View {
                 .controlSize(.large)
             }
             .padding(.horizontal)
-            .padding(.bottom, 24)
+            .padding(.bottom, Spacing.xl)
         }
     }
 
@@ -247,8 +247,8 @@ struct PlanWalkthroughView: View {
     }
 
     private func startRow(name: String, from: CLLocationCoordinate2D, first: PlannedStop, dayIndex: Int) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            HStack(spacing: Spacing.m) {
                 HotelPin()
                 Text("Start from \(name)")
                     .font(.subheadline.weight(.medium))
@@ -260,19 +260,19 @@ struct PlanWalkthroughView: View {
                           arriveBy: wallClock(dayIndex, minute: first.startMinute),
                           suffix: "to the first stop", inset: 36)
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, Spacing.s)
     }
 
     private func stopRow(_ stop: PlannedStop, number: Int) -> some View {
         let candidate = stop.candidate
         let category = candidate.kind.stopCategory
-        return HStack(alignment: .top, spacing: 12) {
+        return HStack(alignment: .top, spacing: Spacing.m) {
             StopPin(number: number, category: category)
                 .padding(.top, 2)
             VStack(alignment: .leading, spacing: 3) {
                 Text(candidate.name)
                     .font(.subheadline.weight(.medium))
-                HStack(spacing: 6) {
+                HStack(spacing: Spacing.s) {
                     Text(TripLogistics.timeText(stop.startMinute))
                         .monospacedDigit()
                     Text("·")
@@ -307,16 +307,16 @@ struct PlanWalkthroughView: View {
             }
             .accessibilityLabel("Options for \(candidate.name)")
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, Spacing.s)
         .loadsPlacePreview(name: candidate.name, coordinate: candidate.coordinate, category: category)
     }
 
     // MARK: Composer
 
     private var composer: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: Spacing.s) {
             if let reply {
-                HStack(alignment: .top, spacing: 8) {
+                HStack(alignment: .top, spacing: Spacing.s) {
                     Image(systemName: reply.isError ? "exclamationmark.triangle.fill" : "wand.and.stars")
                         .foregroundStyle(reply.isError ? Color.orange : Color.accentColor)
                     Text(reply.text)
@@ -327,20 +327,20 @@ struct PlanWalkthroughView: View {
                             .font(.footnote.bold())
                     }
                 }
-                .padding(10)
-                .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+                .padding(Spacing.m)
+                .background(Color(.secondarySystemBackground), in: Radius.shape(Radius.small))
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
+                HStack(spacing: Spacing.s) {
                     ForEach(Self.suggestions, id: \.self) { suggestion in
                         Button {
                             prompt = suggestion
                         } label: {
                             Text(suggestion)
                                 .font(.footnote)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
+                                .padding(.horizontal, Spacing.m)
+                                .padding(.vertical, Spacing.s)
                                 .background(Color(.secondarySystemBackground), in: Capsule())
                         }
                         .buttonStyle(.plain)
@@ -348,7 +348,7 @@ struct PlanWalkthroughView: View {
                 }
             }
 
-            HStack(alignment: .bottom, spacing: 8) {
+            HStack(alignment: .bottom, spacing: Spacing.s) {
                 TextField(engine == nil ? "Turn on an AI engine in Settings to type changes"
                                         : "Tell the AI what to change on day \(dayIndex + 1)…",
                           text: $prompt, axis: .vertical)
@@ -374,7 +374,7 @@ struct PlanWalkthroughView: View {
             }
         }
         .padding(.horizontal)
-        .padding(.vertical, 10)
+        .padding(.vertical, Spacing.m)
         .background(.bar)
     }
 
@@ -450,7 +450,7 @@ struct PlanWalkthroughView: View {
 
     /// Places from the traveller's list that are not on any day yet, each with a button to add it here.
     private func leftOutCard(for index: Int) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: Spacing.m) {
             Label("Your places that aren't in the plan yet", systemImage: "exclamationmark.circle")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.orange)
@@ -469,7 +469,7 @@ struct PlanWalkthroughView: View {
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 14))
+        .background(Color.orange.opacity(0.1), in: Radius.shape(Radius.card))
     }
 
     private func addLeftOut(_ place: PlanCandidate, to index: Int) {
@@ -579,7 +579,7 @@ private struct AlternativesSheet: View {
                     onPick(option)
                     dismiss()
                 } label: {
-                    HStack(spacing: 12) {
+                    HStack(spacing: Spacing.m) {
                         PlaceThumbnail(name: option.name, coordinate: option.coordinate,
                                        category: option.kind.stopCategory, size: 44, corner: 10)
                         VStack(alignment: .leading, spacing: 2) {

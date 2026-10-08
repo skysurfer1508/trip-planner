@@ -32,7 +32,7 @@ struct AddPlaceView: View {
                 Button {
                     add(item)
                 } label: {
-                    HStack(spacing: 12) {
+                    HStack(spacing: Spacing.m) {
                         Image(systemName: StopCategory(poi: item.pointOfInterestCategory).symbol)
                             .frame(width: 28)
                             .foregroundStyle(StopCategory(poi: item.pointOfInterestCategory).color)

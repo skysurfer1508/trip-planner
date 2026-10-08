@@ -35,7 +35,7 @@ struct NewTripWizard: View {
         NavigationStack {
             VStack(spacing: 0) {
                 progressDots
-                    .padding(.top, 8)
+                    .padding(.top, Spacing.s)
 
                 Group {
                     switch step {
@@ -73,7 +73,7 @@ struct NewTripWizard: View {
     }
 
     private var progressDots: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: Spacing.s) {
             ForEach(0..<3, id: \.self) { index in
                 Capsule()
                     .fill(index <= step ? Color.accentColor : Color(.tertiarySystemFill))
@@ -139,11 +139,11 @@ struct NewTripWizard: View {
         Button {
             Task { await create(startWith: action) }
         } label: {
-            HStack(spacing: 14) {
+            HStack(spacing: Spacing.l) {
                 Image(systemName: symbol)
                     .font(.title3)
                     .frame(width: 36, height: 36)
-                    .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 9))
+                    .background(Color.accentColor.opacity(0.12), in: Radius.shape(Radius.small))
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .foregroundStyle(.primary)
@@ -156,7 +156,7 @@ struct NewTripWizard: View {
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
-            .padding(.vertical, 4)
+            .padding(.vertical, Spacing.xs)
         }
     }
 

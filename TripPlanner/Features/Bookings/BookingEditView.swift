@@ -226,13 +226,13 @@ struct BookingEditView: View {
                 .disabled(FlightLookupService.normalize(title) == nil)
             }
         case .loading:
-            HStack(spacing: 10) {
+            HStack(spacing: Spacing.m) {
                 ProgressView()
                 Text("Looking up the flight…")
                     .foregroundStyle(.secondary)
             }
         case .found(let leg):
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
                 Label("\(leg.from.iata ?? leg.from.name) → \(leg.to.iata ?? leg.to.name)", systemImage: "checkmark.circle.fill")
                     .foregroundStyle(.green)
                 Text("\(Format.time(leg.departure)) → \(Format.time(leg.arrival))\(leg.status.map { " · \($0)" } ?? "")")
@@ -251,7 +251,7 @@ struct BookingEditView: View {
                 }
             }
         case .failed(let message):
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: Spacing.s) {
                 Label(message, systemImage: "exclamationmark.triangle.fill")
                     .font(.footnote)
                     .foregroundStyle(.orange)

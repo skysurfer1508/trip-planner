@@ -114,9 +114,9 @@ struct DiscoverView: View {
     }
 
     private var controls: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: Spacing.s) {
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
+                HStack(spacing: Spacing.s) {
                     ForEach(DiscoverKind.allCases) { k in
                         FilterChip(title: k.title, symbol: k.symbol, isOn: kind == k) { kind = k }
                     }
@@ -139,7 +139,7 @@ struct DiscoverView: View {
             }
             .padding(.horizontal)
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, Spacing.s)
     }
 
     @ViewBuilder
@@ -147,7 +147,7 @@ struct DiscoverView: View {
         List {
             if !secrets.hasOpenTripMap && !secrets.hasTripadvisor {
                 Section {
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: Spacing.s) {
                         Label("Rank places by popularity", systemImage: "star.leadinghalf.filled")
                             .font(.headline)
                         Text("These are plain Apple Maps results. Add a free OpenTripMap key (and optionally Tripadvisor) to see the most popular and best-rated places first.")
@@ -157,7 +157,7 @@ struct DiscoverView: View {
                             .buttonStyle(.borderedProminent)
                             .controlSize(.small)
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, Spacing.xs)
                 }
             }
             ForEach(result.notices, id: \.self) { notice in
@@ -243,7 +243,7 @@ private struct SuggestionRow: View {
     let onSave: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: Spacing.m) {
             Image(systemName: place.kind.symbol)
                 .frame(width: 32, height: 32)
                 .background(place.kind.stopCategory.color.opacity(0.15), in: Circle())
@@ -253,7 +253,7 @@ private struct SuggestionRow: View {
                 Text(place.name)
                     .font(.headline)
                     .lineLimit(2)
-                HStack(spacing: 8) {
+                HStack(spacing: Spacing.s) {
                     if let rating = place.rating {
                         Label(String(format: "%.1f", rating), systemImage: "star.fill")
                             .foregroundStyle(.orange)

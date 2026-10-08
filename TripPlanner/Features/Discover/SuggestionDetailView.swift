@@ -17,7 +17,7 @@ struct SuggestionDetailView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: Spacing.l) {
                     if let url = detail?.imageURL {
                         AsyncImage(url: url) { image in
                             image.resizable().scaledToFill()
@@ -25,13 +25,13 @@ struct SuggestionDetailView: View {
                             Rectangle().fill(Color(.secondarySystemBackground))
                         }
                         .frame(height: 200)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .clipShape(Radius.shape(Radius.card))
                     }
 
                     Text(place.name)
                         .font(.title2.bold())
 
-                    HStack(spacing: 12) {
+                    HStack(spacing: Spacing.m) {
                         if let rating = place.rating {
                             Label(String(format: "%.1f", rating), systemImage: "star.fill")
                                 .foregroundStyle(.orange)
@@ -66,7 +66,7 @@ struct SuggestionDetailView: View {
 
                     AITipsSection(name: place.name, city: trip.destination)
 
-                    VStack(spacing: 10) {
+                    VStack(spacing: Spacing.m) {
                         Button {
                             onAdd()
                             added = true

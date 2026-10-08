@@ -156,7 +156,7 @@ private struct DocumentRow: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: Spacing.m) {
             Image(systemName: symbol)
                 .font(.title3)
                 .frame(width: 32)

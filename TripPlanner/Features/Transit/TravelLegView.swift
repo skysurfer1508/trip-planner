@@ -94,7 +94,7 @@ struct TravelLegView: View {
             TransitConnector(trip: trip, fromName: fromName, toName: toName, from: from, to: to,
                              timing: timing, fallback: text, inset: inset)
         } else {
-            HStack(spacing: 6) {
+            HStack(spacing: Spacing.s) {
                 Image(systemName: leg.mode.symbol)
                 Text(text)
                 if leg.isLongWalk {

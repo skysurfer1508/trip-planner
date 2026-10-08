@@ -9,7 +9,7 @@ struct DayTimelineView: View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Today's plan")
                 .font(.headline)
-                .padding(.bottom, 8)
+                .padding(.bottom, Spacing.s)
 
             if stops.isEmpty {
                 Text("Nothing planned for this day.")
@@ -18,7 +18,7 @@ struct DayTimelineView: View {
             }
 
             ForEach(Array(stops.enumerated()), id: \.element.persistentModelID) { index, stop in
-                HStack(alignment: .top, spacing: 12) {
+                HStack(alignment: .top, spacing: Spacing.m) {
                     Button {
                         stop.isDone.toggle()
                     } label: {
@@ -35,7 +35,7 @@ struct DayTimelineView: View {
                             Text(stop.name)
                                 .strikethrough(stop.isDone)
                                 .foregroundStyle(stop.isDone ? .secondary : .primary)
-                            HStack(spacing: 6) {
+                            HStack(spacing: Spacing.s) {
                                 Image(systemName: stop.category.symbol)
                                 if let time = stop.plannedTime {
                                     Text(Format.time(time))
@@ -50,7 +50,7 @@ struct DayTimelineView: View {
                     }
                     .buttonStyle(.plain)
                 }
-                .padding(.vertical, 8)
+                .padding(.vertical, Spacing.s)
 
                 if index < stops.count - 1 {
                     Divider().padding(.leading, 36)
@@ -59,6 +59,6 @@ struct DayTimelineView: View {
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .background(.thinMaterial, in: Radius.shape(Radius.card))
     }
 }

@@ -65,7 +65,7 @@ struct DepartureBoardView: View {
 
     private func row(_ departure: TransitLive.Departure) -> some View {
         let chosen = highlightLine != nil && departure.line == highlightLine
-        return HStack(spacing: 12) {
+        return HStack(spacing: Spacing.m) {
             badge(departure)
                 .frame(width: 74, alignment: .leading)
             VStack(alignment: .leading, spacing: 2) {
@@ -103,15 +103,15 @@ struct DepartureBoardView: View {
 
     private func badge(_ departure: TransitLive.Departure) -> some View {
         let color = departure.colorHex.flatMap { Color(hex: $0) } ?? .accentColor
-        return HStack(spacing: 4) {
+        return HStack(spacing: Spacing.xs) {
             Image(systemName: departure.mode.symbol)
             Text(departure.line ?? departure.mode.title)
                 .lineLimit(1)
         }
         .font(.caption.bold())
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(color, in: RoundedRectangle(cornerRadius: 7))
+        .padding(.horizontal, Spacing.s)
+        .padding(.vertical, Spacing.xs)
+        .background(color, in: Radius.shape(Radius.small))
         .foregroundStyle(.white)
     }
 

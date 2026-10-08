@@ -92,11 +92,11 @@ struct BookingRow: View {
     let booking: Booking
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: Spacing.m) {
             Image(systemName: booking.kind.symbol)
                 .font(.title3)
                 .frame(width: 36, height: 36)
-                .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 9))
+                .background(Color.accentColor.opacity(0.12), in: Radius.shape(Radius.small))
                 .foregroundStyle(Color.accentColor)
             VStack(alignment: .leading, spacing: 2) {
                 Text(booking.title.isEmpty ? booking.kind.shortTitle : booking.title)

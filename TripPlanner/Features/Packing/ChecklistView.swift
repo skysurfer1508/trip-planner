@@ -38,7 +38,7 @@ struct ChecklistView: View {
                 .listRowBackground(Color.clear)
             } else {
                 Section {
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: Spacing.s) {
                         Text("\(doneCount) of \(items.count) done")
                             .font(.subheadline.bold())
                         ProgressView(value: Double(doneCount), total: Double(max(items.count, 1)))
@@ -53,7 +53,7 @@ struct ChecklistView: View {
                         Button {
                             item.isDone.toggle()
                         } label: {
-                            HStack(spacing: 12) {
+                            HStack(spacing: Spacing.m) {
                                 Image(systemName: item.isDone ? "checkmark.circle.fill" : "circle")
                                     .foregroundStyle(item.isDone ? Color.green : Color.secondary)
                                     .font(.title3)

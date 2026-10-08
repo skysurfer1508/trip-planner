@@ -118,7 +118,7 @@ struct HotelSearchView: View {
 
     @ViewBuilder
     private var footer: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
             Text("This only finds the place so your days can start from it. Book wherever you like.")
             if shown.contains(where: { $0.hasTripadvisorData }) {
                 Text("Ratings by Tripadvisor")
@@ -184,10 +184,10 @@ private struct HotelRow: View {
     let hotel: HotelResult
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: Spacing.m) {
             Image(systemName: hotel.isLodging ? "bed.double.fill" : "mappin.and.ellipse")
                 .frame(width: 34, height: 34)
-                .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 9))
+                .background(Color.accentColor.opacity(0.12), in: Radius.shape(Radius.small))
                 .foregroundStyle(Color.accentColor)
 
             VStack(alignment: .leading, spacing: 3) {
@@ -201,11 +201,11 @@ private struct HotelRow: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
                 }
-                HStack(spacing: 8) {
+                HStack(spacing: Spacing.s) {
                     if !hotel.isLodging {
                         Text("Address")
                             .font(.caption2.bold())
-                            .padding(.horizontal, 6)
+                            .padding(.horizontal, Spacing.s)
                             .padding(.vertical, 2)
                             .background(Color.secondary.opacity(0.15), in: Capsule())
                     }
@@ -231,7 +231,7 @@ private struct HotelRow: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
-                HStack(spacing: 10) {
+                HStack(spacing: Spacing.m) {
                     if hotel.phone != nil {
                         Label("Phone", systemImage: "phone.fill")
                     }

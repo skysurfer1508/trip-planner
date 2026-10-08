@@ -17,13 +17,13 @@ struct NextUpCard: View {
     @State private var liveBest: TransitItinerary?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: Spacing.m) {
             Text("NEXT UP")
                 .font(.caption.bold())
                 .foregroundStyle(.secondary)
 
             HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: Spacing.xs) {
                     Text(stop.name)
                         .font(.title2.bold())
                     if let time = stop.plannedTime {
@@ -89,7 +89,7 @@ struct NextUpCard: View {
 
             leaveBy
 
-            HStack(spacing: 12) {
+            HStack(spacing: Spacing.m) {
                 Button {
                     RoutingService.openInMaps(name: stop.name, coordinate: stop.coordinate, mode: mode)
                 } label: {
@@ -107,7 +107,7 @@ struct NextUpCard: View {
             .controlSize(.large)
         }
         .padding()
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .background(.thinMaterial, in: Radius.shape(Radius.card))
         .task { await PlaceInfoLoader.ensureInfo(for: stop) }
     }
 
@@ -127,7 +127,7 @@ struct NextUpCard: View {
                         .font(.subheadline.bold())
                         .foregroundStyle(.red)
                 }
-                HStack(spacing: 4) {
+                HStack(spacing: Spacing.xs) {
                     Text("for the")
                     LiveTime(date: first.departure, delay: first.departureDelayMinutes, cancelled: first.isCancelled, zone: zone)
                     Text(first.label)
