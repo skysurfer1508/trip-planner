@@ -27,55 +27,77 @@ struct ChecklistView: View {
     var body: some View {
         List {
             if items.isEmpty {
-                ContentUnavailableView {
-                    Label("Nothing on the list", systemImage: "checklist")
-                } description: {
-                    Text("Start from a suggested packing list based on weather and activities, or add your own items.")
-                } actions: {
-                    Button("Suggest a list") { showGenerator = true }
-                        .buttonStyle(.borderedProminent)
-                }
-                .listRowBackground(Color.clear)
+                EmptyState(title: "Nothing on the list", systemImage: "checklist",
+                           message: "Start from a suggested packing list based on weather and activities, or add your own items.",
+                           actionTitle: "Suggest a list") { showGenerator = true }
+                    .listRowBackground(Color.clear)
             } else {
                 Section {
-                    VStack(alignment: .leading, spacing: Spacing.s) {
-                        Text("\(doneCount) of \(items.count) done")
-                            .font(.subheadline.bold())
-                        ProgressView(value: Double(doneCount), total: Double(max(items.count, 1)))
+                    HStack(spacing: Spacing.m) {
+                        ProgressRing(progress: Double(doneCount) / Double(max(items.count, 1)))
+                            .frame(width: 48, height: 48)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("\(doneCount) of \(items.count) done")
+                                .font(Typography.headline)
+                                .foregroundStyle(Theme.ink)
+                            if doneCount == items.count {
+                                Label("All packed", systemImage: "checkmark.seal.fill")
+                                    .font(Typography.label)
+                                    .foregroundStyle(Theme.success)
+                            }
+                        }
                     }
+                    .frame(minHeight: 44)
+                    .listRowBackground(Theme.surface)
                 }
             }
 
             ForEach(sections, id: \.self) { section in
-                Section(section) {
+                Section {
                     let rows = items.filter { $0.section == section }
                     ForEach(rows) { item in
                         Button {
-                            item.isDone.toggle()
+                            if item.isDone {
+                                Haptics.select()
+                            } else {
+                                Haptics.success()
+                            }
+                            Motion.perform(Motion.snappy) { item.isDone.toggle() }
                         } label: {
                             HStack(spacing: Spacing.m) {
                                 Image(systemName: item.isDone ? "checkmark.circle.fill" : "circle")
                                     .foregroundStyle(item.isDone ? Theme.success : Theme.inkSecondary)
                                     .font(.title3)
+                                    .symbolEffect(.bounce, value: item.isDone)
                                 Text(item.title)
+                                    .font(Typography.body)
                                     .strikethrough(item.isDone)
-                                    .foregroundStyle(item.isDone ? .secondary : .primary)
+                                    .foregroundStyle(item.isDone ? Theme.inkSecondary : Theme.ink)
+                                    .multilineTextAlignment(.leading)
+                                Spacer(minLength: 0)
                             }
+                            .frame(minHeight: 44)
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        .accessibilityAddTraits(.isToggle)
+                        .accessibilityValue(item.isDone ? "Packed" : "Not packed")
+                        .listRowBackground(Theme.surface)
                     }
                     .onDelete { offsets in
                         for index in offsets {
                             context.delete(rows[index])
                         }
                     }
+                } header: {
+                    Text(section).eyebrow()
                 }
             }
 
-            Section("Add item") {
-                HStack {
+            Section {
+                HStack(spacing: Spacing.s) {
                     TextField("e.g. Sunscreen", text: $newTitle)
+                        .font(Typography.body)
                         .submitLabel(.done)
                         .onSubmit(addItem)
                     Menu {
@@ -84,13 +106,21 @@ struct ChecklistView: View {
                         }
                     } label: {
                         Text(newSection)
-                            .font(.footnote)
+                            .font(Typography.label)
+                            .frame(minHeight: 44)
                     }
                     Button("Add", action: addItem)
+                        .font(Typography.label)
+                        .frame(minWidth: 44, minHeight: 44)
                         .disabled(newTitle.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
+                .listRowBackground(Theme.surface)
+            } header: {
+                Text("Add item").eyebrow()
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Theme.background)
         .navigationTitle("Packing & to-do")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -128,6 +158,7 @@ struct ChecklistView: View {
         context.insert(item)
         item.trip = trip
         newTitle = ""
+        Haptics.success()
     }
 }
 
