@@ -190,3 +190,16 @@ the app is open: there is no server to push alerts to a closed app. Data: Transi
 Settings → Diagnostics lists the last failed lookups (public transport, opening hours, AI, ...) with the time and the
 service, and copies them as one report. `.github/workflows/ci.yml` builds the app and runs the unit tests on every push
 (macOS runner, Xcode picked automatically); compiler errors and failed tests are published as annotations.
+
+## Offline trip pack, calendar and receipts
+
+- **Offline**: Overview → *Prepare for offline* saves, on the phone, the routes between your stops (and the
+  entrances of metro stations on them), photos, descriptions, opening hours, practical information and the transport
+  guide. Live times, weather and Apple Maps' own maps need a connection (download the area in Maps → Offline Maps).
+- **Calendar**: Share & export → *Add to Calendar* (write-only access, the app never reads your calendar) or the .ics
+  file. Stops with a time, flights and the hotel check-in become events at the destination's time, with the place and a
+  reminder; the ids are stable, so importing the file again updates instead of duplicating.
+- **Receipts**: New expense → *Scan a receipt*. The text on the photo is read on the phone; the total, currency, date,
+  shop and a category are filled in for you to check (Polish, German and English receipts, most others by symbols).
+- **Opening hours** are matched by the place's Wikidata id (found with its Wikipedia article), so the same place is found
+  whatever language its name is in, and a sight never borrows the hours of a shop next door.
