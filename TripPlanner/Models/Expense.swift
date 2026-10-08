@@ -28,14 +28,15 @@ enum ExpenseCategory: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Glyph tint on a neutral surface; reuses the stop-category tints (see `Theme.category`).
     var color: Color {
         switch self {
-        case .food: .orange
-        case .transport: .gray
-        case .lodging: .indigo
-        case .activities: .blue
-        case .shopping: .pink
-        case .other: .teal
+        case .food: Theme.category(.food)
+        case .transport: Theme.category(.transport)
+        case .lodging: Theme.category(.hotel)
+        case .activities: Theme.category(.sight)
+        case .shopping: Theme.category(.cafe)
+        case .other: Theme.category(.other)
         }
     }
 }

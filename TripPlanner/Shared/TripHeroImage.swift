@@ -1,22 +1,20 @@
 import SwiftUI
 
-/// Destination photo from Wikipedia over a colour gradient (the gradient shows while loading or when
-/// there's no photo).
+/// Destination photo from Wikipedia over a dark placeholder with a map glyph (shown while loading or
+/// when there's no photo).
 struct TripHeroImage: View {
     let trip: Trip
     @State private var hero: URL?
 
-    private var gradient: LinearGradient {
-        let palette: [[Color]] = [
-            [.indigo, .blue], [.teal, .green], [.orange, .pink], [.purple, .indigo], [.blue, .teal], [.pink, .orange],
-        ]
-        let seed = trip.name.unicodeScalars.reduce(0) { $0 + Int($1.value) }
-        return LinearGradient(colors: palette[seed % palette.count], startPoint: .topLeading, endPoint: .bottomTrailing)
-    }
-
     var body: some View {
         Rectangle()
-            .fill(gradient)
+            .fill(Theme.photoFallback)
+            .overlay {
+                Image(systemName: "map")
+                    .font(.system(size: 56, weight: .light))
+                    .foregroundStyle(.white.opacity(0.18))
+                    .accessibilityHidden(true)
+            }
             .overlay {
                 if let hero {
                     AsyncImage(url: hero) { phase in

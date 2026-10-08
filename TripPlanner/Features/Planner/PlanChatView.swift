@@ -52,7 +52,7 @@ struct PlanChatView: View {
                             if busy {
                                 HStack(spacing: Spacing.s) {
                                     ProgressView()
-                                    Text("Thinking…").foregroundStyle(.secondary)
+                                    Text("Thinking…").foregroundStyle(Theme.inkSecondary)
                                 }
                             }
                         }
@@ -92,11 +92,11 @@ struct PlanChatView: View {
                 .font(.headline)
             Text("I can move places between days, change times, swap days, add places nearby or remove some. I only use places that are really there, and you can undo every change.")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.inkSecondary)
             if engine == nil {
                 Label("Turn on an AI engine in Settings to type your own requests.", systemImage: "exclamationmark.triangle")
                     .font(.footnote)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.warning)
             }
         }
     }
@@ -108,7 +108,7 @@ struct PlanChatView: View {
             ForEach(message.changes, id: \.self) { change in
                 Label(change, systemImage: "checkmark.circle.fill")
                     .font(.caption)
-                    .foregroundStyle(.green)
+                    .foregroundStyle(Theme.success)
             }
         }
         .padding(Spacing.m)
@@ -120,9 +120,9 @@ struct PlanChatView: View {
 
     private func background(for role: Message.Role) -> Color {
         switch role {
-        case .traveller: Color.accentColor.opacity(0.18)
-        case .assistant: Color(.secondarySystemBackground)
-        case .problem: Color.orange.opacity(0.15)
+        case .traveller: Theme.accent.opacity(0.18)
+        case .assistant: Theme.surface
+        case .problem: Theme.warning.opacity(0.15)
         }
     }
 

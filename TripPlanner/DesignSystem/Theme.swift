@@ -32,6 +32,12 @@ enum Theme {
     static let warning = Color("Warning")
     static let danger = Color("Danger")
     static let info = Color("Info")
+
+    /// Shown behind a hero photo while it loads or when there is none. Always dark, so the white
+    /// title and the scrim on top of it keep at least 4.5:1 in light and dark mode.
+    static let photoFallback = LinearGradient(
+        colors: [Color(red: 0.07, green: 0.24, blue: 0.21), Color(red: 0.04, green: 0.10, blue: 0.09)],
+        startPoint: .topLeading, endPoint: .bottomTrailing)
 }
 
 // MARK: - Days and stop categories

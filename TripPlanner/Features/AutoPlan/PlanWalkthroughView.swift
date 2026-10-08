@@ -129,7 +129,7 @@ struct PlanWalkthroughView: View {
                 if tripDays.indices.contains(dayIndex) {
                     Text(tripDays[dayIndex].date.formatted(.dateTime.weekday(.wide).day().month(.abbreviated)))
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                 }
             }
             Spacer()
@@ -179,7 +179,7 @@ struct PlanWalkthroughView: View {
                 if let note = windowNote(dayWindow) {
                     Label(note, systemImage: "airplane")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                 }
 
                 PlanMapView(stops: day.stops, start: dayWindow.anchor, startName: dayWindow.anchorName)
@@ -189,7 +189,7 @@ struct PlanWalkthroughView: View {
                 if day.stops.isEmpty {
                     Text("Nothing planned for this day. Ask for something below.")
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                 } else {
                     VStack(spacing: 0) {
                         if let anchor = dayWindow.anchor, let first = day.stops.first {
@@ -281,13 +281,13 @@ struct PlanWalkthroughView: View {
                     Text(candidate.kind.title)
                 }
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.inkSecondary)
                 if candidate.isMustSee, let wanted = candidate.preferredMinute {
                     Label(candidate.timeIsSuggested
                           ? "Best around \(TripLogistics.timeText(wanted))"
                           : "You asked for around \(TripLogistics.timeText(wanted))", systemImage: "star.fill")
                         .font(.caption2)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Theme.warning)
                 }
                 PlaceSummaryText(name: candidate.name, coordinate: candidate.coordinate)
             }
@@ -318,7 +318,7 @@ struct PlanWalkthroughView: View {
             if let reply {
                 HStack(alignment: .top, spacing: Spacing.s) {
                     Image(systemName: reply.isError ? "exclamationmark.triangle.fill" : "wand.and.stars")
-                        .foregroundStyle(reply.isError ? Color.orange : Color.accentColor)
+                        .foregroundStyle(reply.isError ? Theme.warning : Theme.accent)
                     Text(reply.text)
                         .font(.footnote)
                     Spacer(minLength: 4)
@@ -450,26 +450,23 @@ struct PlanWalkthroughView: View {
 
     /// Places from the traveller's list that are not on any day yet, each with a button to add it here.
     private func leftOutCard(for index: Int) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.m) {
-            Label("Your places that aren't in the plan yet", systemImage: "exclamationmark.circle")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.orange)
-            ForEach(leftOut) { place in
-                HStack {
-                    Text(place.name)
-                        .font(.subheadline)
-                    Spacer()
-                    Button("Add to day \(index + 1)") {
-                        addLeftOut(place, to: index)
+        Banner(kind: .warning, title: "Your places that aren't in the plan yet") {
+            VStack(alignment: .leading, spacing: Spacing.s) {
+                ForEach(leftOut) { place in
+                    HStack(spacing: Spacing.m) {
+                        Text(place.name)
+                            .font(Typography.body)
+                            .foregroundStyle(Theme.ink)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Button("Add to day \(index + 1)") {
+                            addLeftOut(place, to: index)
+                        }
+                        .buttonStyle(.secondary(fullWidth: false))
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
                 }
             }
+            .padding(.top, Spacing.xs)
         }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.orange.opacity(0.1), in: Radius.shape(Radius.card))
     }
 
     private func addLeftOut(_ place: PlanCandidate, to index: Int) {
@@ -587,7 +584,7 @@ private struct AlternativesSheet: View {
                                 .foregroundStyle(.primary)
                             Text("\(option.kind.title) · \(Format.distance(RoutingService.straightLine(from: stop.candidate.coordinate, to: option.coordinate))) from \(stop.candidate.name)")
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Theme.inkSecondary)
                             PlaceSummaryText(name: option.name, coordinate: option.coordinate, lines: 2)
                         }
                     }
@@ -645,7 +642,7 @@ struct PlanMapView: View {
             let path = (start.map { [$0] } ?? []) + stops.map { $0.candidate.coordinate }
             if path.count > 1 {
                 MapPolyline(coordinates: path)
-                    .stroke(Color.accentColor.opacity(0.7), lineWidth: 3)
+                    .stroke(Theme.accent.opacity(0.7), lineWidth: 3)
             }
         }
         .id(stops.map { $0.candidate.id }.joined(separator: ","))

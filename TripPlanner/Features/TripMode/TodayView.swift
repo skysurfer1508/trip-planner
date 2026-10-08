@@ -98,21 +98,15 @@ struct TodayView: View {
                     DayAlertsView(trip: trip, day: day)
 
                     if location.isDenied {
-                        Label("Location is off. Enable it in Settings for travel times and nearby search.",
-                              systemImage: "location.slash")
-                            .font(.footnote)
-                            .padding(Spacing.m)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.orange.opacity(0.15), in: Radius.shape(Radius.small))
+                        Banner(kind: .warning,
+                               title: "Location is off",
+                               message: "Enable it in Settings for travel times and nearby search.")
                     }
 
                     if isAwayFromDestination {
-                        Label("You're not at \(trip.destination.isEmpty ? "your destination" : trip.destination) yet. Travel times and nearby search use the trip's destination.",
-                              systemImage: "airplane")
-                            .font(.footnote)
-                            .padding(Spacing.m)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.blue.opacity(0.12), in: Radius.shape(Radius.small))
+                        Banner(kind: .info,
+                               title: "You're not at \(trip.destination.isEmpty ? "your destination" : trip.destination) yet",
+                               message: "Travel times and nearby search use the trip's destination.")
                     }
 
                     StopsMapView(stops: day.sortedStops, showsUser: true, highlighted: nextStop,
@@ -161,13 +155,14 @@ struct TodayView: View {
                 showHungry = true
             } label: {
                 Label("I'm hungry", systemImage: "fork.knife")
-                    .font(.headline)
+                    .font(Typography.headline)
+                    .foregroundStyle(Theme.ink)
                     .padding(.horizontal, Spacing.l)
-                    .padding(.vertical, Spacing.m)
-                    .background(Color.orange, in: Capsule())
-                    .foregroundStyle(.white)
-                    .shadow(radius: 4, y: 2)
+                    .frame(minHeight: 50)
+                    .floatingChrome()
+                    .elevation(.floating)
             }
+            .buttonStyle(.plain)
             .padding()
             .disabled(day == nil)
         }
@@ -215,13 +210,13 @@ struct TodayView: View {
                 .font(.largeTitle.bold())
             Text("\(trip.name) · Day \(index) of \(days.count) · \(day.date.formatted(date: .abbreviated, time: .omitted))")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.inkSecondary)
             if total > 0 {
                 HStack(spacing: Spacing.m) {
                     ProgressView(value: Double(doneCount), total: Double(total))
                     Text("\(doneCount)/\(total) done")
                         .font(.caption.bold())
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                 }
                 .padding(.top, 2)
             }
@@ -237,7 +232,7 @@ struct TodayView: View {
             VStack(alignment: .leading, spacing: Spacing.m) {
                 Text("TRAVEL TODAY")
                     .font(.caption.bold())
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
                 ForEach(window.items) { item in
                     HStack(spacing: Spacing.m) {
                         Image(systemName: item.symbol)
@@ -245,7 +240,7 @@ struct TodayView: View {
                             .foregroundStyle(.tint)
                         Text(TripLogistics.timeText(item.minute))
                             .monospacedDigit()
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.inkSecondary)
                         Text(item.text)
                     }
                     .font(.subheadline)
@@ -279,7 +274,7 @@ struct TodayView: View {
                         .font(.subheadline.bold())
                         .padding(.horizontal, Spacing.m)
                         .padding(.vertical, Spacing.s)
-                        .background(Color.accentColor, in: Capsule())
+                        .background(Theme.accent, in: Capsule())
                         .foregroundStyle(.white)
                 }
                 .buttonStyle(.plain)
@@ -307,22 +302,20 @@ struct TodayView: View {
             if !dismissedReflow,
                let late = ScheduleService.lateness(items: items, now: context.date),
                late >= 10 * 60 {
-                VStack(alignment: .leading, spacing: Spacing.s) {
-                    Label("You're about \(Format.duration(late)) behind schedule", systemImage: "clock.badge.exclamationmark")
-                        .font(.subheadline.bold())
-                    Text("Shift the rest of today's stops so nothing overlaps?")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                    HStack {
-                        Button("Re-flow day") { applyReflow(now: context.date) }
-                            .buttonStyle(.borderedProminent)
+                Banner(kind: .warning,
+                       title: "You're about \(Format.duration(late)) behind schedule",
+                       message: "Shift the rest of today's stops so nothing overlaps?") {
+                    HStack(spacing: Spacing.s) {
+                        Button("Re-flow day") {
+                            Haptics.success()
+                            applyReflow(now: context.date)
+                        }
+                        .buttonStyle(.primary(fullWidth: false))
                         Button("Dismiss") { dismissedReflow = true }
-                            .buttonStyle(.bordered)
+                            .buttonStyle(.secondary(fullWidth: false))
                     }
+                    .padding(.top, Spacing.xs)
                 }
-                .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.orange.opacity(0.15), in: Radius.shape(Radius.card))
             }
         }
     }
@@ -331,16 +324,14 @@ struct TodayView: View {
         VStack(spacing: Spacing.s) {
             Image(systemName: hasStops ? "checkmark.seal.fill" : "calendar.badge.plus")
                 .font(.largeTitle)
-                .foregroundStyle(hasStops ? Color.green : Color.secondary)
+                .foregroundStyle(hasStops ? Theme.success : Theme.inkSecondary)
             Text(hasStops ? "All done for this day" : "Nothing planned")
                 .font(.headline)
             Text(hasStops ? "Hungry? Tap the button below." : "Add places in the planner, or find food nearby.")
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.inkSecondary)
         }
-        .padding()
-        .frame(maxWidth: .infinity)
-        .background(.thinMaterial, in: Radius.shape(Radius.card))
+        .card()
     }
 
     @ToolbarContentBuilder

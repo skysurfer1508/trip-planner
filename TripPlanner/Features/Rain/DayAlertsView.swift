@@ -21,46 +21,21 @@ struct DayAlertsView: View {
     var body: some View {
         VStack(spacing: Spacing.s) {
             if let holiday = trip.holiday(on: day.date) {
-                HStack(alignment: .top, spacing: Spacing.m) {
-                    Image(systemName: "calendar.badge.exclamationmark")
-                        .foregroundStyle(.orange)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Public holiday: \(holiday.name)\(holiday.isRegional ? " (some regions)" : "")")
-                            .font(.subheadline.bold())
-                        Text("Many shops, offices and some museums may be closed or have shorter hours.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer(minLength: 0)
-                }
-                .padding(Spacing.m)
-                .background(Color.orange.opacity(0.12), in: Radius.shape(Radius.small))
+                Banner(kind: .warning,
+                       title: "Public holiday: \(holiday.name)\(holiday.isRegional ? " (some regions)" : "")",
+                       message: "Many shops, offices and some museums may be closed or have shorter hours.")
             }
 
             if let weather, weather.isWet, !outdoorStops.isEmpty {
                 Button {
                     showRain = true
                 } label: {
-                    HStack(alignment: .top, spacing: Spacing.m) {
-                        Image(systemName: "cloud.rain.fill")
-                            .foregroundStyle(.blue)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Rain likely (\(weather.rainChance)%) and \(outdoorStops.count) outdoor \(outdoorStops.count == 1 ? "stop" : "stops") planned")
-                                .font(.subheadline.bold())
-                                .foregroundStyle(.primary)
-                            Text("Tap to swap them for indoor places nearby.")
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer(minLength: 0)
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                    }
-                    .padding(Spacing.m)
-                    .background(Color.blue.opacity(0.1), in: Radius.shape(Radius.small))
+                    Banner(kind: .info,
+                           title: "Rain likely (\(weather.rainChance)%) and \(outdoorStops.count) outdoor \(outdoorStops.count == 1 ? "stop" : "stops") planned",
+                           message: "Tap to swap them for indoor places nearby.")
                 }
                 .buttonStyle(.plain)
+                .accessibilityHint("Swaps outdoor stops for indoor places nearby")
             }
         }
         .task(id: day.persistentModelID) {
@@ -111,7 +86,7 @@ struct RainReplanSheet: View {
                         HStack(spacing: Spacing.m) {
                             ProgressView()
                             Text("Finding indoor places…")
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Theme.inkSecondary)
                         }
                     }
                 } else if rows.isEmpty {
@@ -126,13 +101,13 @@ struct RainReplanSheet: View {
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(row.stop.name)
                                         .font(.footnote)
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(Theme.inkSecondary)
                                         .strikethrough(row.selected)
                                     Label(row.place.name, systemImage: row.place.kind.symbol)
                                         .font(.subheadline.weight(.medium))
                                     Text("\(Format.distance(RoutingService.straightLine(from: row.stop.coordinate, to: row.place.coordinate))) from the original")
                                         .font(.caption2)
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(Theme.inkSecondary)
                                 }
                             }
                         }
