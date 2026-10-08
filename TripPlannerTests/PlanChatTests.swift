@@ -373,7 +373,7 @@ final class WikidataHoursTests: XCTestCase {
 @MainActor
 final class CalendarExportTests: XCTestCase {
     func testEscapingAndFolding() {
-        XCTAssertEqual(CalendarExport.escape("Tea, cake; and a \\ walk\nthen home"), "Tea\\, cake\; and a \\\\ walk\\nthen home")
+        XCTAssertEqual(CalendarExport.escape("Tea, cake; and a \\ walk\nthen home"), "Tea\\, cake\\; and a \\\\ walk\\nthen home")
         let long = String(repeating: "a", count: 200)
         let lines = CalendarExport.fold("DESCRIPTION:" + long)
         XCTAssertGreaterThan(lines.count, 2)
