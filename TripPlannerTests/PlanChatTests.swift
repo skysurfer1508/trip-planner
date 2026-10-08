@@ -328,3 +328,44 @@ final class EntranceStorageTests: XCTestCase {
         XCTAssertNil(EntranceDiskCache.read("missing-\(UUID().uuidString)"))
     }
 }
+
+final class WikidataHoursTests: XCTestCase {
+    private let here = CLLocationCoordinate2D(latitude: 52.2478, longitude: 21.0148)
+
+    func testWikidataIDsAreRecognised() {
+        XCTAssertTrue(OpeningHoursService.isWikidataID("Q1016845"))
+        XCTAssertFalse(OpeningHoursService.isWikidataID(""))
+        XCTAssertFalse(OpeningHoursService.isWikidataID("Q12; out;"), "nothing that could change the query")
+        XCTAssertFalse(OpeningHoursService.isWikidataID("q12"))
+    }
+
+    func testNothingMappedFallsBackToNames() {
+        XCTAssertEqual(OpeningHoursService.exact(from: [], coordinate: here), .notMapped)
+    }
+
+    func testAMappedPlaceWithoutHoursStaysWithoutHours() {
+        // The castle itself is mapped (in Polish) but has no hours: the gift shop next door must not lend its own.
+        let castle: [[String: Any]] = [["tags": ["name": "Zamek Królewski w Warszawie", "tourism": "museum", "wikidata": "Q1016845"],
+                                         "lat": 52.2478, "lon": 21.0148]]
+        XCTAssertEqual(OpeningHoursService.exact(from: castle, coordinate: here), .noHours)
+    }
+
+    func testTheEntryWithHoursWinsAndBringsItsWebsite() {
+        let elements: [[String: Any]] = [
+            ["tags": ["name": "Museum", "wikidata": "Q1"], "lat": 52.2490, "lon": 21.0148],
+            ["tags": ["name": "Museum", "opening_hours": "Tu-Su 10:00-18:00", "website": "https://example.org"],
+             "center": ["lat": 52.2479, "lon": 21.0149]],
+        ]
+        guard case .hours(let match) = OpeningHoursService.exact(from: elements, coordinate: here) else {
+            return XCTFail("expected hours")
+        }
+        XCTAssertEqual(match.hours, "Tu-Su 10:00-18:00")
+        XCTAssertEqual(match.website, "https://example.org")
+        XCTAssertTrue(match.byName)
+    }
+
+    func testRejectedHoursAreSkipped() {
+        let elements: [[String: Any]] = [["tags": ["name": "Museum", "opening_hours": "Mo-Su 09:00-17:00"], "lat": 52.2478, "lon": 21.0148]]
+        XCTAssertEqual(OpeningHoursService.exact(from: elements, coordinate: here, rejectedHours: "Mo-Su 09:00-17:00"), .noHours)
+    }
+}

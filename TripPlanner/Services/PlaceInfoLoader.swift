@@ -39,6 +39,7 @@ enum PlaceInfoLoader {
                 stop.summary = info.summary
             }
             stop.wikiURL = info.pageURL?.absoluteString ?? ""
+            if let id = info.wikidataID { stop.wikidataID = id }
             if stop.imageSource != "user", let url = info.imageURL,
                let data = try? await Net.bytes(url: url, session: Net.cached), stop.modelContext != nil {
                 stop.imageData = data

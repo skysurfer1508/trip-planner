@@ -12,10 +12,59 @@ enum OpeningHoursService {
         var source: String
         /// True when its name matches the place; false when it was only the nearest object.
         var byName: Bool
+        var website: String?
+    }
+
+    /// What the OpenStreetMap entry for a Wikidata item says.
+    enum Exact: Equatable {
+        /// Nothing in OpenStreetMap carries this Wikidata id nearby: fall back to names.
+        case notMapped
+        /// The place is mapped but has no opening hours: say so, don't borrow a neighbour's.
+        case noHours
+        case hours(HoursMatch)
+    }
+
+    static func isWikidataID(_ text: String) -> Bool {
+        text.range(of: #"^Q\d{1,12}$"#, options: .regularExpression) != nil
+    }
+
+    /// The entry tagged with the place's own Wikidata id, whatever language its name is in.
+    static func exact(from elements: [[String: Any]], coordinate: CLLocationCoordinate2D, rejectedHours: String = "") -> Exact {
+        guard !elements.isEmpty else { return .notMapped }
+        func distance(_ element: [String: Any]) -> Double {
+            let center = element["center"] as? [String: Any]
+            guard let lat = Net.double(element["lat"] ?? center?["lat"]), let lon = Net.double(element["lon"] ?? center?["lon"]) else {
+                return .infinity
+            }
+            return RoutingService.straightLine(from: coordinate, to: CLLocationCoordinate2D(latitude: lat, longitude: lon))
+        }
+        let withHours = elements
+            .filter { element in
+                let hours = (element["tags"] as? [String: Any])?["opening_hours"] as? String
+                return hours != nil && hours != rejectedHours
+            }
+            .min { distance($0) < distance($1) }
+        guard let best = withHours, let tags = best["tags"] as? [String: Any], let hours = tags["opening_hours"] as? String else {
+            return .noHours
+        }
+        let source = names(in: tags).first ?? "its OpenStreetMap entry"
+        let website = (tags["website"] as? String) ?? (tags["contact:website"] as? String)
+        return .hours(HoursMatch(hours: hours, source: source, byName: true, website: website))
     }
 
     static func fetch(name: String, coordinate: CLLocationCoordinate2D, category: StopCategory = .other,
-                      rejectedHours: String = "") async throws -> HoursMatch? {
+                      rejectedHours: String = "", wikidataID: String = "") async throws -> HoursMatch? {
+        // First the entry that carries the place's own Wikidata id: exact, and language doesn't matter.
+        if isWikidataID(wikidataID) {
+            let ql = "[out:json][timeout:12];nwr[\"wikidata\"=\"\(wikidataID)\"](around:800,\(coordinate.latitude),\(coordinate.longitude));out tags center;"
+            if let json = try? await OverpassClient.query(ql) {
+                switch exact(from: json["elements"] as? [[String: Any]] ?? [], coordinate: coordinate, rejectedHours: rejectedHours) {
+                case .hours(let match): return match
+                case .noHours: return nil
+                case .notMapped: break
+                }
+            }
+        }
         let query = "[out:json][timeout:12];nwr(around:70,\(coordinate.latitude),\(coordinate.longitude))[\"opening_hours\"];out tags center;"
         let json = try await OverpassClient.query(query)
         return pickMatch(from: json["elements"] as? [[String: Any]] ?? [], name: name, coordinate: coordinate,
@@ -108,12 +157,13 @@ enum OpeningHoursLoader {
         let coordinate = stop.coordinate
         let category = stop.category
         let rejected = stop.rejectedHours
+        let wikidata = stop.wikidataID
 
         do { try await gate.enter() } catch { return }
         let result: Result<OpeningHoursService.HoursMatch?, Error>
         do {
             result = .success(try await OpeningHoursService.fetch(name: name, coordinate: coordinate, category: category,
-                                                                  rejectedHours: rejected))
+                                                                  rejectedHours: rejected, wikidataID: wikidata))
         } catch {
             result = .failure(error)
         }
@@ -123,6 +173,7 @@ enum OpeningHoursLoader {
         if case .success(let match) = result {
             stop.openingHours = match?.hours ?? ""
             stop.hoursSource = match?.source ?? ""
+            if stop.website.isEmpty, let website = match?.website { stop.website = website }
             stop.hoursCheckedAt = Date()
         }
     }

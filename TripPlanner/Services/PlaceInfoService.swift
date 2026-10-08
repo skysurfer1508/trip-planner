@@ -6,6 +6,7 @@ struct PlaceInfo {
     var summary: String
     var pageURL: URL?
     var imageURL: URL?
+    var wikidataID: String?
 }
 
 enum PlaceLookupResult {
@@ -98,6 +99,7 @@ enum PlaceInfoService {
         PlaceInfo(title: summary.title,
                   summary: shorten(summary.extract),
                   pageURL: summary.pageURL,
-                  imageURL: summary.thumbnailURL(width: 640))
+                  imageURL: summary.thumbnailURL(width: 640),
+                  wikidataID: summary.wikidataID)
     }
 }

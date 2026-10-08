@@ -36,6 +36,8 @@ final class Stop {
     var hoursSource: String = ""
     /// Hours the traveller marked as wrong, so a new lookup doesn't bring the same ones back.
     var rejectedHours: String = ""
+    /// The place's Wikidata item, found with its Wikipedia article: opening hours are matched by it.
+    var wikidataID: String = ""
     var day: Day?
 
     init(name: String,
@@ -78,6 +80,7 @@ final class Stop {
         copy.hoursCheckedAt = hoursCheckedAt
         copy.hoursSource = hoursSource
         copy.rejectedHours = rejectedHours
+        copy.wikidataID = wikidataID
         return copy
     }
 

@@ -9,6 +9,8 @@ struct WikiSummary {
     let coordinate: CLLocationCoordinate2D?
     /// "standard", "disambiguation", ...
     let type: String?
+    /// The article's Wikidata item ("Q123"): the same for every language, so a place can be matched exactly.
+    var wikidataID: String?
 
     /// Wikipedia thumbnails are 320px wide; the same URL with a bigger size works for banners.
     var hero: URL? { thumbnailURL(width: 960) }
@@ -45,6 +47,7 @@ enum WikipediaService {
         let thumbnail: Thumbnail?
         let content_urls: Urls?
         let coordinates: Coordinates?
+        let wikibase_item: String?
     }
 
     /// Nil when there is no such article, throws when the request itself failed.
@@ -60,7 +63,8 @@ enum WikipediaService {
                                thumbnail: response.thumbnail.flatMap { URL(string: $0.source) },
                                pageURL: page.flatMap { URL(string: $0) },
                                coordinate: response.coordinates.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) },
-                               type: response.type)
+                               type: response.type,
+                               wikidataID: response.wikibase_item)
         } catch NetError.badStatus(404) {
             return nil
         }
