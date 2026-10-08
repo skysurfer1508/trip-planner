@@ -305,3 +305,56 @@ final class DiagnosticsTests: XCTestCase {
         XCTAssertEqual(WallClock.date(on: day, minute: 99_999).map { WallClock.minute(of: $0) }, 23 * 60 + 59, "clamped to the day")
     }
 }
+
+final class OfflinePlannerTests: XCTestCase {
+    private let hotel = CLLocationCoordinate2D(latitude: 52.2300, longitude: 21.0100)
+    private func spot(_ east: Double) -> CLLocationCoordinate2D { CLLocationCoordinate2D(latitude: 52.2300, longitude: 21.0100 + east) }
+    private let day1 = Calendar.current.startOfDay(for: Date(timeIntervalSince1970: 1_800_000_000))
+
+    private func stops(_ names: String...) -> [OfflineStop] {
+        names.enumerated().map { index, name in
+            OfflineStop(name: name, coordinate: spot(Double(index + 1) * 0.01), plannedMinute: nil, durationMinutes: 60)
+        }
+    }
+
+    func testTripFactsAndOneStopInfoPerStop() {
+        let tasks = OfflinePlanner.tasks(days: [OfflineDay(date: day1, hotel: hotel, stops: stops("A", "B"))], transit: false)
+        XCTAssertEqual(tasks.map(\.kind), ["timeZone", "holidays", "practicalInfo", "stopInfo", "stopInfo"])
+    }
+
+    func testWithPublicTransportEveryLegIsPrefetchedOnce() {
+        let days = [OfflineDay(date: day1, hotel: hotel, stops: stops("A", "B")),
+                    OfflineDay(date: day1.addingTimeInterval(86_400), hotel: hotel, stops: stops("C"))]
+        let tasks = OfflinePlanner.tasks(days: days, transit: true)
+        XCTAssertEqual(tasks.filter { $0.kind == "route" }.count, 3, "hotel to A, A to B, hotel to C")
+        XCTAssertEqual(tasks.filter { $0.kind == "stopInfo" }.count, 3)
+        XCTAssertTrue(tasks.contains { $0.kind == "transitGuide" })
+        XCTAssertEqual(tasks.filter { $0.kind == "route" }.map(\.label), ["Hotel → A", "A → B", "Hotel → C"])
+    }
+
+    func testWithoutAHotelThereIsNoHotelLeg() {
+        let tasks = OfflinePlanner.tasks(days: [OfflineDay(date: day1, hotel: nil, stops: stops("A", "B"))], transit: true)
+        XCTAssertEqual(tasks.filter { $0.kind == "route" }.map(\.label), ["A → B"])
+    }
+
+    func testTheHotelLegArrivesOnTimeAndLaterLegsLeaveWhenTheStopEnds() {
+        var first = stops("A", "B")
+        first[0].plannedMinute = 10 * 60
+        first[0].durationMinutes = 90
+        let tasks = OfflinePlanner.tasks(days: [OfflineDay(date: day1, hotel: hotel, stops: first)], transit: true)
+        let routes: [(minute: Int, arriveBy: Bool)] = tasks.compactMap { task in
+            if case .route(_, _, _, let minute, let arriveBy, _) = task { return (minute, arriveBy) }
+            return nil
+        }
+        XCTAssertEqual(routes.count, 2)
+        XCTAssertEqual(routes[0].minute, 10 * 60)
+        XCTAssertTrue(routes[0].arriveBy)
+        XCTAssertEqual(routes[1].minute, 11 * 60 + 30, "A ends at 11:30")
+        XCTAssertFalse(routes[1].arriveBy)
+    }
+
+    func testTheSameLegTwiceIsAskedForOnce() {
+        let twin = [OfflineDay(date: day1, hotel: hotel, stops: stops("A")), OfflineDay(date: day1, hotel: hotel, stops: stops("A"))]
+        XCTAssertEqual(OfflinePlanner.tasks(days: twin, transit: true).filter { $0.kind == "route" }.count, 1)
+    }
+}

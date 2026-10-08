@@ -28,6 +28,10 @@ struct OverviewView: View {
                     TransitGuideCard(trip: trip)
                 }
 
+                if stopCount > 0 {
+                    OfflinePackCard(trip: trip)
+                }
+
                 if !trip.destination.isEmpty {
                     PracticalInfoCard(trip: trip)
                 }

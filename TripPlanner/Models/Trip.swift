@@ -32,6 +32,9 @@ final class Trip {
     var holidaysCountry: String = ""
     /// Facts and notes about the destination (JSON of `PracticalInfo`).
     var practicalInfo: String = ""
+    /// When "Prepare for offline" last finished, and how it went.
+    var offlinePreparedAt: Date?
+    var offlineNote: String = ""
     @Relationship(deleteRule: .cascade, inverse: \Day.trip) var days: [Day] = []
     @Relationship(deleteRule: .cascade, inverse: \Expense.trip) var expenses: [Expense] = []
     @Relationship(deleteRule: .cascade, inverse: \ChecklistItem.trip) var checklist: [ChecklistItem] = []
