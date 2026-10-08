@@ -86,7 +86,7 @@ enum DocumentTextExtractor {
 
     // MARK: OCR
 
-    private static func recognize(_ image: UIImage) async throws -> String {
+    static func recognize(_ image: UIImage) async throws -> String {
         // Redraw so the pixel data is upright regardless of the photo's orientation flag.
         let renderer = UIGraphicsImageRenderer(size: image.size)
         let upright = renderer.image { _ in image.draw(at: .zero) }

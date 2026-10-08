@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 import SwiftData
 import Charts
 
@@ -220,6 +221,10 @@ struct ExpenseEditView: View {
     @State private var currency = "EUR"
     @State private var category: ExpenseCategory = .food
     @State private var date = Date()
+    @State private var photoItem: PhotosPickerItem?
+    @State private var showCamera = false
+    @State private var scanning = false
+    @State private var scanMessage: String?
 
     private var amount: Double? {
         Double(amountText.replacingOccurrences(of: ",", with: "."))
@@ -228,6 +233,33 @@ struct ExpenseEditView: View {
     var body: some View {
         NavigationStack {
             Form {
+                if expense == nil {
+                    Section {
+                        PhotosPicker(selection: $photoItem, matching: .images) {
+                            Label("Scan a receipt from a photo", systemImage: "doc.viewfinder")
+                        }
+                        if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                            Button {
+                                showCamera = true
+                            } label: {
+                                Label("Take a photo of a receipt", systemImage: "camera")
+                            }
+                        }
+                        if scanning {
+                            HStack(spacing: 10) {
+                                ProgressView()
+                                Text("Reading the receipt…").foregroundStyle(.secondary)
+                            }
+                        }
+                        if let scanMessage {
+                            Text(scanMessage)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                    } footer: {
+                        Text("The text on the photo is read on the phone. Check the amount before you save.")
+                    }
+                }
                 Section {
                     TextField("What was it? (optional)", text: $title)
                     HStack {
@@ -271,6 +303,24 @@ struct ExpenseEditView: View {
                         .disabled((amount ?? 0) <= 0)
                 }
             }
+            .onChange(of: photoItem) { _, item in
+                guard let item else { return }
+                Task {
+                    if let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) {
+                        await scan(image)
+                    } else {
+                        scanMessage = "That photo couldn't be opened."
+                    }
+                    photoItem = nil
+                }
+            }
+            .fullScreenCover(isPresented: $showCamera) {
+                CameraPicker { image in
+                    showCamera = false
+                    if let image { Task { await scan(image) } }
+                }
+                .ignoresSafeArea()
+            }
             .onAppear {
                 currency = trip.currencyCode
                 date = defaultDate
@@ -284,6 +334,28 @@ struct ExpenseEditView: View {
             }
         }
         .presentationDetents([.medium, .large])
+    }
+
+    /// Reads the text on the photo and fills in what it finds.
+    private func scan(_ image: UIImage) async {
+        scanning = true
+        scanMessage = nil
+        defer { scanning = false }
+        guard let text = try? await DocumentTextExtractor.recognize(image), !text.isEmpty else {
+            scanMessage = "No text was found on the photo. Try again in better light, with the whole receipt in view."
+            return
+        }
+        let result = ReceiptParser.parse(text)
+        guard let found = result.amount else {
+            scanMessage = "I couldn't find a total on the receipt. Type the amount in."
+            return
+        }
+        amountText = String(format: "%.2f", found)
+        if let code = result.currency { currency = code }
+        if let day = result.date { date = day }
+        if title.isEmpty, let merchant = result.merchant { title = merchant }
+        if let guess = result.category { category = guess }
+        scanMessage = "Found \(String(format: "%.2f", found)) \(result.currency ?? currency). Check it, then save."
     }
 
     private func save() {
