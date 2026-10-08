@@ -69,7 +69,7 @@ struct PDFExportView: View {
                 Section {
                     Group {
                         Text("The PDF couldn't be created. Try again.")
-                            .foregroundStyle(.red)
+                            .foregroundStyle(Theme.danger)
                     }
                     .listRowBackground(Theme.surface)
                 }

@@ -102,7 +102,7 @@ struct DepartureBoardView: View {
     }
 
     private func badge(_ departure: TransitLive.Departure) -> some View {
-        let color = departure.colorHex.flatMap { Color(hex: $0) } ?? .accentColor
+        let color = departure.colorHex.flatMap { Color(hex: $0) } ?? Theme.accent
         return HStack(spacing: Spacing.xs) {
             Image(systemName: departure.mode.symbol)
             Text(departure.line ?? departure.mode.title)
