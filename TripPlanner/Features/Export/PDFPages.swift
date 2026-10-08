@@ -4,7 +4,9 @@ private let pageWidth: CGFloat = 595
 private let pageHeight: CGFloat = 842
 private let margin: CGFloat = 36
 
-/// Shared frame of every page: white paper, margins, a small footer.
+/// Shared frame of every page: white paper, margins, a small footer. Pages are printed at a fixed size
+/// (A4 in points), so their text uses fixed font sizes on purpose instead of Dynamic Type. Colours come
+/// from the design tokens, rendered in the light appearance.
 private struct PDFPage<Content: View>: View {
     let tripName: String
     let page: Int
@@ -21,14 +23,14 @@ private struct PDFPage<Content: View>: View {
                 Text("Page \(page) of \(total)")
             }
             .font(.system(size: 8))
-            .foregroundStyle(.gray)
+            .foregroundStyle(Theme.inkSecondary)
             .padding(.top, Spacing.s)
         }
         .padding(margin)
         .frame(width: pageWidth, height: pageHeight, alignment: .topLeading)
-        .background(Color.white)
+        .background(Theme.surface)
         .environment(\.colorScheme, .light)
-        .foregroundStyle(Color.black)
+        .foregroundStyle(Theme.ink)
     }
 }
 
@@ -47,11 +49,11 @@ struct PDFCoverPage: View {
                     if !cover.destination.isEmpty {
                         Text(cover.destination)
                             .font(.system(size: 15))
-                            .foregroundStyle(.gray)
+                            .foregroundStyle(Theme.inkSecondary)
                     }
                     Text("\(cover.dates) · \(cover.daysText)")
                         .font(.system(size: 12))
-                        .foregroundStyle(.gray)
+                        .foregroundStyle(Theme.inkSecondary)
                 }
                 .padding(.bottom, Spacing.s)
 
@@ -73,7 +75,7 @@ struct PDFCoverPage: View {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(title.uppercased())
                     .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(.gray)
+                    .foregroundStyle(Theme.inkSecondary)
                 ForEach(items, id: \.self) { item in
                     Text("• " + item)
                         .font(.system(size: 10.5))
@@ -101,19 +103,19 @@ struct PDFDayPage: View {
                         .font(.system(size: 22, weight: .bold))
                     Text(day.subtitle)
                         .font(.system(size: 11))
-                        .foregroundStyle(.gray)
+                        .foregroundStyle(Theme.inkSecondary)
                 }
 
                 if isFirst {
                     if !day.holiday.isEmpty {
                         Text(day.holiday)
                             .font(.system(size: 9.5, weight: .medium))
-                            .foregroundStyle(Color.orange)
+                            .foregroundStyle(Theme.warning)
                     }
                     ForEach(day.travel, id: \.self) { line in
                         Text(line)
                             .font(.system(size: 9.5))
-                            .foregroundStyle(.gray)
+                            .foregroundStyle(Theme.inkSecondary)
                     }
                     if let map = day.map {
                         Image(uiImage: map)
@@ -131,7 +133,7 @@ struct PDFDayPage: View {
                 if day.stops.isEmpty {
                     Text("Nothing planned for this day.")
                         .font(.system(size: 11))
-                        .foregroundStyle(.gray)
+                        .foregroundStyle(Theme.inkSecondary)
                 }
 
                 ForEach(rows) { stop in
@@ -146,9 +148,9 @@ struct PDFDayPage: View {
         HStack(alignment: .top, spacing: Spacing.m) {
             Text("\(stop.number)")
                 .font(.system(size: 9, weight: .bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(Theme.onAccent)
                 .frame(width: 18, height: 18)
-                .background(Color.blue, in: Circle())
+                .background(Theme.accent, in: Circle())
 
             Text(stop.time.isEmpty ? " " : stop.time)
                 .font(.system(size: 10.5, design: .monospaced))
@@ -160,15 +162,15 @@ struct PDFDayPage: View {
                 if !stop.address.isEmpty {
                     Text(stop.address)
                         .font(.system(size: 9))
-                        .foregroundStyle(.gray)
+                        .foregroundStyle(Theme.inkSecondary)
                 }
                 Text(stop.duration + (stop.hours.isEmpty ? "" : " · " + stop.hours))
                     .font(.system(size: 9))
-                    .foregroundStyle(.gray)
+                    .foregroundStyle(Theme.inkSecondary)
                 if !stop.hoursWarning.isEmpty {
                     Text("! " + stop.hoursWarning)
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(Color.orange)
+                        .foregroundStyle(Theme.warning)
                 }
                 if !stop.notes.isEmpty {
                     Text(stop.notes)

@@ -2,6 +2,16 @@ import ActivityKit
 import SwiftUI
 import WidgetKit
 
+/// The Live Activity is a separate target without the app's asset catalog, so it carries the two colours
+/// it needs. Keep them equal to `Theme.accent` (light #0F7B6C, dark #4CC3A8) in the app.
+private extension Color {
+    static let tripAccent = Color(UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0x4C / 255, green: 0xC3 / 255, blue: 0xA8 / 255, alpha: 1)
+            : UIColor(red: 0x0F / 255, green: 0x7B / 255, blue: 0x6C / 255, alpha: 1)
+    })
+}
+
 @main
 struct TripWidgetBundle: WidgetBundle {
     var body: some Widget {
@@ -19,7 +29,7 @@ struct TripLiveActivity: Widget {
                 DynamicIslandExpandedRegion(.leading) {
                     Image(systemName: "mappin.circle.fill")
                         .font(.title2)
-                        .foregroundStyle(.tint)
+                        .foregroundStyle(Color.tripAccent)
                 }
                 DynamicIslandExpandedRegion(.center) {
                     Text(context.state.stopName)
@@ -62,10 +72,12 @@ private struct LockScreenView: View {
         HStack(spacing: 12) {
             Image(systemName: "mappin.circle.fill")
                 .font(.largeTitle)
-                .foregroundStyle(.tint)
+                .accessibilityHidden(true)
+                .foregroundStyle(Color.tripAccent)
             VStack(alignment: .leading, spacing: 2) {
-                Text("NEXT UP · \(tripName)")
+                Text("Next up · \(tripName)")
                     .font(.caption2.bold())
+                    .textCase(.uppercase)
                     .foregroundStyle(.secondary)
                 Text(state.stopName)
                     .font(.headline)
