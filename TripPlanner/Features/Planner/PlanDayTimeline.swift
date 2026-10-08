@@ -10,7 +10,7 @@ import UniformTypeIdentifiers
 /// Reorder by pressing and holding a card, then dropping it on another one. Without dragging (VoiceOver,
 /// Switch Control) every card has Move up and Move down actions. Tapping a card selects it, which
 /// highlights its pin on the map, and opens its details.
-struct DayTimelineView: View {
+struct PlanDayTimeline: View {
     let trip: Trip
     @Bindable var day: Day
     let dayIndex: Int

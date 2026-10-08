@@ -29,7 +29,7 @@ struct PlannerView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     if let day = selectedDay {
-                        DayTimelineView(trip: trip, day: day, dayIndex: selectedIndex, selected: $selectedStop,
+                        PlanDayTimeline(trip: trip, day: day, dayIndex: selectedIndex, selected: $selectedStop,
                                         onOpen: { editingStop = $0 },
                                         onAddPlace: { showAddPlace = true })
                             .id(day.persistentModelID)
