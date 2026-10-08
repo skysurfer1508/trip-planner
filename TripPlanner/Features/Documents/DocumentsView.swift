@@ -32,13 +32,13 @@ struct DocumentsView: View {
     var body: some View {
         List {
             if trip.documents.isEmpty {
-                ContentUnavailableView("No documents", systemImage: "folder",
-                                       description: Text("Keep tickets, bookings and passport scans here. They're stored on this iPhone and work without internet."))
+                EmptyState(title: "No documents", systemImage: "folder",
+                           message: "Keep tickets, bookings and passport scans here. They're stored on this iPhone and work without internet.")
                     .listRowBackground(Color.clear)
             }
 
             ForEach(grouped) { group in
-                Section(group.kind.title) {
+                Section {
                     ForEach(group.docs) { doc in
                         Button {
                             preview(doc)
@@ -53,21 +53,26 @@ struct DocumentsView: View {
                             Button("Edit", systemImage: "pencil") { editing = doc }
                                 .tint(Theme.info)
                         }
+                        .listRowBackground(Theme.surface)
                     }
                     .onDelete { offsets in
                         for index in offsets {
                             context.delete(group.docs[index])
                         }
                     }
+                } header: {
+                    Text(group.kind.title).eyebrow()
                 }
             }
 
             if let errorMessage {
-                Text(errorMessage)
-                    .font(.footnote)
-                    .foregroundStyle(Theme.danger)
+                Banner(kind: .danger, title: errorMessage)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Theme.background)
         .navigationTitle("Documents")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -78,6 +83,7 @@ struct DocumentsView: View {
                 } label: {
                     Image(systemName: "plus")
                 }
+                .accessibilityLabel("Add document")
             }
         }
         .fileImporter(isPresented: $showFilePicker, allowedContentTypes: [.item]) { result in
@@ -160,20 +166,25 @@ private struct DocumentRow: View {
             Image(systemName: symbol)
                 .font(.title3)
                 .frame(width: 32)
-                .foregroundStyle(.tint)
+                .foregroundStyle(Theme.accent)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(document.title)
-                    .lineLimit(1)
+                    .font(Typography.body)
+                    .foregroundStyle(Theme.ink)
+                    .lineLimit(2)
                 Text(document.note.isEmpty ? subtitle : document.note)
-                    .font(.caption)
+                    .font(Typography.caption)
                     .foregroundStyle(Theme.inkSecondary)
-                    .lineLimit(1)
+                    .lineLimit(2)
             }
-            Spacer()
+            Spacer(minLength: Spacing.s)
             Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Theme.inkSecondary)
+                .accessibilityHidden(true)
         }
+        .frame(minHeight: 44)
         .contentShape(Rectangle())
     }
 
