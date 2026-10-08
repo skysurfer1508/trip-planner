@@ -241,7 +241,7 @@ private struct HotelRow: View {
                     }
                 }
                 .font(.caption2)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(Theme.inkSecondary)
             }
             Spacer(minLength: 0)
         }

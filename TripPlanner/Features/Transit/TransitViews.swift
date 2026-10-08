@@ -223,7 +223,7 @@ struct TransitConnector: View {
         case .none:
             HStack(spacing: Spacing.s) {
                 ProgressView().controlSize(.mini)
-                Text(fallback).foregroundStyle(.tertiary)
+                Text(fallback).foregroundStyle(Theme.inkSecondary)
             }
         case .routes(let result):
             if let best = result.best {
@@ -245,7 +245,7 @@ struct TransitConnector: View {
                 .foregroundStyle(Theme.warning)
         case .failed:
             Label("Route unavailable · tap to see why", systemImage: "wifi.slash")
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(Theme.inkSecondary)
         }
     }
 }
