@@ -3,7 +3,7 @@ import Foundation
 /// Google Gemini over REST (free tier with a key from Google AI Studio).
 /// Uses the stable `generateContent` endpoint; if Google retires it, only this file changes.
 struct GeminiAI: AIEngine {
-    static let model = "gemini-2.5-flash"
+    static let model = "gemini-3.8-flash"
 
     let apiKey: String
     var label: String { "Gemini" }
