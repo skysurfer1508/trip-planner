@@ -27,7 +27,7 @@ struct SavedPlacesView: View {
                             if !place.address.isEmpty {
                                 Text(place.address)
                                     .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(Theme.inkSecondary)
                                     .lineLimit(1)
                             }
                         }

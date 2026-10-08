@@ -72,7 +72,7 @@ struct DayStopListView: View {
                                 .font(.subheadline.weight(.semibold))
                             Text("The times may not fit anymore.")
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Theme.inkSecondary)
                         }
                         Spacer()
                         Button("Adjust times") { showTimes = true }
@@ -97,7 +97,7 @@ struct DayStopListView: View {
                                 .foregroundStyle(.tint)
                             Text(TripLogistics.timeText(item.minute))
                                 .monospacedDigit()
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Theme.inkSecondary)
                             Text(item.text)
                                 .lineLimit(1)
                         }
@@ -154,7 +154,7 @@ struct DayStopListView: View {
                             Button("Duplicate", systemImage: "plus.square.on.square") {
                                 day.duplicate(stop)
                             }
-                            .tint(.indigo)
+                            .tint(Theme.accent)
                         }
                     }
                     .onMove { offsets, destination in
@@ -272,11 +272,11 @@ struct StopRow: View {
                         Text(Format.minutes(stop.durationMinutes))
                     }
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
                     if !stop.summary.isEmpty {
                         Text(stop.summary)
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.inkSecondary)
                             .lineLimit(2)
                             .padding(.top, 1)
                     }
@@ -288,7 +288,7 @@ struct StopRow: View {
             ForEach(warnings, id: \.self) { warning in
                 Label(warning, systemImage: "exclamationmark.triangle.fill")
                     .font(.caption2)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.warning)
                     .padding(.leading, 36)
             }
         }

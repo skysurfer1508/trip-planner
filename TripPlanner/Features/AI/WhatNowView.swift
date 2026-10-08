@@ -77,14 +77,14 @@ struct WhatNowView: View {
                         .font(.caption2.bold())
                         .padding(.horizontal, Spacing.s)
                         .padding(.vertical, 2)
-                        .background(Color.accentColor.opacity(0.15), in: Capsule())
+                        .background(Theme.accent.opacity(0.15), in: Capsule())
                 }
             }
             Text(pick.reason)
                 .font(.subheadline)
             Label(Format.distance(pick.distance), systemImage: "figure.walk")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.inkSecondary)
             HStack {
                 Button {
                     RoutingService.openInMaps(name: pick.name, coordinate: pick.coordinate, mode: .walk)

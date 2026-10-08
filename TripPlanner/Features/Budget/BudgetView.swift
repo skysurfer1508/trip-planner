@@ -148,15 +148,15 @@ struct BudgetView: View {
                     Text(money(spent))
                         .font(.title.bold())
                     Text(trip.budget > 0 ? "of \(money(trip.budget))" : "spent")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                 }
                 if trip.budget > 0 {
                     ProgressView(value: min(spent, trip.budget), total: trip.budget)
-                        .tint(spent > trip.budget ? Color.red : Color.accentColor)
+                        .tint(spent > trip.budget ? Theme.danger : Theme.accent)
                     let left = trip.budget - spent
                     Text(left >= 0 ? "\(money(left)) left" : "\(money(-left)) over budget")
                         .font(.subheadline)
-                        .foregroundStyle(left >= 0 ? Color.secondary : Color.red)
+                        .foregroundStyle(left >= 0 ? Theme.inkSecondary : Theme.danger)
                 } else {
                     Button("Set a budget") { showBudget = true }
                         .font(.subheadline)
@@ -171,7 +171,7 @@ struct BudgetView: View {
                 Label("Some currencies couldn't be converted (offline or unsupported). They're counted at face value.",
                       systemImage: "exclamationmark.triangle")
                     .font(.footnote)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.warning)
             }
         }
     }
@@ -192,7 +192,7 @@ private struct ExpenseRow: View {
                 Text(expense.title.isEmpty ? expense.category.title : expense.title)
                 Text(expense.category.title)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
@@ -200,7 +200,7 @@ private struct ExpenseRow: View {
                 if expense.currencyCode != tripCurrency {
                     Text("≈ " + converted.formatted(.currency(code: tripCurrency)))
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                 }
             }
         }
@@ -248,13 +248,13 @@ struct ExpenseEditView: View {
                         if scanning {
                             HStack(spacing: Spacing.m) {
                                 ProgressView()
-                                Text("Reading the receipt…").foregroundStyle(.secondary)
+                                Text("Reading the receipt…").foregroundStyle(Theme.inkSecondary)
                             }
                         }
                         if let scanMessage {
                             Text(scanMessage)
                                 .font(.footnote)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Theme.inkSecondary)
                         }
                     } footer: {
                         Text("The text on the photo is read on the phone. Check the amount before you save.")
@@ -266,7 +266,7 @@ struct ExpenseEditView: View {
                         TextField("Amount", text: $amountText)
                             .keyboardType(.decimalPad)
                         Text(currency)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.inkSecondary)
                     }
                     Picker("Currency", selection: $currency) {
                         ForEach(CurrencyList.codes(including: [trip.currencyCode, currency]), id: \.self) { code in
@@ -388,7 +388,7 @@ struct BudgetSettingsView: View {
                         TextField("Total budget", text: $budgetText)
                             .keyboardType(.decimalPad)
                         Text(trip.currencyCode)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.inkSecondary)
                     }
                     Picker("Trip currency", selection: $trip.currencyCode) {
                         ForEach(CurrencyList.codes(including: [trip.currencyCode]), id: \.self) { code in

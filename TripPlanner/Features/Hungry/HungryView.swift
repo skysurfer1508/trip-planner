@@ -116,7 +116,7 @@ struct HungryView: View {
                 if model.results.contains(where: { $0.rating != nil }) {
                     Text("Ratings by Tripadvisor")
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                         .listRowBackground(Color.clear)
                 }
             }
@@ -139,7 +139,7 @@ private struct ResultRow: View {
                 if let rating = result.rating {
                     HStack(spacing: Spacing.s) {
                         Label(String(format: "%.1f", rating), systemImage: "star.fill")
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(Theme.warning)
                         if let reviews = result.reviews {
                             Text("(\(reviews.formatted()))")
                         }
@@ -148,23 +148,23 @@ private struct ResultRow: View {
                         }
                     }
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
                 }
                 HStack(spacing: Spacing.s) {
                     Image(systemName: "figure.walk")
                     Text("\(result.walkMinutes) min · \(Format.distance(result.distance))")
                 }
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.inkSecondary)
                 if let ranking = result.ranking {
                     Text(ranking)
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                         .lineLimit(1)
                 } else if !result.address.isEmpty {
                     Text(result.address)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                         .lineLimit(1)
                 }
             }
@@ -184,7 +184,7 @@ private struct ResultRow: View {
             Button(action: onAdd) {
                 Image(systemName: isAdded ? "checkmark.circle.fill" : "plus.circle")
                     .font(.title3)
-                    .foregroundStyle(isAdded ? Color.green : Color.accentColor)
+                    .foregroundStyle(isAdded ? Theme.success : Theme.accent)
             }
             .buttonStyle(.borderless)
             .disabled(isAdded)

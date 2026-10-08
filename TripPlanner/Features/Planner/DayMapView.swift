@@ -82,7 +82,7 @@ struct DayMapView: View {
                     }
                     if let pending {
                         Marker(pending.name, systemImage: "mappin", coordinate: pending.coordinate)
-                            .tint(.red)
+                            .tint(Theme.danger)
                     }
                 }
                 .mapControls {
@@ -242,7 +242,7 @@ struct DayMapView: View {
                         if !pin.address.isEmpty {
                             Label(pin.address, systemImage: "mappin.and.ellipse")
                                 .font(.footnote)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Theme.inkSecondary)
                         }
                     }
                     Section {

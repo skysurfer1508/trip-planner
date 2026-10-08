@@ -243,7 +243,7 @@ struct AutoPlanFlowView: View {
                 Label("This trip already has \(ownStopCount) \(ownStopCount == 1 ? "stop" : "stops"). You choose what happens to them on the last page.",
                       systemImage: "info.circle")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
             }
         }
     }
@@ -268,7 +268,7 @@ struct AutoPlanFlowView: View {
             if trip.days.count > 0 {
                 Text("Your trip has \(trip.days.count) \(trip.days.count == 1 ? "day" : "days"). Change the trip dates to plan more.")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
             }
 
             if approach != .only {
@@ -305,17 +305,17 @@ struct AutoPlanFlowView: View {
             if prefs.interests.isEmpty {
                 Label("Pick at least one.", systemImage: "info.circle")
                     .font(.footnote)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.warning)
             }
             if !prefs.interests.contains(.nightlife) && approach != .only {
                 Label("No nightlife: the days end after dinner.", systemImage: "moon.zzz")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
             }
             if prefs.isFamily && prefs.interests.contains(.nightlife) {
                 Label("Nightlife is skipped on family trips.", systemImage: "moon.zzz")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
             }
         }
     }
@@ -340,7 +340,7 @@ struct AutoPlanFlowView: View {
             }
             Text("Nothing picked means a mix of the best-rated places.")
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.inkSecondary)
         }
     }
 
@@ -396,13 +396,13 @@ struct AutoPlanFlowView: View {
                 Label("\(keptStopCount) \(keptStopCount == 1 ? "stop" : "stops") already in this trip \(keptStopCount == 1 ? "is" : "are") included.",
                       systemImage: "checkmark.circle.fill")
                     .font(.footnote)
-                    .foregroundStyle(.green)
+                    .foregroundStyle(Theme.success)
             }
             ForEach(mustSees) { entry in
                 HStack(spacing: Spacing.m) {
                     Image(systemName: "mappin.circle.fill")
                         .font(.title3)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(Theme.danger)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(entry.name)
                             .font(.subheadline.weight(.medium))
@@ -414,7 +414,7 @@ struct AutoPlanFlowView: View {
                         if let address = entry.item.readableAddress {
                             Text(address)
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Theme.inkSecondary)
                                 .lineLimit(1)
                         }
                     }
@@ -423,7 +423,7 @@ struct AutoPlanFlowView: View {
                         mustSees.removeAll { $0.id == entry.id }
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.inkSecondary)
                     }
                     .accessibilityLabel("Remove \(entry.name)")
                 }
@@ -487,7 +487,7 @@ struct AutoPlanFlowView: View {
                     }
                     Text(existingFooter)
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                 }
             }
         }
@@ -556,7 +556,7 @@ struct AutoPlanFlowView: View {
         VStack(spacing: Spacing.l) {
             ProgressView()
             Text(message)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.inkSecondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

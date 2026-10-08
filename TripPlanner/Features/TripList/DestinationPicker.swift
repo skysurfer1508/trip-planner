@@ -35,7 +35,7 @@ struct DestinationPicker: View {
                             if !suggestion.subtitle.isEmpty {
                                 Text(suggestion.subtitle)
                                     .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(Theme.inkSecondary)
                             }
                         }
                     }
@@ -45,7 +45,7 @@ struct DestinationPicker: View {
             if coordinate != nil {
                 Label("Location set. Search, weather and ideas will use it.", systemImage: "checkmark.seal.fill")
                     .font(.footnote)
-                    .foregroundStyle(.green)
+                    .foregroundStyle(Theme.success)
             }
 
             NavigationLink {

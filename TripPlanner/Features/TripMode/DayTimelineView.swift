@@ -14,7 +14,7 @@ struct DayTimelineView: View {
             if stops.isEmpty {
                 Text("Nothing planned for this day.")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
             }
 
             ForEach(Array(stops.enumerated()), id: \.element.persistentModelID) { index, stop in
@@ -24,7 +24,7 @@ struct DayTimelineView: View {
                     } label: {
                         Image(systemName: stop.isDone ? "checkmark.circle.fill" : "circle")
                             .font(.title2)
-                            .foregroundStyle(stop.isDone ? Color.green : Color.secondary)
+                            .foregroundStyle(stop.isDone ? Theme.success : Theme.inkSecondary)
                     }
                     .buttonStyle(.plain)
 
@@ -43,7 +43,7 @@ struct DayTimelineView: View {
                                 Text(Format.minutes(stop.durationMinutes))
                             }
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.inkSecondary)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .contentShape(Rectangle())

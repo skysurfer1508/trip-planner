@@ -83,7 +83,7 @@ struct MoreView: View {
             Spacer()
             if let detail {
                 Text(detail)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
             }
         }
         .contentShape(Rectangle())

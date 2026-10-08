@@ -42,14 +42,14 @@ struct AddPlaceView: View {
                             if let address = item.placemark.title {
                                 Text(address)
                                     .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(Theme.inkSecondary)
                                     .lineLimit(2)
                             }
                         }
                         Spacer()
                         Image(systemName: added ? "checkmark.circle.fill" : "plus.circle")
                             .font(.title3)
-                            .foregroundStyle(added ? Color.green : Color.accentColor)
+                            .foregroundStyle(added ? Theme.success : Theme.accent)
                     }
                 }
                 .disabled(added)

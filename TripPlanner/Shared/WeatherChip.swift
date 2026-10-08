@@ -24,7 +24,7 @@ struct WeatherChip: View {
                             .symbolRenderingMode(.multicolor)
                         Text(weather.summary)
                         Text("\(weather.rainChance)% rain")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.inkSecondary)
                     }
                     .font(.subheadline)
 
@@ -32,7 +32,7 @@ struct WeatherChip: View {
                         Label("Rain likely, \(outdoorStops) outdoor \(outdoorStops == 1 ? "stop" : "stops") planned",
                               systemImage: "umbrella.fill")
                             .font(.footnote)
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(Theme.warning)
                     }
                 }
                 .padding(.horizontal, Spacing.m)

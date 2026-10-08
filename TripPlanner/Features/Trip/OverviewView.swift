@@ -85,7 +85,7 @@ struct OverviewView: View {
         VStack(alignment: .leading, spacing: Spacing.m) {
             Text("TODAY")
                 .font(.caption.bold())
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.inkSecondary)
 
             if let next = remaining.first {
                 Text(next.name)
@@ -97,14 +97,14 @@ struct OverviewView: View {
                     Label("\(remaining.count) left", systemImage: "list.bullet")
                 }
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.inkSecondary)
             } else if day?.stops.isEmpty ?? true {
                 Text("Nothing planned for today yet.")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
             } else {
                 Label("All done for today", systemImage: "checkmark.seal.fill")
-                    .foregroundStyle(.green)
+                    .foregroundStyle(Theme.success)
             }
 
             NavigationLink {
@@ -125,19 +125,19 @@ struct OverviewView: View {
         VStack(alignment: .leading, spacing: Spacing.s) {
             Text(trip.statusText.uppercased())
                 .font(.caption.bold())
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.inkSecondary)
             if let first, !first.stops.isEmpty {
                 Text("First day: \(first.stops.count) \(first.stops.count == 1 ? "stop" : "stops") planned")
                     .font(.subheadline)
                 if let name = first.sortedStops.first?.name {
                     Text("Starting at \(name)")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                 }
             } else {
                 Text("Nothing planned for the first day yet.")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
             }
         }
         .card()
@@ -155,7 +155,7 @@ struct OverviewView: View {
                 HStack {
                     Text("FLIGHTS & HOTEL")
                         .font(.caption.bold())
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                     Spacer()
                     Button("Manage") { perform(.bookings) }
                         .font(.caption.bold())
@@ -170,7 +170,7 @@ struct OverviewView: View {
                                 .font(.subheadline.bold())
                             Text(subline(for: booking))
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Theme.inkSecondary)
                         }
                     }
                 }
@@ -220,7 +220,7 @@ struct OverviewView: View {
                 .minimumScaleFactor(0.6)
             Text(label)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.inkSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, Spacing.m)
@@ -241,7 +241,7 @@ struct OverviewView: View {
                     Spacer()
                     Text("\(done)/\(steps.count)")
                         .font(.subheadline.bold())
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                 }
                 ProgressView(value: Double(done), total: Double(steps.count))
 
@@ -249,7 +249,7 @@ struct OverviewView: View {
                     HStack(spacing: Spacing.m) {
                         Image(systemName: step.isDone ? "checkmark.circle.fill" : "circle")
                             .font(.title3)
-                            .foregroundStyle(step.isDone ? Color.green : Color.secondary)
+                            .foregroundStyle(step.isDone ? Theme.success : Theme.inkSecondary)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(step.title)
                                 .strikethrough(step.isDone)
@@ -257,7 +257,7 @@ struct OverviewView: View {
                             if !step.isDone {
                                 Text(step.detail)
                                     .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(Theme.inkSecondary)
                             }
                         }
                         Spacer()
@@ -293,7 +293,7 @@ struct OverviewView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, Spacing.m)
-            .background(Color.accentColor.opacity(0.1), in: Radius.shape(Radius.card))
+            .background(Theme.accent.opacity(0.1), in: Radius.shape(Radius.card))
         }
         .buttonStyle(.plain)
     }

@@ -34,21 +34,21 @@ struct SuggestionDetailView: View {
                     HStack(spacing: Spacing.m) {
                         if let rating = place.rating {
                             Label(String(format: "%.1f", rating), systemImage: "star.fill")
-                                .foregroundStyle(.orange)
+                                .foregroundStyle(Theme.warning)
                             if let reviews = place.reviews {
                                 Text("\(reviews.formatted()) reviews")
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(Theme.inkSecondary)
                             }
                         }
                         Text(Format.distance(place.distance) + " away")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.inkSecondary)
                     }
                     .font(.subheadline)
 
                     if let ranking = place.ranking {
                         Text(ranking)
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.inkSecondary)
                     }
                     if !place.cuisines.isEmpty {
                         Text(place.cuisines.joined(separator: " · "))
@@ -57,7 +57,7 @@ struct SuggestionDetailView: View {
                     if let address = place.address ?? detail?.address {
                         Label(address, systemImage: "mappin.and.ellipse")
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.inkSecondary)
                     }
                     if let blurb = detail?.blurb {
                         Text(blurb)

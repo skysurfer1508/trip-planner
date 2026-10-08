@@ -43,7 +43,7 @@ struct DiagnosticsView: View {
             Section("Failed requests, newest first") {
                 if entries.isEmpty {
                     Text("Nothing has failed since the app was opened.")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                 }
                 ForEach(entries) { entry in
                     VStack(alignment: .leading, spacing: 2) {
@@ -53,11 +53,11 @@ struct DiagnosticsView: View {
                             Spacer()
                             Text(entry.date.formatted(date: .omitted, time: .standard))
                                 .font(.caption.monospacedDigit())
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Theme.inkSecondary)
                         }
                         Text(entry.message)
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.inkSecondary)
                     }
                     .padding(.vertical, 2)
                 }

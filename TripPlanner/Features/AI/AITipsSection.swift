@@ -25,7 +25,7 @@ struct AITipsSection: View {
                     }
                     Text("Written by AI. Double-check opening hours and prices.")
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                 }
             } else if let engine {
                 Button {
@@ -38,7 +38,7 @@ struct AITipsSection: View {
             if let errorText {
                 Text(errorText)
                     .font(.caption)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Theme.danger)
             }
         }
         .onAppear {

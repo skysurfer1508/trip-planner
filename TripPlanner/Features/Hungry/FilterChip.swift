@@ -17,8 +17,8 @@ struct FilterChip: View {
             .font(.subheadline)
             .padding(.horizontal, Spacing.m)
             .padding(.vertical, Spacing.s)
-            .background(isOn ? Color.accentColor : Color(.secondarySystemBackground), in: Capsule())
-            .foregroundStyle(isOn ? Color.white : Color.primary)
+            .background(isOn ? Theme.accent : Color(.secondarySystemBackground), in: Capsule())
+            .foregroundStyle(isOn ? Color.white : Theme.ink)
         }
         .buttonStyle(.plain)
     }

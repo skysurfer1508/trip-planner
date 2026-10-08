@@ -41,7 +41,7 @@ struct BookingsView: View {
                     if let message {
                         Text(message)
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.inkSecondary)
                     }
                 } footer: {
                     Text("Adds landing, check-in, check-out, leaving for the airport and take-off as stops on the right days and times.")
@@ -96,18 +96,18 @@ struct BookingRow: View {
             Image(systemName: booking.kind.symbol)
                 .font(.title3)
                 .frame(width: 36, height: 36)
-                .background(Color.accentColor.opacity(0.12), in: Radius.shape(Radius.small))
-                .foregroundStyle(Color.accentColor)
+                .background(Theme.accent.opacity(0.12), in: Radius.shape(Radius.small))
+                .foregroundStyle(Theme.accent)
             VStack(alignment: .leading, spacing: 2) {
                 Text(booking.title.isEmpty ? booking.kind.shortTitle : booking.title)
                     .foregroundStyle(.primary)
                 Text(detail)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
                 if !booking.placeName.isEmpty {
                     Text(booking.placeName)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                         .lineLimit(1)
                 }
             }

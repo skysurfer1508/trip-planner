@@ -53,7 +53,7 @@ struct ExportView: View {
                         }
                     } else if loaded {
                         Text("Give stops a planned time to export them as calendar events.")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.inkSecondary)
                     } else {
                         ProgressView()
                     }
@@ -75,7 +75,7 @@ struct ExportView: View {
                     if let calendarMessage {
                         Text(calendarMessage)
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.inkSecondary)
                     }
                 } footer: {
                     Text("The app only asks to add events; it never reads your calendar. Adding twice adds the events twice.")

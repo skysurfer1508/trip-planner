@@ -27,7 +27,7 @@ struct PracticalInfoView: View {
                     HStack(spacing: Spacing.m) {
                         ProgressView()
                         Text("Loading information about \(country)…")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.inkSecondary)
                     }
                     .card()
                 } else {
@@ -68,7 +68,7 @@ struct PracticalInfoView: View {
             VStack(alignment: .leading, spacing: Spacing.m) {
                 Label("Emergency", systemImage: "cross.case.fill")
                     .font(.headline)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Theme.danger)
                 ForEach(numbers, id: \.self) { number in
                     if let url = URL(string: "tel:" + number.filter { $0.isNumber || $0 == "+" }) {
                         Link(destination: url) {
@@ -84,7 +84,7 @@ struct PracticalInfoView: View {
                 }
                 Text("Check the official numbers of your embassy and insurer before you leave.")
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
             }
             .card()
         }
@@ -132,7 +132,7 @@ struct PracticalInfoView: View {
             Label("Turn on an AI engine in Settings for short notes on safety, money and internet. The original text is below.",
                   systemImage: "wand.and.stars")
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.inkSecondary)
         }
     }
 
@@ -156,7 +156,7 @@ struct PracticalInfoView: View {
             DisclosureGroup("Original text from Wikivoyage", isExpanded: $showOriginal) {
                 Text(info.guideText)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.top, Spacing.s)
             }
@@ -168,7 +168,7 @@ struct PracticalInfoView: View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Text("Facts: Wikidata (CC0). Advice: Wikivoyage (CC BY-SA), summarised by the AI from that text only. It can be out of date, so check official sources for entry rules, health and safety.")
                 .font(.caption2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.inkSecondary)
             if let url = URL(string: "https://en.wikivoyage.org/wiki/\(country.replacingOccurrences(of: " ", with: "_"))") {
                 Link("Read more on Wikivoyage", destination: url)
                     .font(.caption2)
@@ -205,7 +205,7 @@ struct PracticalInfoCard: View {
                         .foregroundStyle(.primary)
                     Text(summary(info))
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                 }
                 Spacer()
                 Image(systemName: "chevron.right")

@@ -14,9 +14,9 @@ struct OptionCard: View {
                 Image(systemName: symbol)
                     .font(.title3)
                     .frame(width: 42, height: 42)
-                    .background(Color.accentColor.opacity(isSelected ? 0.25 : 0.1),
+                    .background(Theme.accent.opacity(isSelected ? 0.25 : 0.1),
                                 in: Radius.shape(Radius.small))
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(Theme.accent)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .font(.headline)
@@ -24,20 +24,20 @@ struct OptionCard: View {
                     if let detail {
                         Text(detail)
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.inkSecondary)
                     }
                 }
                 Spacer()
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
-                    .foregroundStyle(isSelected ? Color.accentColor : Color.secondary.opacity(0.5))
+                    .foregroundStyle(isSelected ? Theme.accent : Theme.inkSecondary.opacity(0.5))
             }
             .padding(Spacing.m)
-            .background(isSelected ? Color.accentColor.opacity(0.08) : Color(.secondarySystemBackground),
+            .background(isSelected ? Theme.accent.opacity(0.08) : Color(.secondarySystemBackground),
                         in: Radius.shape(Radius.card))
             .overlay(
                 Radius.shape(Radius.card)
-                    .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 1.5)
+                    .stroke(isSelected ? Theme.accent : Color.clear, lineWidth: 1.5)
             )
         }
         .buttonStyle(.plain)
@@ -65,9 +65,9 @@ struct SelectTile: View {
             }
             .frame(maxWidth: .infinity, minHeight: 84)
             .padding(Spacing.s)
-            .background(isOn ? Color.accentColor : Color(.secondarySystemBackground),
+            .background(isOn ? Theme.accent : Color(.secondarySystemBackground),
                         in: Radius.shape(Radius.card))
-            .foregroundStyle(isOn ? Color.white : Color.primary)
+            .foregroundStyle(isOn ? Color.white : Theme.ink)
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isOn ? .isSelected : [])
@@ -89,7 +89,7 @@ struct QuestionPage<Content: View>: View {
                     if let subtitle {
                         Text(subtitle)
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.inkSecondary)
                     }
                 }
                 content()

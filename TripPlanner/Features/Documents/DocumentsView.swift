@@ -51,7 +51,7 @@ struct DocumentsView: View {
                         }
                         .swipeActions(edge: .leading) {
                             Button("Edit", systemImage: "pencil") { editing = doc }
-                                .tint(.blue)
+                                .tint(Theme.info)
                         }
                     }
                     .onDelete { offsets in
@@ -65,7 +65,7 @@ struct DocumentsView: View {
             if let errorMessage {
                 Text(errorMessage)
                     .font(.footnote)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Theme.danger)
             }
         }
         .navigationTitle("Documents")
@@ -166,7 +166,7 @@ private struct DocumentRow: View {
                     .lineLimit(1)
                 Text(document.note.isEmpty ? subtitle : document.note)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
                     .lineLimit(1)
             }
             Spacer()

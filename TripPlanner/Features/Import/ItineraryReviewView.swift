@@ -33,11 +33,11 @@ struct ItineraryReviewView: View {
                         .font(.headline)
                     Text("Untick anything that isn't a place, fix names, and pick the right day. Stops without a matching place can't be added until you choose one.")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                     if let notice {
                         Label(notice, systemImage: "info.circle")
                             .font(.footnote)
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(Theme.warning)
                     }
                 }
             }
@@ -242,18 +242,18 @@ private struct DraftStopRow: View {
                 if let hour = stop.hour {
                     Text(String(format: "%02d:%02d", hour, stop.minute ?? 0))
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                 }
                 if let item = stop.item {
                     Label(matchedText(item), systemImage: "mappin.circle.fill")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                         .lineLimit(2)
                     PlaceSummaryText(name: item.name ?? stop.title, coordinate: item.placemark.coordinate)
                 } else {
                     Label("No match found", systemImage: "questionmark.circle")
                         .font(.caption)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Theme.warning)
                 }
             }
 

@@ -41,7 +41,7 @@ struct AutoTimeSheet: View {
                         HStack {
                             Text(Format.time(times[index]))
                                 .monospacedDigit()
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Theme.inkSecondary)
                                 .frame(width: 70, alignment: .leading)
                             Text(stop.name)
                                 .lineLimit(1)

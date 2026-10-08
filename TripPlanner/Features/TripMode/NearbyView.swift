@@ -68,7 +68,7 @@ struct NearbyView: View {
                                 Label("\(result.walkMinutes) min · \(Format.distance(result.distance))",
                                       systemImage: "figure.walk")
                                     .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(Theme.inkSecondary)
                             }
                             Spacer()
                             Button {
@@ -91,7 +91,7 @@ struct NearbyView: View {
                             } label: {
                                 Image(systemName: addedIDs.contains(result.id) ? "checkmark.circle.fill" : "plus.circle")
                                     .font(.title3)
-                                    .foregroundStyle(addedIDs.contains(result.id) ? Color.green : Color.accentColor)
+                                    .foregroundStyle(addedIDs.contains(result.id) ? Theme.success : Theme.accent)
                             }
                             .buttonStyle(.borderless)
                             .disabled(addedIDs.contains(result.id))

@@ -76,7 +76,7 @@ struct NewTripWizard: View {
         HStack(spacing: Spacing.s) {
             ForEach(0..<3, id: \.self) { index in
                 Capsule()
-                    .fill(index <= step ? Color.accentColor : Color(.tertiarySystemFill))
+                    .fill(index <= step ? Theme.accent : Color(.tertiarySystemFill))
                     .frame(width: index == step ? 28 : 10, height: 6)
             }
         }
@@ -143,13 +143,13 @@ struct NewTripWizard: View {
                 Image(systemName: symbol)
                     .font(.title3)
                     .frame(width: 36, height: 36)
-                    .background(Color.accentColor.opacity(0.12), in: Radius.shape(Radius.small))
+                    .background(Theme.accent.opacity(0.12), in: Radius.shape(Radius.small))
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .foregroundStyle(.primary)
                     Text(detail)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                 }
                 Spacer()
                 Image(systemName: "chevron.right")

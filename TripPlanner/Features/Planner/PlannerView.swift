@@ -176,14 +176,14 @@ struct PlannerView: View {
                             Text(Format.dayChip(day.date))
                                 .font(.caption)
                             Circle()
-                                .fill(day.stops.isEmpty ? Color.clear : (index == selectedIndex ? Color.white : Color.accentColor))
+                                .fill(day.stops.isEmpty ? Color.clear : (index == selectedIndex ? Color.white : Theme.accent))
                                 .frame(width: 5, height: 5)
                         }
                         .padding(.horizontal, Spacing.l)
                         .padding(.vertical, Spacing.s)
-                        .background(index == selectedIndex ? Color.accentColor : Color(.secondarySystemBackground),
+                        .background(index == selectedIndex ? Theme.accent : Color(.secondarySystemBackground),
                                     in: Radius.shape(Radius.small))
-                        .foregroundStyle(index == selectedIndex ? Color.white : Color.primary)
+                        .foregroundStyle(index == selectedIndex ? Color.white : Theme.ink)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Day \(index + 1), \(day.stops.count) stops")

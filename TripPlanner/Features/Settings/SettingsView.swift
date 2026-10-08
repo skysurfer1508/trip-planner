@@ -64,7 +64,7 @@ struct SettingsView: View {
                           : "Apple Intelligence isn't available here (needs iOS 26 and a supported iPhone with Apple Intelligence turned on).",
                           systemImage: AIRouter.onDeviceAvailable ? "checkmark.seal.fill" : "info.circle")
                         .font(.footnote)
-                        .foregroundStyle(AIRouter.onDeviceAvailable ? Color.green : Color.secondary)
+                        .foregroundStyle(AIRouter.onDeviceAvailable ? Theme.success : Theme.inkSecondary)
                     SecureField("Gemini API key (optional)", text: $secrets.geminiKey)
                     Link("Get a free Gemini key", destination: URL(string: "https://aistudio.google.com/apikey")!)
                     Button {
@@ -81,7 +81,7 @@ struct SettingsView: View {
                         Label(geminiResult.message,
                               systemImage: geminiResult.ok ? "checkmark.circle.fill" : "xmark.octagon.fill")
                             .font(.footnote)
-                            .foregroundStyle(geminiResult.ok ? Color.green : Color.red)
+                            .foregroundStyle(geminiResult.ok ? Theme.success : Theme.danger)
                     }
                 } header: {
                     Text("AI (import, trip planner, tips)")
@@ -102,7 +102,7 @@ struct SettingsView: View {
                 Section {
                     if trips.isEmpty {
                         Text("No trips to back up yet.")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.inkSecondary)
                     } else if let backupURL {
                         ShareLink(item: backupURL) {
                             Label("Back up all trips", systemImage: "externaldrive.badge.plus")
@@ -118,7 +118,7 @@ struct SettingsView: View {
                     if let restoreMessage {
                         Text(restoreMessage)
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.inkSecondary)
                     }
                 } header: {
                     Text("Backup")
@@ -129,7 +129,7 @@ struct SettingsView: View {
                 Section {
                     Text("Keys never leave this iPhone except in requests to the service they belong to.")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                 }
             }
             .navigationTitle("Settings")

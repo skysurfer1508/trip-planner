@@ -61,7 +61,7 @@ struct PlacePickerView: View {
                     .foregroundStyle(.primary)
                 Text(subtitle(item))
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
                     .lineLimit(2)
             }
         }

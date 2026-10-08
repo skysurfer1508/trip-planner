@@ -93,7 +93,7 @@ struct ImportFlowView: View {
                     Label("No AI available. Turn on Apple Intelligence, or add a free Gemini key in Settings.",
                           systemImage: "key.fill")
                         .font(.footnote)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Theme.warning)
                 }
             } footer: {
                 Text(useAI
@@ -111,7 +111,7 @@ struct ImportFlowView: View {
         VStack(spacing: Spacing.l) {
             ProgressView()
             Text(message)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.inkSecondary)
             if draft.total > 0 {
                 ProgressView(value: Double(draft.progress), total: Double(draft.total))
                     .padding(.horizontal, 48)

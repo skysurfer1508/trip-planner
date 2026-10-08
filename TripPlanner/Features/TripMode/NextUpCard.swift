@@ -20,7 +20,7 @@ struct NextUpCard: View {
         VStack(alignment: .leading, spacing: Spacing.m) {
             Text("NEXT UP")
                 .font(.caption.bold())
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.inkSecondary)
 
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: Spacing.xs) {
@@ -29,12 +29,12 @@ struct NextUpCard: View {
                     if let time = stop.plannedTime {
                         Label(Format.time(time), systemImage: "clock")
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.inkSecondary)
                     }
                     if !stop.address.isEmpty {
                         Text(stop.address)
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.inkSecondary)
                             .lineLimit(2)
                     }
                 }
@@ -45,7 +45,7 @@ struct NextUpCard: View {
             if !stop.summary.isEmpty {
                 Text(stop.summary)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
                     .lineLimit(3)
             }
 
@@ -63,15 +63,15 @@ struct NextUpCard: View {
                 } else if distance != nil {
                     Label("Calculating…", systemImage: mode.symbol)
                         .font(.headline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                 } else {
                     Label("Turn on location for travel times", systemImage: "location.slash")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                 }
                 if let distance {
                     Text("· \(Format.distance(distance))")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                 }
             }
 
@@ -120,12 +120,12 @@ struct NextUpCard: View {
                 if minutes > 0 {
                     Label("Leave by \(Format.time(leave)) · in \(Format.minutes(minutes))", systemImage: "alarm")
                         .font(.subheadline.bold())
-                        .foregroundStyle(minutes <= 5 ? Color.orange : Color.primary)
+                        .foregroundStyle(minutes <= 5 ? Theme.warning : Theme.ink)
                 } else {
                     Label(minutes == 0 ? "Time to leave" : "You're \(Format.minutes(-minutes)) behind",
                           systemImage: "exclamationmark.alarm")
                         .font(.subheadline.bold())
-                        .foregroundStyle(.red)
+                        .foregroundStyle(Theme.danger)
                 }
                 HStack(spacing: Spacing.xs) {
                     Text("for the")
@@ -133,7 +133,7 @@ struct NextUpCard: View {
                     Text(first.label)
                 }
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.inkSecondary)
             }
         }
     }
@@ -165,12 +165,12 @@ struct NextUpCard: View {
                 if minutes > 0 {
                     Label("Leave by \(Format.time(leave)) · in \(Format.minutes(minutes))", systemImage: "alarm")
                         .font(.subheadline.bold())
-                        .foregroundStyle(minutes <= 10 ? Color.orange : Color.primary)
+                        .foregroundStyle(minutes <= 10 ? Theme.warning : Theme.ink)
                 } else {
                     Label(minutes == 0 ? "Time to leave" : "You're \(Format.minutes(-minutes)) behind",
                           systemImage: "exclamationmark.alarm")
                         .font(.subheadline.bold())
-                        .foregroundStyle(.red)
+                        .foregroundStyle(Theme.danger)
                 }
             }
         }

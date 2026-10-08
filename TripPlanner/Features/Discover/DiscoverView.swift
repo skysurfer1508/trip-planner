@@ -152,7 +152,7 @@ struct DiscoverView: View {
                             .font(.headline)
                         Text("These are plain Apple Maps results. Add a free OpenTripMap key (and optionally Tripadvisor) to see the most popular and best-rated places first.")
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.inkSecondary)
                         Button("Add API keys") { showSettings = true }
                             .buttonStyle(.borderedProminent)
                             .controlSize(.small)
@@ -163,7 +163,7 @@ struct DiscoverView: View {
             ForEach(result.notices, id: \.self) { notice in
                 Label(notice, systemImage: "info.circle")
                     .font(.footnote)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.warning)
             }
             ForEach(sortedPlaces) { place in
                 Button {
@@ -180,7 +180,7 @@ struct DiscoverView: View {
             if result.places.contains(where: { $0.rating != nil }) {
                 Text("Ratings by Tripadvisor")
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
                     .listRowBackground(Color.clear)
             }
         }
@@ -256,7 +256,7 @@ private struct SuggestionRow: View {
                 HStack(spacing: Spacing.s) {
                     if let rating = place.rating {
                         Label(String(format: "%.1f", rating), systemImage: "star.fill")
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(Theme.warning)
                         if let reviews = place.reviews {
                             Text("(\(reviews.formatted()))")
                         }
@@ -268,11 +268,11 @@ private struct SuggestionRow: View {
                     Text(Format.distance(place.distance))
                 }
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.inkSecondary)
                 if let ranking = place.ranking {
                     Text(ranking)
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                         .lineLimit(1)
                 }
             }
@@ -288,7 +288,7 @@ private struct SuggestionRow: View {
             Button(action: onAdd) {
                 Image(systemName: isAdded ? "checkmark.circle.fill" : "plus.circle")
                     .font(.title2)
-                    .foregroundStyle(isAdded ? Color.green : Color.accentColor)
+                    .foregroundStyle(isAdded ? Theme.success : Theme.accent)
             }
             .buttonStyle(.borderless)
             .disabled(isAdded)

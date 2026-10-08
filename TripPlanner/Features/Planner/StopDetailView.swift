@@ -50,7 +50,7 @@ struct StopDetailView: View {
                     if !stop.address.isEmpty {
                         Label(stop.address, systemImage: "mappin.and.ellipse")
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.inkSecondary)
                     }
                     if !stop.phone.isEmpty,
                        let url = URL(string: "tel:" + stop.phone.filter { $0.isNumber || $0 == "+" }) {
@@ -84,7 +84,7 @@ struct StopDetailView: View {
                             .multilineTextAlignment(.trailing)
                             .frame(maxWidth: 120)
                         Text(stop.day?.trip?.currencyCode ?? "")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.inkSecondary)
                     }
                 }
 
@@ -149,12 +149,12 @@ struct StopDetailView: View {
                         HStack(spacing: Spacing.m) {
                             ProgressView()
                             Text("Looking up opening hours…")
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Theme.inkSecondary)
                         }
                     } else {
                         Text("No opening hours are listed for this place on OpenStreetMap. Check the website or ask on the spot.")
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.inkSecondary)
                     }
                 } else if let hours = OpeningHours.parse(stop.openingHours) {
                     hoursSourceNote
@@ -163,26 +163,26 @@ struct StopDetailView: View {
                                                                             isHoliday: isHoliday)) {
                         Label(warning, systemImage: "exclamationmark.triangle.fill")
                             .font(.footnote)
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(Theme.warning)
                     }
                     ForEach(Array(hours.week(around: date, isHoliday: isHoliday).enumerated()), id: \.offset) { _, entry in
                         HStack {
                             Text(entry.day)
                             Spacer()
                             Text(entry.text)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Theme.inkSecondary)
                         }
                         .font(.subheadline)
                     }
                     Text("Seasons and public holidays are applied for the week of \(date.formatted(date: .abbreviated, time: .omitted)).")
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                 } else {
                     Text(stop.openingHours)
                         .font(.subheadline)
                     Text("These hours use a format the app can't check automatically.")
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                 }
                 if !stop.openingHours.isEmpty || stop.hoursCheckedAt != nil {
                     Button("Check again", systemImage: "arrow.clockwise") {
@@ -190,7 +190,7 @@ struct StopDetailView: View {
                     }
                     Text("Source: OpenStreetMap contributors (ODbL). Hours can be out of date; confirm before a long trip.")
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                 }
             }
         }
@@ -202,7 +202,7 @@ struct StopDetailView: View {
         if !stop.hoursSource.isEmpty {
             Label("From the OpenStreetMap entry “\(stop.hoursSource)”", systemImage: "info.circle")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.inkSecondary)
         }
         Button("These hours are wrong", systemImage: "hand.thumbsdown", role: .destructive) {
             stop.rejectedHours = stop.openingHours
@@ -230,7 +230,7 @@ struct StopDetailView: View {
                     HStack(spacing: Spacing.m) {
                         ProgressView()
                         Text("Looking for a photo…")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.inkSecondary)
                     }
                 }
 
@@ -244,12 +244,12 @@ struct StopDetailView: View {
                     if stop.imageSource != "user" {
                         Text("Text and photo from Wikipedia (CC BY-SA)")
                             .font(.caption2)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.inkSecondary)
                     }
                 } else if !loadingInfo {
                     Text("No description found for this place.")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                 }
             }
             .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))

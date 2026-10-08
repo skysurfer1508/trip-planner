@@ -74,11 +74,11 @@ private struct IdeaRow: View {
                     .font(.headline)
                 Text(idea.country)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
                 if let extract = summary?.extract, !extract.isEmpty {
                     Text(extract)
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                         .lineLimit(3)
                 }
                 Text(idea.tags.joined(separator: " · "))

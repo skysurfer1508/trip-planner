@@ -166,7 +166,7 @@ private struct StatusPill: View {
             .foregroundStyle(.white)
             .padding(.horizontal, Spacing.m)
             .padding(.vertical, Spacing.xs)
-            .background(trip.isActiveToday ? Color.green : Color.black.opacity(0.4), in: Capsule())
+            .background(trip.isActiveToday ? Theme.success : Color.black.opacity(0.4), in: Capsule())
     }
 }
 

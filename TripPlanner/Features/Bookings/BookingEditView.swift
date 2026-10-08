@@ -128,7 +128,7 @@ struct BookingEditView: View {
             if let airline = AirlineDirectory.name(forFlightNumber: title) {
                 Label(airline, systemImage: "airplane")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
             }
             DatePicker("Flight date", selection: $flightDate, displayedComponents: .date)
             lookupStatus
@@ -174,7 +174,7 @@ struct BookingEditView: View {
             if !address.isEmpty {
                 Label(address, systemImage: "mappin.and.ellipse")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
             }
             if !phone.isEmpty, let url = URL(string: "tel:" + phone.filter { $0.isNumber || $0 == "+" }) {
                 Link(destination: url) {
@@ -201,7 +201,7 @@ struct BookingEditView: View {
                 Spacer()
                 if coordinate != nil {
                     Image(systemName: "checkmark")
-                        .foregroundStyle(.green)
+                        .foregroundStyle(Theme.success)
                 }
             }
         }
@@ -229,15 +229,15 @@ struct BookingEditView: View {
             HStack(spacing: Spacing.m) {
                 ProgressView()
                 Text("Looking up the flight…")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
             }
         case .found(let leg):
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Label("\(leg.from.iata ?? leg.from.name) → \(leg.to.iata ?? leg.to.name)", systemImage: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
+                    .foregroundStyle(Theme.success)
                 Text("\(Format.time(leg.departure)) → \(Format.time(leg.arrival))\(leg.status.map { " · \($0)" } ?? "")")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
             }
             if legs.count > 1 {
                 Picker("Which leg?", selection: Binding(get: { leg.id }, set: { id in
@@ -254,7 +254,7 @@ struct BookingEditView: View {
             VStack(alignment: .leading, spacing: Spacing.s) {
                 Label(message, systemImage: "exclamationmark.triangle.fill")
                     .font(.footnote)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.warning)
                 Button("Try again") { Task { await runLookup() } }
                     .font(.footnote)
             }

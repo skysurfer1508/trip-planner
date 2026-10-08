@@ -55,7 +55,7 @@ struct ChecklistView: View {
                         } label: {
                             HStack(spacing: Spacing.m) {
                                 Image(systemName: item.isDone ? "checkmark.circle.fill" : "circle")
-                                    .foregroundStyle(item.isDone ? Color.green : Color.secondary)
+                                    .foregroundStyle(item.isDone ? Theme.success : Theme.inkSecondary)
                                     .font(.title3)
                                 Text(item.title)
                                     .strikethrough(item.isDone)
@@ -150,7 +150,7 @@ struct PackingGeneratorView: View {
                     if let forecastNote {
                         Label(forecastNote, systemImage: "cloud.sun")
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.inkSecondary)
                     }
                     Stepper("Nights: \(options.nights)", value: $options.nights, in: 1...60)
                     Toggle("Expect rain", isOn: $options.rain)

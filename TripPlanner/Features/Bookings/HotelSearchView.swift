@@ -187,8 +187,8 @@ private struct HotelRow: View {
         HStack(alignment: .top, spacing: Spacing.m) {
             Image(systemName: hotel.isLodging ? "bed.double.fill" : "mappin.and.ellipse")
                 .frame(width: 34, height: 34)
-                .background(Color.accentColor.opacity(0.12), in: Radius.shape(Radius.small))
-                .foregroundStyle(Color.accentColor)
+                .background(Theme.accent.opacity(0.12), in: Radius.shape(Radius.small))
+                .foregroundStyle(Theme.accent)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(hotel.name)
@@ -198,7 +198,7 @@ private struct HotelRow: View {
                 if !hotel.address.isEmpty {
                     Text(hotel.address)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                         .lineLimit(2)
                 }
                 HStack(spacing: Spacing.s) {
@@ -207,11 +207,11 @@ private struct HotelRow: View {
                             .font(.caption2.bold())
                             .padding(.horizontal, Spacing.s)
                             .padding(.vertical, 2)
-                            .background(Color.secondary.opacity(0.15), in: Capsule())
+                            .background(Theme.inkSecondary.opacity(0.15), in: Capsule())
                     }
                     if let rating = hotel.rating {
                         Label(String(format: "%.1f", rating), systemImage: "star.fill")
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(Theme.warning)
                         if let reviews = hotel.reviews {
                             Text("(\(reviews.formatted()))")
                         }
@@ -224,11 +224,11 @@ private struct HotelRow: View {
                     }
                 }
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.inkSecondary)
                 if let ranking = hotel.ranking {
                     Text(ranking)
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                         .lineLimit(1)
                 }
                 HStack(spacing: Spacing.m) {

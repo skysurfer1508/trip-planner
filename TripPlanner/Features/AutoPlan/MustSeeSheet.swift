@@ -112,7 +112,7 @@ struct MustSeeSheet: View {
             if let understood = understood {
                 Label(understood, systemImage: "sparkles")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
             }
         } header: {
             Text("What do you want to see?")
@@ -181,7 +181,7 @@ struct MustSeeSheet: View {
                 if searching && near.isEmpty && far.isEmpty {
                     HStack(spacing: Spacing.m) {
                         ProgressView()
-                        Text("Searching…").foregroundStyle(.secondary)
+                        Text("Searching…").foregroundStyle(Theme.inkSecondary)
                     }
                 }
                 ForEach(near, id: \.self) { item in row(item) }
@@ -226,7 +226,7 @@ struct MustSeeSheet: View {
             if let batchMessage {
                 Text(batchMessage)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
             }
         } footer: {
             Text(AIRouter.current(geminiKey: secrets.keys.gemini) == nil
@@ -247,17 +247,17 @@ struct MustSeeSheet: View {
                             if let item = entry.item {
                                 Text(subtitle(item))
                                     .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(Theme.inkSecondary)
                                     .lineLimit(2)
                             } else {
                                 Label("No match for \"\(entry.title)\"", systemImage: "questionmark.circle")
                                     .font(.caption)
-                                    .foregroundStyle(.orange)
+                                    .foregroundStyle(Theme.warning)
                             }
                             if entry.item != nil && !entry.confident {
                                 Label("Check this match", systemImage: "exclamationmark.triangle.fill")
                                     .font(.caption)
-                                    .foregroundStyle(.orange)
+                                    .foregroundStyle(Theme.warning)
                             }
                             if let when = whenText(entry) {
                                 Label(when, systemImage: entry.suggested && entry.minute != nil ? "sparkles" : "clock")
@@ -490,7 +490,7 @@ struct MustSeeSheet: View {
                         .foregroundStyle(.primary)
                     Text(subtitle(item))
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                         .lineLimit(2)
                 }
                 Spacer()
