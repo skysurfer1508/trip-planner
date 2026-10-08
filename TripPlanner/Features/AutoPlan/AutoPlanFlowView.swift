@@ -411,7 +411,7 @@ struct AutoPlanFlowView: View {
                                 .font(.caption)
                                 .foregroundStyle(.tint)
                         }
-                        if let address = entry.item.placemark.title {
+                        if let address = entry.item.readableAddress {
                             Text(address)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)

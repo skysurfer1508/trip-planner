@@ -232,7 +232,7 @@ private struct DraftStopRow: View {
                         .foregroundStyle(.secondary)
                 }
                 if let item = stop.item {
-                    Label(item.name.map { "\($0) · \(item.placemark.title ?? "")" } ?? "Matched",
+                    Label(item.name.map { name in [name, item.readableAddress].compactMap { $0 }.joined(separator: " · ") } ?? "Matched",
                           systemImage: "mappin.circle.fill")
                         .font(.caption)
                         .foregroundStyle(.secondary)

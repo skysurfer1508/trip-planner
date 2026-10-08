@@ -85,10 +85,22 @@ final class Stop {
         let stop = Stop(name: item.name ?? "Place",
                         latitude: coordinate.latitude,
                         longitude: coordinate.longitude,
-                        address: item.placemark.title ?? "",
+                        address: item.readableAddress ?? "",
                         category: StopCategory(poi: item.pointOfInterestCategory))
         stop.phone = item.phoneNumber ?? ""
         stop.website = item.url?.absoluteString ?? ""
         return stop
+    }
+}
+
+extension MKMapItem {
+    /// The address when there really is one. A place made from a bare coordinate has none, but its
+    /// `title` can still answer with the country of the phone ("Switzerland"), which is not an address.
+    var readableAddress: String? {
+        let place = placemark
+        guard place.thoroughfare != nil || place.locality != nil || place.subLocality != nil || place.postalCode != nil else {
+            return nil
+        }
+        return place.title
     }
 }

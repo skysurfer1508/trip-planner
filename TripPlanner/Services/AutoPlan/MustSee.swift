@@ -48,7 +48,7 @@ struct MustSee: Identifiable {
                                       coordinate: coordinate,
                                       kind: kind,
                                       score: 1,
-                                      address: item.placemark.title ?? "",
+                                      address: item.readableAddress ?? "",
                                       isMustSee: true)
         candidate.preferredMinute = preferredMinute
         candidate.preferredDay = preferredDay
@@ -66,7 +66,7 @@ extension PlanCandidate {
                   coordinate: coordinate,
                   kind: MustSee.kind(of: item),
                   score: 0.5,
-                  address: item.placemark.title ?? "")
+                  address: item.readableAddress ?? "")
     }
 }
 

@@ -388,3 +388,11 @@ final class OwnPlacesDistributionTests: XCTestCase {
         XCTAssertEqual(noRoom.leftOut.map(\.id), ["b"])
     }
 }
+
+final class ReadableAddressTests: XCTestCase {
+    func testABareCoordinateHasNoAddress() {
+        let item = MKMapItem(placemark: MKPlacemark(coordinate: CLLocationCoordinate2D(latitude: 52.23, longitude: 21.01)))
+        XCTAssertNil(item.readableAddress, "no street, no town: whatever title says, it is not an address")
+        XCTAssertEqual(Stop.from(item).address, "")
+    }
+}

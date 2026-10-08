@@ -501,7 +501,7 @@ struct MustSeeSheet: View {
         if let center {
             parts.append("\(Format.distance(RoutingService.straightLine(from: center, to: item.placemark.coordinate))) from the centre")
         }
-        if let address = item.placemark.title, !address.isEmpty {
+        if let address = item.readableAddress, !address.isEmpty {
             parts.append(address)
         }
         return parts.joined(separator: " · ")
