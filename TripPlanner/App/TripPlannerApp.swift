@@ -5,6 +5,7 @@ import SwiftData
 struct TripPlannerApp: App {
     @State private var location = LocationService()
     @State private var secrets = Secrets()
+    @AppStorage("onboardingDone") private var onboardingDone = false
 
     @ViewBuilder
     private var root: some View {
@@ -14,11 +15,19 @@ struct TripPlannerApp: App {
         if ProcessInfo.processInfo.arguments.contains("-designGallery") {
             DesignSystemGallery()
         } else {
-            TripListView()
+            tripList
         }
         #else
-        TripListView()
+        tripList
         #endif
+    }
+
+    private var tripList: some View {
+        TripListView()
+            .fullScreenCover(isPresented: Binding(get: { !onboardingDone },
+                                                  set: { if !$0 { onboardingDone = true } })) {
+                OnboardingView { onboardingDone = true }
+            }
     }
 
     var body: some Scene {
