@@ -59,5 +59,6 @@ struct MoreView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .listRowBackground(Theme.surface)
     }
 }
