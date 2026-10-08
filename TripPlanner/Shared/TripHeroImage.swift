@@ -38,13 +38,3 @@ struct TripHeroImage: View {
             }
     }
 }
-
-extension View {
-    /// Rounded translucent card used on the Overview and Trip Mode screens.
-    func card() -> some View {
-        self
-            .padding()
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
-    }
-}
