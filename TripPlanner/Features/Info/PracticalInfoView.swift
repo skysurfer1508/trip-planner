@@ -24,27 +24,29 @@ struct PracticalInfoView: View {
                     original(info)
                     sources
                 } else if loading {
-                    HStack(spacing: Spacing.m) {
-                        ProgressView()
+                    VStack(alignment: .leading, spacing: Spacing.s) {
+                        SkeletonView(height: 22, width: 180)
+                        SkeletonView(height: 14)
+                        SkeletonView(height: 14)
+                        SkeletonView(height: 14, width: 140)
                         Text("Loading information about \(country)…")
+                            .font(Typography.caption)
                             .foregroundStyle(Theme.inkSecondary)
                     }
                     .card()
                 } else {
-                    ContentUnavailableView {
-                        Label("No information yet", systemImage: "info.circle")
-                    } description: {
-                        Text(trip.destination.isEmpty
-                             ? "Set the trip's destination first."
-                             : "Couldn't load information for this destination. Check your connection and try again.")
-                    } actions: {
-                        Button("Try again") { Task { await load(force: true) } }
-                            .buttonStyle(.borderedProminent)
+                    EmptyState(title: "No information yet", systemImage: "info.circle",
+                               message: trip.destination.isEmpty
+                                   ? "Set the trip's destination first."
+                                   : "Couldn't load information for this destination. Check your connection and try again.",
+                               actionTitle: trip.destination.isEmpty ? nil : "Try again") {
+                        Task { await load(force: true) }
                     }
                 }
             }
-            .padding()
+            .padding(Spacing.l)
         }
+        .background(Theme.background)
         .navigationTitle(country.isEmpty ? "Practical info" : country)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -60,33 +62,36 @@ struct PracticalInfoView: View {
 
     // MARK: Pieces
 
+    /// Emergency numbers come first, as one call button each (44 pt or more).
     @ViewBuilder
     private func emergency(_ info: PracticalInfo) -> some View {
         let numbers = info.emergencyNumbers
         let lines = info.notes?.emergency ?? []
         if !numbers.isEmpty || !lines.isEmpty {
-            VStack(alignment: .leading, spacing: Spacing.m) {
-                Label("Emergency", systemImage: "cross.case.fill")
-                    .font(.headline)
-                    .foregroundStyle(Theme.danger)
-                ForEach(numbers, id: \.self) { number in
-                    if let url = URL(string: "tel:" + number.filter { $0.isNumber || $0 == "+" }) {
-                        Link(destination: url) {
-                            Label("Call \(number)", systemImage: "phone.fill")
-                                .font(.title3.bold())
-                                .frame(maxWidth: .infinity, alignment: .leading)
+            Banner(kind: .danger, title: "Emergency") {
+                VStack(alignment: .leading, spacing: Spacing.s) {
+                    ForEach(numbers, id: \.self) { number in
+                        if let url = URL(string: "tel:" + number.filter { $0.isNumber || $0 == "+" }) {
+                            Link(destination: url) {
+                                Label("Call \(number)", systemImage: "phone.fill")
+                                    .font(Typography.headline)
+                                    .foregroundStyle(Theme.onAccent)
+                                    .frame(maxWidth: .infinity, minHeight: 50)
+                                    .background(Theme.accent, in: Capsule())
+                            }
                         }
                     }
+                    ForEach(lines, id: \.self) { line in
+                        Text(line)
+                            .font(Typography.body)
+                            .foregroundStyle(Theme.ink)
+                    }
+                    Text("Check the official numbers of your embassy and insurer before you leave.")
+                        .font(Typography.caption)
+                        .foregroundStyle(Theme.inkSecondary)
                 }
-                ForEach(lines, id: \.self) { line in
-                    Text(line)
-                        .font(.subheadline)
-                }
-                Text("Check the official numbers of your embassy and insurer before you leave.")
-                    .font(.caption2)
-                    .foregroundStyle(Theme.inkSecondary)
+                .padding(.top, Spacing.xs)
             }
-            .card()
         }
     }
 
@@ -100,19 +105,17 @@ struct PracticalInfoView: View {
         ].filter { !$0.2.isEmpty }
 
         if !rows.isEmpty {
-            VStack(alignment: .leading, spacing: Spacing.m) {
+            VStack(alignment: .leading, spacing: 0) {
                 ForEach(rows, id: \.0) { row in
-                    HStack {
-                        Label(row.0, systemImage: row.1)
-                            .font(.subheadline)
-                        Spacer()
+                    InfoRow(symbol: row.1, title: row.0) {
                         Text(row.2)
-                            .font(.subheadline.weight(.medium))
+                            .font(Typography.label)
+                            .foregroundStyle(Theme.ink)
                             .multilineTextAlignment(.trailing)
                     }
                 }
             }
-            .card()
+            .card(padding: Spacing.m)
         }
     }
 
@@ -129,10 +132,8 @@ struct PracticalInfoView: View {
             }
             .card()
         } else if info.facts != nil && !info.guideText.isEmpty && AIRouter.current(geminiKey: secrets.keys.gemini) == nil {
-            Label("Turn on an AI engine in Settings for short notes on safety, money and internet. The original text is below.",
-                  systemImage: "wand.and.stars")
-                .font(.footnote)
-                .foregroundStyle(Theme.inkSecondary)
+            Banner(kind: .info, title: "Short notes need an AI engine",
+                   message: "Turn one on in Settings for short notes on safety, money and internet. The original text is below.")
         }
     }
 
@@ -141,10 +142,12 @@ struct PracticalInfoView: View {
         if !items.isEmpty {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Label(title, systemImage: symbol)
-                    .font(.subheadline.bold())
+                    .font(Typography.headline)
+                    .foregroundStyle(Theme.ink)
                 ForEach(items, id: \.self) { item in
                     Text("• " + item)
-                        .font(.subheadline)
+                        .font(Typography.body)
+                        .foregroundStyle(Theme.ink)
                 }
             }
         }
@@ -155,11 +158,14 @@ struct PracticalInfoView: View {
         if !info.guideText.isEmpty {
             DisclosureGroup("Original text from Wikivoyage", isExpanded: $showOriginal) {
                 Text(info.guideText)
-                    .font(.footnote)
+                    .font(Typography.caption)
                     .foregroundStyle(Theme.inkSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.top, Spacing.s)
             }
+            .font(Typography.label)
+            .foregroundStyle(Theme.ink)
+            .tint(Theme.accent)
             .card()
         }
     }
@@ -167,11 +173,12 @@ struct PracticalInfoView: View {
     private var sources: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Text("Facts: Wikidata (CC0). Advice: Wikivoyage (CC BY-SA), summarised by the AI from that text only. It can be out of date, so check official sources for entry rules, health and safety.")
-                .font(.caption2)
+                .font(Typography.caption)
                 .foregroundStyle(Theme.inkSecondary)
             if let url = URL(string: "https://en.wikivoyage.org/wiki/\(country.replacingOccurrences(of: " ", with: "_"))") {
                 Link("Read more on Wikivoyage", destination: url)
-                    .font(.caption2)
+                    .font(Typography.caption)
+                    .frame(minHeight: 44, alignment: .leading)
             }
         }
     }
@@ -195,24 +202,14 @@ struct PracticalInfoCard: View {
         NavigationLink {
             PracticalInfoView(trip: trip)
         } label: {
-            HStack(spacing: Spacing.m) {
-                Image(systemName: "info.circle.fill")
-                    .font(.title3)
-                    .foregroundStyle(.tint)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Practical info" + (trip.countryName.isEmpty ? "" : " · \(trip.countryName)"))
-                        .font(.subheadline.bold())
-                        .foregroundStyle(.primary)
-                    Text(summary(info))
-                        .font(.caption)
-                        .foregroundStyle(Theme.inkSecondary)
-                }
-                Spacer()
+            InfoRow(symbol: "info.circle.fill",
+                    title: "Practical info" + (trip.countryName.isEmpty ? "" : " · \(trip.countryName)"),
+                    detail: summary(info)) {
                 Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Theme.inkSecondary)
             }
-            .card()
+            .card(padding: Spacing.m)
         }
         .buttonStyle(.plain)
         .task(id: trip.destination) {
