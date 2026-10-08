@@ -88,7 +88,7 @@ struct PlanChatView: View {
 
     private var intro: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("Tell me what to change in the plan.", systemImage: "sparkles")
+            Label("Tell me what to change in the plan.", systemImage: "bubble.left.and.text.bubble.right")
                 .font(.headline)
             Text("I can move places between days, change times, swap days, add places nearby or remove some. I only use places that are really there, and you can undo every change.")
                 .font(.subheadline)

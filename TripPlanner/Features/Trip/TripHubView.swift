@@ -27,7 +27,7 @@ struct TripHubView: View {
                 .tabItem { Label("Plan", systemImage: "list.bullet.rectangle") }
                 .tag(TripTab.plan)
             DiscoverView(trip: trip)
-                .tabItem { Label("Discover", systemImage: "sparkles") }
+                .tabItem { Label("Discover", systemImage: "safari") }
                 .tag(TripTab.discover)
             BudgetView(trip: trip)
                 .tabItem { Label("Budget", systemImage: "creditcard") }

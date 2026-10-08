@@ -78,7 +78,7 @@ struct PlannerView: View {
                 Button {
                     showChat = true
                 } label: {
-                    Image(systemName: "sparkles")
+                    Image(systemName: "bubble.left.and.text.bubble.right")
                 }
                 .accessibilityLabel("Ask the AI to change the plan")
                 actionsMenu
@@ -127,7 +127,7 @@ struct PlannerView: View {
                 Button("Add place", systemImage: "mappin.and.ellipse") { showAddPlace = true }
                     .disabled(selectedDay == nil)
                 Button("Auto plan…", systemImage: "wand.and.stars") { showAutoPlan = true }
-                Button("Ask the AI to change the plan…", systemImage: "sparkles") { showChat = true }
+                Button("Ask the AI to change the plan…", systemImage: "bubble.left.and.text.bubble.right") { showChat = true }
                 Button("Import program (PDF, Word, photo)", systemImage: "doc.viewfinder") { showImport = true }
                 Button("Saved places (\(trip.savedPlaces.count))", systemImage: "bookmark") { showSaved = true }
             }
