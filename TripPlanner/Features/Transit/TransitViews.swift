@@ -930,9 +930,7 @@ struct TransitGuideCard: View {
     private func noteList(_ title: String, _ symbol: String, _ items: [String]) -> some View {
         if !items.isEmpty {
             VStack(alignment: .leading, spacing: Spacing.xs) {
-                Text(title.uppercased())
-                    .font(.caption.bold())
-                    .foregroundStyle(Theme.inkSecondary)
+                Text(title).eyebrow()
                 ForEach(items, id: \.self) { item in
                     Label(item, systemImage: symbol)
                         .font(.subheadline)
