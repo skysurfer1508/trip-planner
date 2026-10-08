@@ -369,3 +369,72 @@ final class WikidataHoursTests: XCTestCase {
         XCTAssertEqual(OpeningHoursService.exact(from: elements, coordinate: here, rejectedHours: "Mo-Su 09:00-17:00"), .noHours)
     }
 }
+
+@MainActor
+final class CalendarExportTests: XCTestCase {
+    func testEscapingAndFolding() {
+        XCTAssertEqual(CalendarExport.escape("Tea, cake; and a \\ walk\nthen home"), "Tea\\, cake\; and a \\\\ walk\\nthen home")
+        let long = String(repeating: "a", count: 200)
+        let lines = CalendarExport.fold("DESCRIPTION:" + long)
+        XCTAssertGreaterThan(lines.count, 2)
+        XCTAssertTrue(lines.allSatisfy { $0.utf8.count <= 75 })
+        XCTAssertTrue(lines.dropFirst().allSatisfy { $0.hasPrefix(" ") })
+        XCTAssertEqual(lines.map { $0.hasPrefix(" ") ? String($0.dropFirst()) : $0 }.joined(), "DESCRIPTION:" + long)
+        // A multi-byte character is never cut in half.
+        let polish = CalendarExport.fold("SUMMARY:" + String(repeating: "ł", count: 80))
+        XCTAssertTrue(polish.allSatisfy { $0.utf8.count <= 75 && String(validatingUTF8: Array($0.utf8CString)) != nil })
+    }
+
+    func testIDsAreStableAndFormatIsUTC() {
+        XCTAssertEqual(CalendarExport.uid(for: "a"), CalendarExport.uid(for: "a"))
+        XCTAssertNotEqual(CalendarExport.uid(for: "a"), CalendarExport.uid(for: "b"))
+        XCTAssertTrue(CalendarExport.uid(for: "a").hasSuffix("@tripplanner"))
+        XCTAssertEqual(CalendarExport.utc(Date(timeIntervalSince1970: 1_800_000_000)), "20270115T080000Z")
+    }
+
+    func testIcsTextHasWhatACalendarNeeds() {
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+        let event = CalendarEvent(key: "k", title: "Royal Castle, Warsaw", start: start, end: start.addingTimeInterval(3_600),
+                                  location: "Plac Zamkowy 4", latitude: 52.2478, longitude: 21.0148,
+                                  notes: "Tickets\nonline", url: "https://example.org", alarmMinutes: 30)
+        let text = CalendarExport.ics(events: [event], calendarName: "Trip", now: start)
+        XCTAssertTrue(text.hasPrefix("BEGIN:VCALENDAR\r\n"))
+        XCTAssertTrue(text.hasSuffix("END:VCALENDAR\r\n"))
+        for expected in ["DTSTART:20270115T080000Z", "DTEND:20270115T090000Z", "SUMMARY:Royal Castle\\, Warsaw",
+                         "LOCATION:Plac Zamkowy 4", "GEO:52.2478;21.0148", "DESCRIPTION:Tickets\\nonline",
+                         "TRIGGER:-PT30M", "URL:https://example.org"] {
+            XCTAssertTrue(text.contains(expected), expected)
+        }
+        XCTAssertEqual(text.components(separatedBy: "BEGIN:VEVENT").count, 2)
+    }
+
+    func testStopsAndFlightsBecomeEventsAtDestinationTime() throws {
+        let container = try ModelContainer(for: Trip.self, Day.self, Stop.self, Expense.self, ChecklistItem.self,
+                                           TripDocument.self, SavedPlace.self, Booking.self,
+                                           configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        var parts = DateComponents()
+        parts.year = 2026; parts.month = 10; parts.day = 14
+        let start = Calendar.current.date(from: parts)!
+        let trip = Trip(name: "Warsaw", destination: "Warsaw", startDate: start, endDate: start)
+        container.mainContext.insert(trip)
+        trip.syncDays()
+        trip.timeZoneID = "Europe/Warsaw"
+        let day = trip.sortedDays[0]
+        let stop = Stop(name: "Royal Castle", latitude: 52.2478, longitude: 21.0148, address: "Plac Zamkowy 4")
+        day.append(stop)
+        stop.plannedTime = WallClock.date(on: day.date, minute: 10 * 60)
+        stop.durationMinutes = 90
+        stop.website = "https://zamek-krolewski.pl"
+
+        let events = CalendarExport.events(for: trip)
+        let castle = try XCTUnwrap(events.first { $0.title == "Royal Castle" })
+        // 10:00 in Warsaw (summer time, UTC+2) is 08:00 UTC, whatever the phone's own zone.
+        XCTAssertEqual(CalendarExport.utc(castle.start), "20261014T080000Z")
+        XCTAssertEqual(castle.end.timeIntervalSince(castle.start), 90 * 60)
+        XCTAssertEqual(castle.location, "Plac Zamkowy 4")
+        XCTAssertEqual(castle.url, "https://zamek-krolewski.pl")
+        XCTAssertEqual(castle.alarmMinutes, 30)
+        // The same trip gives the same ids again.
+        XCTAssertEqual(CalendarExport.events(for: trip).map(\.key), events.map(\.key))
+    }
+}

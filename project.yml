@@ -29,6 +29,7 @@ targets:
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         NSLocationWhenInUseUsageDescription: Trip Planner uses your location to show directions to your next stop and to find restaurants nearby.
+        NSCalendarsWriteOnlyAccessUsageDescription: Trip Planner adds your stops, flights and hotel check-in to your calendar when you ask it to. It never reads your calendar.
         NSSupportsLiveActivities: true
         UTExportedTypeDeclarations:
           - UTTypeIdentifier: com.skysurfer.tripplanner.trip

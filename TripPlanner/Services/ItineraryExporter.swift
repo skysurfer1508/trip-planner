@@ -29,63 +29,9 @@ enum ItineraryExporter {
         return lines.joined(separator: "\n")
     }
 
-    /// An .ics file with one event per stop that has a planned time, or nil if there are none.
-    /// Times are "floating", so they show as local time wherever the calendar is opened.
+    /// An .ics file with the timed stops and the trip's flights and hotel, or nil if there are none.
+    @MainActor
     static func icsFile(for trip: Trip) -> URL? {
-        let local = DateFormatter()
-        local.calendar = Calendar(identifier: .gregorian)
-        local.locale = Locale(identifier: "en_US_POSIX")
-        local.timeZone = .current
-        local.dateFormat = "yyyyMMdd'T'HHmmss"
-
-        let utc = DateFormatter()
-        utc.calendar = Calendar(identifier: .gregorian)
-        utc.locale = Locale(identifier: "en_US_POSIX")
-        utc.timeZone = TimeZone(identifier: "UTC")
-        utc.dateFormat = "yyyyMMdd'T'HHmmss'Z'"
-
-        func escape(_ text: String) -> String {
-            text.replacingOccurrences(of: "\\", with: "\\\\")
-                .replacingOccurrences(of: ";", with: "\\;")
-                .replacingOccurrences(of: ",", with: "\\,")
-                .replacingOccurrences(of: "\n", with: "\\n")
-        }
-
-        var lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//TripPlanner//EN", "CALSCALE:GREGORIAN"]
-        var events = 0
-        let stamp = utc.string(from: Date())
-
-        for day in trip.sortedDays {
-            for stop in day.sortedStops {
-                guard let start = stop.plannedTime else { continue }
-                let end = start.addingTimeInterval(TimeInterval(max(stop.durationMinutes, 15) * 60))
-                lines.append("BEGIN:VEVENT")
-                lines.append("UID:\(UUID().uuidString)@tripplanner")
-                lines.append("DTSTAMP:\(stamp)")
-                lines.append("DTSTART:\(local.string(from: start))")
-                lines.append("DTEND:\(local.string(from: end))")
-                lines.append("SUMMARY:\(escape(stop.name))")
-                if !stop.address.isEmpty { lines.append("LOCATION:\(escape(stop.address))") }
-                lines.append("GEO:\(stop.latitude);\(stop.longitude)")
-                if !stop.notes.isEmpty { lines.append("DESCRIPTION:\(escape(stop.notes))") }
-                lines.append("END:VEVENT")
-                events += 1
-            }
-        }
-        lines.append("END:VCALENDAR")
-        guard events > 0 else { return nil }
-
-        let safeName = trip.name.components(separatedBy: CharacterSet.alphanumerics.inverted)
-            .filter { !$0.isEmpty }
-            .joined(separator: "-")
-        let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent(safeName.isEmpty ? "trip" : safeName)
-            .appendingPathExtension("ics")
-        do {
-            try lines.joined(separator: "\r\n").appending("\r\n").write(to: url, atomically: true, encoding: .utf8)
-            return url
-        } catch {
-            return nil
-        }
+        CalendarExport.icsFile(for: trip)
     }
 }

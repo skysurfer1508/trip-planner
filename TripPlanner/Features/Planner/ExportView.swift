@@ -9,6 +9,8 @@ struct ExportView: View {
     @State private var tripFileURL: URL?
     @State private var includeDocuments = false
     @State private var loaded = false
+    @State private var calendarMessage: String?
+    @State private var adding = false
 
     var body: some View {
         NavigationStack {
@@ -56,7 +58,27 @@ struct ExportView: View {
                         ProgressView()
                     }
                 } footer: {
-                    Text("Choose \"Calendar\" in the share sheet to add every timed stop as an event.")
+                    Text("Timed stops, flights and your hotel check-in become events with the place and a reminder, at the right time for the destination. Choose \"Calendar\" in the share sheet, or add them straight away.")
+                }
+
+                Section {
+                    Button {
+                        Task { await addToCalendar() }
+                    } label: {
+                        HStack {
+                            Label("Add to Calendar", systemImage: "calendar.badge.checkmark")
+                            Spacer()
+                            if adding { ProgressView() }
+                        }
+                    }
+                    .disabled(adding || icsURL == nil)
+                    if let calendarMessage {
+                        Text(calendarMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                } footer: {
+                    Text("The app only asks to add events; it never reads your calendar. Adding twice adds the events twice.")
                 }
             }
             .navigationTitle("Share & export")
@@ -75,5 +97,16 @@ struct ExportView: View {
             }
         }
         .presentationDetents([.medium, .large])
+    }
+
+    private func addToCalendar() async {
+        adding = true
+        defer { adding = false }
+        do {
+            let count = try await CalendarExport.addToCalendar(trip: trip)
+            calendarMessage = "Added \(count) \(count == 1 ? "event" : "events") to your calendar."
+        } catch {
+            calendarMessage = error.localizedDescription
+        }
     }
 }
