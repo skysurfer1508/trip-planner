@@ -70,6 +70,7 @@ struct LegEntrances {
     var alighting: StationEntrance?
 }
 
+@MainActor
 enum RouteDrawing {
     /// Each line is drawn twice: a wide light line underneath, then the coloured line, so it stays readable
     /// on any map. Walks are dotted.
