@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// Packing, documents, saved places, sharing and settings.
+/// Settings-like things only: saved places, sharing, editing the trip and the app's settings. The
+/// trip tools (flights and hotel, packing, documents, practical info) live on Overview.
 struct MoreView: View {
     @Bindable var trip: Trip
 
@@ -11,55 +12,26 @@ struct MoreView: View {
 
     var body: some View {
         List {
-            Section("Trip tools") {
-                NavigationLink {
-                    BookingsView(trip: trip)
-                } label: {
-                    row("Flights & hotel", symbol: "airplane", detail: trip.bookings.isEmpty ? nil : "\(trip.bookings.count)")
-                }
-                NavigationLink {
-                    PracticalInfoView(trip: trip)
-                } label: {
-                    row("Practical info", symbol: "info.circle", detail: trip.countryName.isEmpty ? nil : trip.countryName)
-                }
-                NavigationLink {
-                    ChecklistView(trip: trip)
-                } label: {
-                    row("Packing & to-do", symbol: "checklist", detail: checklistDetail)
-                }
-                NavigationLink {
-                    DocumentsView(trip: trip)
-                } label: {
-                    row("Documents", symbol: "folder", detail: "\(trip.documents.count)")
-                }
-                Button {
-                    showSaved = true
-                } label: {
-                    row("Saved places", symbol: "bookmark", detail: "\(trip.savedPlaces.count)")
-                }
-                Button {
-                    showExport = true
-                } label: {
-                    row("Share & export", symbol: "square.and.arrow.up", detail: nil)
-                }
+            Section {
+                row("Saved places", symbol: "bookmark",
+                    detail: trip.savedPlaces.isEmpty ? nil : "\(trip.savedPlaces.count)") { showSaved = true }
+                row("Share & export", symbol: "square.and.arrow.up") { showExport = true }
+            } header: {
+                Text("Trip").eyebrow()
             }
 
-            Section("Trip") {
-                Button {
-                    showEdit = true
-                } label: {
-                    row("Edit name, destination and dates", symbol: "pencil", detail: nil)
-                }
+            Section {
+                row("Edit name, destination and dates", symbol: "pencil") { showEdit = true }
             }
 
-            Section("App") {
-                Button {
-                    showSettings = true
-                } label: {
-                    row("Settings and API keys", symbol: "gearshape", detail: nil)
-                }
+            Section {
+                row("Settings and API keys", symbol: "gearshape") { showSettings = true }
+            } header: {
+                Text("App").eyebrow()
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Theme.background)
         .navigationTitle("More")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showSaved) { SavedPlacesView(trip: trip) }
@@ -68,24 +40,24 @@ struct MoreView: View {
         .sheet(isPresented: $showSettings) { SettingsView() }
     }
 
-    private var checklistDetail: String? {
-        guard !trip.checklist.isEmpty else { return nil }
-        return "\(trip.checklist.filter(\.isDone).count)/\(trip.checklist.count)"
-    }
-
-    private func row(_ title: String, symbol: String, detail: String?) -> some View {
-        HStack(spacing: Spacing.m) {
-            Image(systemName: symbol)
-                .frame(width: 28)
-                .foregroundStyle(.tint)
-            Text(title)
-                .foregroundStyle(.primary)
-            Spacer()
-            if let detail {
-                Text(detail)
-                    .foregroundStyle(Theme.inkSecondary)
+    private func row(_ title: String, symbol: String, detail: String? = nil,
+                     action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            InfoRow(symbol: symbol, title: title) {
+                HStack(spacing: Spacing.s) {
+                    if let detail {
+                        Text(detail)
+                            .font(Typography.label)
+                            .foregroundStyle(Theme.inkSecondary)
+                    }
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Theme.inkSecondary)
+                        .accessibilityHidden(true)
+                }
             }
+            .contentShape(Rectangle())
         }
-        .contentShape(Rectangle())
+        .buttonStyle(.plain)
     }
 }

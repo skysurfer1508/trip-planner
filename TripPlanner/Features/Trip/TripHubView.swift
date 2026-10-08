@@ -4,7 +4,8 @@ enum TripTab: Hashable {
     case overview, plan, discover, budget, more
 }
 
-/// Everything about one trip. Overview is the home; Trip Mode (the live guide) is in the toolbar.
+/// Everything about one trip. Overview is the home. Trip Mode (the live guide) is a floating "Today"
+/// button while the trip is live, and a card on Overview otherwise.
 struct TripHubView: View {
     @Bindable var trip: Trip
     var startAction: TripStartAction?
@@ -21,30 +22,26 @@ struct TripHubView: View {
     var body: some View {
         TabView(selection: $tab) {
             OverviewView(trip: trip, perform: perform)
+                .todayShortcut(for: trip)
                 .tabItem { Label("Overview", systemImage: "house") }
                 .tag(TripTab.overview)
             PlannerView(trip: trip)
-                .tabItem { Label("Plan", systemImage: "list.bullet.rectangle") }
+                .todayShortcut(for: trip)
+                .tabItem { Label("Plan", systemImage: "map") }
                 .tag(TripTab.plan)
             DiscoverView(trip: trip)
+                .todayShortcut(for: trip)
                 .tabItem { Label("Discover", systemImage: "safari") }
                 .tag(TripTab.discover)
             BudgetView(trip: trip)
+                .todayShortcut(for: trip)
                 .tabItem { Label("Budget", systemImage: "creditcard") }
                 .tag(TripTab.budget)
             MoreView(trip: trip)
                 .tabItem { Label("More", systemImage: "ellipsis.circle") }
                 .tag(TripTab.more)
         }
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink {
-                    TodayView(trip: trip)
-                } label: {
-                    Label("Trip Mode", systemImage: "location.fill")
-                }
-            }
-        }
+        .minimizingTabBar()
         .sheet(isPresented: $showEdit) {
             TripEditView(trip: trip)
         }
