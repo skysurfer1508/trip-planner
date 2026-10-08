@@ -109,9 +109,11 @@ final class OpeningHoursTests: XCTestCase {
              "center": ["lat": 38.6918, "lon": -9.2159]],
         ]
         XCTAssertEqual(OpeningHoursService.pick(from: elements, name: "Belém Tower", coordinate: here), "Mo-Su 09:00-20:00",
-                       "no name matches, so the nearest within 25 m wins")
+                       "no name matches, so the nearest within 15 m wins")
         XCTAssertEqual(OpeningHoursService.pick(from: elements, name: "Torre de Belém", coordinate: here), "Tu-Su 10:00-17:30")
         XCTAssertNil(OpeningHoursService.pick(from: [], name: "x", coordinate: here))
+        XCTAssertNil(OpeningHoursService.pick(from: elements, name: "Belém Tower", coordinate: here, category: .sight),
+                     "a sight never borrows the hours of something next to it")
     }
 
     // MARK: Public holidays

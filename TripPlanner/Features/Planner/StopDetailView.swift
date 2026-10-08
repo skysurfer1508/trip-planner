@@ -157,6 +157,7 @@ struct StopDetailView: View {
                             .foregroundStyle(.secondary)
                     }
                 } else if let hours = OpeningHours.parse(stop.openingHours) {
+                    hoursSourceNote
                     if let planned = stop.plannedTime,
                        let warning = OpeningHours.warning(for: hours.verdict(visitAt: planned, minutes: stop.durationMinutes,
                                                                             isHoliday: isHoliday)) {
@@ -193,6 +194,22 @@ struct StopDetailView: View {
                 }
             }
         }
+    }
+
+    /// Which OpenStreetMap object the hours come from, with a way out when it is the wrong one.
+    @ViewBuilder
+    private var hoursSourceNote: some View {
+        if !stop.hoursSource.isEmpty {
+            Label("From the OpenStreetMap entry “\(stop.hoursSource)”", systemImage: "info.circle")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        Button("These hours are wrong", systemImage: "hand.thumbsdown", role: .destructive) {
+            stop.openingHours = ""
+            stop.hoursSource = ""
+            stop.hoursCheckedAt = Date()
+        }
+        .font(.footnote)
     }
 
     // MARK: Photo and description

@@ -32,6 +32,8 @@ final class Stop {
     /// OpenStreetMap `opening_hours` text for the place ("" = none found) and when it was checked.
     var openingHours: String = ""
     var hoursCheckedAt: Date?
+    /// Name of the OpenStreetMap object the hours came from, so a wrong match can be seen.
+    var hoursSource: String = ""
     var day: Day?
 
     init(name: String,
@@ -72,6 +74,7 @@ final class Stop {
         copy.infoCheckedAt = infoCheckedAt
         copy.openingHours = openingHours
         copy.hoursCheckedAt = hoursCheckedAt
+        copy.hoursSource = hoursSource
         return copy
     }
 
