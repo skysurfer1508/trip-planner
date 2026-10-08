@@ -49,16 +49,20 @@ SF Rounded for titles, numbers and pins, SF Pro for running text. All are Dynami
 ## Components (`DesignSystem/Components/`)
 | Component | Replaces |
 |---|---|
-| `Card` / `.card()` | Old `.thinMaterial` `.card()` and inline material cards |
-| `Banner(kind:title:message:)` | Inline orange/blue tinted banners in TodayView, DayStopListView, DayAlertsView |
-| `InfoRow` | `MoreView.row`, `logisticsCard`, `logisticsToday` |
-| `Chip`, `SelectableChip` | `FilterChip`, day chip, `SelectTile` |
-| `.primary`, `.secondary` button styles | Ad-hoc `.borderedProminent` buttons |
+| `Card` / `.card()` | The old `.thinMaterial` `.card()` and inline material cards |
+| `Banner(kind:title:message:actions:)` | Every inline orange/blue tinted box (Today, Plan, day alerts, transit alerts, Discover, Budget) |
+| `InfoRow` | `MoreView.row`, `logisticsCard`, `logisticsToday`, practical-info rows |
+| `Chip`, `SelectableChip` | `FilterChip` (deleted), the day chip, `SelectTile` styling |
+| `.primary`, `.secondary` button styles | Ad-hoc `.borderedProminent` / `.bordered` buttons |
 | `SectionHeader` | Hand-made section titles |
-| `Pin(kind:)` | StopPin, HotelPin (done). EndPin, EntrancePin, StationDot (Transit, pending) |
-| `SkeletonView` | Bare `ProgressView` while loading |
+| `Pin(kind:)` | `StopPin`, `HotelPin` (now thin wrappers), and transit `StationDot`, `EntrancePin`, `EndPin` (deleted). Kinds: stop, hotel, start, end, entrance, station |
+| `ProgressRing` | `ProgressView` bars for setup, packing and budget |
+| `SkeletonView` | Bare `ProgressView` spinners while loading |
 | `EmptyState` | Direct `ContentUnavailableView` use |
-| `.floatingChrome()`, `FloatingActionButton` | Inline materials on floating controls. The only place that uses `glassEffect` |
+| `StopPhoto` (in `Shared/StopThumbnail.swift`) | A wide stop photo with a category-glyph placeholder |
+| `.floatingChrome()`, `FloatingActionButton`, `.minimizingTabBar()` | The only code that uses Liquid Glass, behind `#available(iOS 26)` and `#if compiler(>=6.2)` |
+| `.zoomTransitionSource` / `.zoomTransition` | Card-to-detail zoom (iOS 18+, a normal push before that) |
+| `Color.readableForeground` (in `TransitViews.swift`) | Fixed white text on agency line colours: now black or white by luminance |
 
 ## Motion and haptics (`Motion.swift`)
 - `Motion.state` (`.smooth(duration: 0.35)`) for state changes, `Motion.snappy` for presses and chips,
@@ -73,7 +77,19 @@ SF Rounded for titles, numbers and pins, SF Pro for running text. All are Dynami
 - Reduce Transparency: `FloatingChrome` swaps glass/material for a solid surface.
 - Increase Contrast: cards get a stronger hairline, and every colour has a high-contrast variant.
 
-## Migration status
-Done: colour sets, tokens, components, pins, `StopCategory.color`, `DayPalette`.
-Pending (see commits): the `.padding`, `.cornerRadius`, colour-literal and `.font(.system(size:))` sweep;
-FilterChip and other chips; banners; the screens in Phases 2 and 3.
+## What changed where
+- **Trip list:** featured card for the running or next trip, photo-first cards on a scrim, LIVE pill, zoom into the trip.
+- **Trip hub:** Overview, Plan, Discover, Budget, More. Different icons for Plan (map), Discover (compass) and the AI chat (chat bubble). A floating Today button while the trip is live, and the tab bar minimises on scroll on iOS 26.
+- **Overview:** parallax hero with a countdown, one raised Today / Coming up card, a flights and hotel strip, a 2x2 tools grid, a collapsible Get ready checklist with a ring, then Good to know.
+- **Plan:** one large title, a sticky day strip, a map that drags between strip, half and full, and a timeline with pins on a day-coloured line. Reorder by hold and drop (haptics), or Move up / Move down for VoiceOver.
+- **Trip Mode:** photo-led Next up card with a live Leave-by countdown, Navigate and Done, a day progress rail.
+- **Other screens:** stop detail, Budget, Discover, Bookings, Packing, Documents, Practical info, transit sheets, Settings and every other form use the tokens. Onboarding is three skippable screens.
+
+## Known limits
+- Suggested places have no photo in the data, so Discover cards show a category tile.
+- Import review, the Auto plan screens and a few sheets were themed (tokens, banners, controls) but not restructured.
+- Transit line colours come from agency data. They are the one place colours are not tokens.
+- `Services/PlacePreviewStore.swift` still draws its own thumbnail with the category tint (Services are off limits for this redesign).
+- The PDF export uses fixed font sizes because it is a printed page.
+- The Live Activity target carries its own copy of the accent colour. It is not embedded by default (`AppFeatures.liveActivities`).
+- Nothing in this redesign has been looked at on a screen yet by the author; see `docs/DESIGN_AUDIT.md`.
