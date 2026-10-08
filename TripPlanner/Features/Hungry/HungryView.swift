@@ -87,17 +87,32 @@ struct HungryView: View {
     @ViewBuilder
     private var resultList: some View {
         if origin == nil {
-            ContentUnavailableView("No location yet", systemImage: "location.slash",
-                                   description: Text("Allow location access, or add a stop to this day so there's a starting point."))
+            EmptyState(title: "No location yet", systemImage: "location.slash",
+                       message: "Allow location access, or add a stop to this day so there's a starting point.")
         } else if model.isLoading && model.results.isEmpty {
-            ProgressView("Looking around…")
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            VStack(spacing: Spacing.m) {
+                ForEach(0..<4, id: \.self) { _ in
+                    HStack(alignment: .top, spacing: Spacing.m) {
+                        VStack(alignment: .leading, spacing: Spacing.s) {
+                            SkeletonView(height: 18, width: 180)
+                            SkeletonView(height: 12, width: 120)
+                            SkeletonView(height: 12, width: 90)
+                        }
+                        Spacer()
+                    }
+                    .card(padding: Spacing.m)
+                }
+            }
+            .padding(Spacing.l)
+            .frame(maxHeight: .infinity, alignment: .top)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Looking around")
         } else if model.failed {
-            ContentUnavailableView("Search failed", systemImage: "wifi.slash",
-                                   description: Text(model.errorMessage ?? "Check your connection and try again."))
+            EmptyState(title: "Search failed", systemImage: "wifi.slash",
+                       message: model.errorMessage ?? "Check your connection and try again.")
         } else if model.results.isEmpty {
-            ContentUnavailableView("Nothing found", systemImage: "fork.knife",
-                                   description: Text("Try a bigger distance or fewer filters."))
+            EmptyState(title: "Nothing found", systemImage: "fork.knife",
+                       message: "Try a bigger distance or fewer filters.")
         } else {
             List {
                 ForEach(model.results) { result in
@@ -109,18 +124,20 @@ struct HungryView: View {
                                         category: result.category)
                         day.append(stop)
                         addedIDs.insert(result.id)
+                        Haptics.success()
                     } onNavigate: {
                         RoutingService.openInMaps(name: result.name, coordinate: result.coordinate, mode: .walk)
                     }
                 }
                 if model.results.contains(where: { $0.rating != nil }) {
                     Text("Ratings by Tripadvisor")
-                        .font(.caption2)
+                        .font(Typography.caption)
                         .foregroundStyle(Theme.inkSecondary)
                         .listRowBackground(Color.clear)
                 }
             }
             .listStyle(.plain)
+            .scrollContentBackground(.hidden)
         }
     }
 }
@@ -132,10 +149,11 @@ private struct ResultRow: View {
     let onNavigate: () -> Void
 
     var body: some View {
-        HStack(spacing: Spacing.m) {
-            VStack(alignment: .leading, spacing: 3) {
+        HStack(spacing: Spacing.s) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(result.name)
-                    .font(.headline)
+                    .font(Typography.headline)
+                    .foregroundStyle(Theme.ink)
                 if let rating = result.rating {
                     HStack(spacing: Spacing.s) {
                         Label(String(format: "%.1f", rating), systemImage: "star.fill")
@@ -147,48 +165,56 @@ private struct ResultRow: View {
                             Text(result.cuisines.prefix(2).joined(separator: ", "))
                         }
                     }
-                    .font(.caption)
+                    .font(Typography.caption)
                     .foregroundStyle(Theme.inkSecondary)
                 }
-                HStack(spacing: Spacing.s) {
-                    Image(systemName: "figure.walk")
-                    Text("\(result.walkMinutes) min · \(Format.distance(result.distance))")
-                }
-                .font(.caption)
-                .foregroundStyle(Theme.inkSecondary)
+                Label("\(result.walkMinutes) min · \(Format.distance(result.distance))", systemImage: "figure.walk")
+                    .font(Typography.caption)
+                    .foregroundStyle(Theme.inkSecondary)
                 if let ranking = result.ranking {
                     Text(ranking)
-                        .font(.caption2)
+                        .font(Typography.caption)
                         .foregroundStyle(Theme.inkSecondary)
-                        .lineLimit(1)
+                        .lineLimit(2)
                 } else if !result.address.isEmpty {
                     Text(result.address)
-                        .font(.caption)
+                        .font(Typography.caption)
                         .foregroundStyle(Theme.inkSecondary)
-                        .lineLimit(1)
+                        .lineLimit(2)
                 }
             }
-            Spacer()
+            .frame(maxWidth: .infinity, alignment: .leading)
+
             if let url = result.url {
                 Link(destination: url) {
                     Image(systemName: "arrow.up.right.square")
                         .font(.title3)
+                        .foregroundStyle(Theme.accent)
+                        .frame(width: 44, height: 44)
                 }
-                .buttonStyle(.borderless)
+                .accessibilityLabel("Open \(result.name) on Tripadvisor")
             }
             Button(action: onNavigate) {
                 Image(systemName: "arrow.triangle.turn.up.right.diamond.fill")
                     .font(.title3)
+                    .foregroundStyle(Theme.accent)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(.plain)
+            .accessibilityLabel("Directions to \(result.name)")
             Button(action: onAdd) {
                 Image(systemName: isAdded ? "checkmark.circle.fill" : "plus.circle")
                     .font(.title3)
                     .foregroundStyle(isAdded ? Theme.success : Theme.accent)
+                    .symbolEffect(.bounce, value: isAdded)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(.plain)
             .disabled(isAdded)
+            .accessibilityLabel(isAdded ? "Added" : "Add \(result.name) to the day")
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, Spacing.xs)
     }
 }
