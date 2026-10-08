@@ -25,16 +25,27 @@ struct FloatingChrome<S: Shape>: ViewModifier {
         }
     }
 
+    /// Before iOS 26: a material, or a solid tint for a primary action (its label is `onAccent`, which
+    /// is only readable on the solid accent, not on a material).
+    @ViewBuilder
+    private func fallback(_ content: Content) -> some View {
+        if let tint {
+            content.background(tint, in: shape)
+        } else {
+            content.background(.thinMaterial, in: shape)
+        }
+    }
+
     @ViewBuilder
     private func glass(_ content: Content) -> some View {
         #if compiler(>=6.2)
         if #available(iOS 26, *) {
             content.glassEffect(tint.map { Glass.regular.tint($0) } ?? Glass.regular, in: shape)
         } else {
-            content.background(.thinMaterial, in: shape)
+            fallback(content)
         }
         #else
-        content.background(.thinMaterial, in: shape)
+        fallback(content)
         #endif
     }
 }
@@ -48,6 +59,22 @@ extension View {
     /// Same, in any shape (a circle for round buttons, a rounded rectangle for accessories).
     func floatingChrome<S: Shape>(in shape: S, tint: Color? = nil) -> some View {
         modifier(FloatingChrome(shape: shape, tint: tint))
+    }
+}
+
+extension View {
+    /// Minimises the tab bar while scrolling down (iOS 26). Earlier versions keep the standard bar.
+    @ViewBuilder
+    func minimizingTabBar() -> some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26, *) {
+            tabBarMinimizeBehavior(.onScrollDown)
+        } else {
+            self
+        }
+        #else
+        self
+        #endif
     }
 }
 
