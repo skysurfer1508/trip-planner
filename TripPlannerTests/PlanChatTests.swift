@@ -173,7 +173,7 @@ final class PlanChatTests: XCTestCase {
         let (_, trip) = try makeTrip(days: 2)
         let days = trip.sortedDays
         _ = stop("Old Town", 0, minute: 600, on: days[0])
-        _ = stop("Land W6 1386", 0, on: days[0])   // an arrival entry is not a stop to change
+        _ = stop("Land · W6 1386", 0, on: days[0])   // the arrival stop made from a booking is not one to change
         let pool = [PlanCandidate(id: "a", name: "Old Town", coordinate: .init(latitude: 52.2, longitude: 21.0), kind: .sights, score: 1),
                     PlanCandidate(id: "b", name: "Royal Castle", coordinate: .init(latitude: 52.248, longitude: 21.015), kind: .sights, score: 0.9)]
         let prepared = PlanChatService.prepare(instruction: "move things", trip: trip, pool: pool)
