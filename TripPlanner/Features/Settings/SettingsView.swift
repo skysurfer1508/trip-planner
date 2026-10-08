@@ -22,7 +22,10 @@ struct SettingsView: View {
             Form {
                 Section {
                     Group {
-                        SecureField("OpenTripMap key", text: $secrets.openTripMapKey)
+                        SecureField("OpenTripMap key", text: $secrets.openTripMapKey,
+                                    prompt: Text("OpenTripMap key").foregroundStyle(Theme.inkSecondary))
+                            .foregroundStyle(Theme.ink)
+                            .frame(minHeight: 44)
                         Link("Get a free key", destination: URL(string: "https://opentripmap.io/product")!)
                     }
                     .listRowBackground(Theme.surface)
@@ -34,7 +37,10 @@ struct SettingsView: View {
 
                 Section {
                     Group {
-                        SecureField("Tripadvisor key", text: $secrets.tripadvisorKey)
+                        SecureField("Tripadvisor key", text: $secrets.tripadvisorKey,
+                                    prompt: Text("Tripadvisor key").foregroundStyle(Theme.inkSecondary))
+                            .foregroundStyle(Theme.ink)
+                            .frame(minHeight: 44)
                         Link("Tripadvisor Content API", destination: URL(string: "https://www.tripadvisor.com/developers")!)
                     }
                     .listRowBackground(Theme.surface)
@@ -57,7 +63,10 @@ struct SettingsView: View {
 
                 Section {
                     Group {
-                        SecureField("RapidAPI key for AeroDataBox", text: $secrets.aerodataboxKey)
+                        SecureField("RapidAPI key for AeroDataBox", text: $secrets.aerodataboxKey,
+                                    prompt: Text("RapidAPI key for AeroDataBox").foregroundStyle(Theme.inkSecondary))
+                            .foregroundStyle(Theme.ink)
+                            .frame(minHeight: 44)
                         Link("Get the free plan on RapidAPI", destination: URL(string: "https://rapidapi.com/aedbx-aedbx/api/aerodatabox")!)
                     }
                     .listRowBackground(Theme.surface)
@@ -78,7 +87,10 @@ struct SettingsView: View {
                               systemImage: AIRouter.onDeviceAvailable ? "checkmark.seal.fill" : "info.circle")
                             .font(.footnote)
                             .foregroundStyle(AIRouter.onDeviceAvailable ? Theme.success : Theme.inkSecondary)
-                        SecureField("Gemini API key (optional)", text: $secrets.geminiKey)
+                        SecureField("Gemini API key (optional)", text: $secrets.geminiKey,
+                                    prompt: Text("Gemini API key (optional)").foregroundStyle(Theme.inkSecondary))
+                            .foregroundStyle(Theme.ink)
+                            .frame(minHeight: 44)
                         Link("Get a free Gemini key", destination: URL(string: "https://aistudio.google.com/apikey")!)
                         Button {
                             Task { await testGemini() }
