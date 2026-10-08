@@ -238,21 +238,29 @@ struct DayMapView: View {
             NavigationStack {
                 Form {
                     Section {
-                        TextField("Name", text: $name)
-                        if !pin.address.isEmpty {
-                            Label(pin.address, systemImage: "mappin.and.ellipse")
-                                .font(.footnote)
-                                .foregroundStyle(Theme.inkSecondary)
-                        }
-                    }
-                    Section {
-                        Picker("Add to", selection: $dayIndex) {
-                            ForEach(Array(days.enumerated()), id: \.offset) { index, day in
-                                Text("Day \(index + 1) · \(Format.dayChip(day.date))").tag(index)
+                        Group {
+                            TextField("Name", text: $name)
+                            if !pin.address.isEmpty {
+                                Label(pin.address, systemImage: "mappin.and.ellipse")
+                                    .font(.footnote)
+                                    .foregroundStyle(Theme.inkSecondary)
                             }
                         }
+                        .listRowBackground(Theme.surface)
+                    }
+                    Section {
+                        Group {
+                            Picker("Add to", selection: $dayIndex) {
+                                ForEach(Array(days.enumerated()), id: \.offset) { index, day in
+                                    Text("Day \(index + 1) · \(Format.dayChip(day.date))").tag(index)
+                                }
+                            }
+                        }
+                        .listRowBackground(Theme.surface)
                     }
                 }
+                .scrollContentBackground(.hidden)
+                .background(Theme.background)
                 .navigationTitle("Add this spot")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {

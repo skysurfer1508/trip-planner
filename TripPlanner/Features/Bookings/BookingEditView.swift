@@ -53,24 +53,32 @@ struct BookingEditView: View {
                 }
 
                 Section {
-                    Toggle("Remind me", isOn: $remind)
-                    TextField("Booking reference (optional)", text: $reference)
-                        .textInputAutocapitalization(.characters)
-                    TextField("Notes", text: $notes, axis: .vertical)
-                        .lineLimit(1...4)
+                    Group {
+                        Toggle("Remind me", isOn: $remind)
+                        TextField("Booking reference (optional)", text: $reference)
+                            .textInputAutocapitalization(.characters)
+                        TextField("Notes", text: $notes, axis: .vertical)
+                            .lineLimit(1...4)
+                    }
+                    .listRowBackground(Theme.surface)
                 } footer: {
                     Text(reminderHint)
                 }
 
                 if let booking {
                     Section {
-                        Button("Delete", role: .destructive) {
-                            context.delete(booking)
-                            dismiss()
+                        Group {
+                            Button("Delete", role: .destructive) {
+                                context.delete(booking)
+                                dismiss()
+                            }
                         }
+                        .listRowBackground(Theme.surface)
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Theme.background)
             .navigationTitle(booking == nil ? "Add \(kind.shortTitle.lowercased())" : "Edit \(kind.shortTitle.lowercased())")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

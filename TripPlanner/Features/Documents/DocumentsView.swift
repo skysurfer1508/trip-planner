@@ -202,16 +202,21 @@ private struct DocumentEditView: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("Title", text: $document.title)
-                    Picker("Type", selection: $document.kind) {
-                        ForEach(DocumentKind.allCases) { kind in
-                            Label(kind.title, systemImage: kind.symbol).tag(kind)
+                    Group {
+                        TextField("Title", text: $document.title)
+                        Picker("Type", selection: $document.kind) {
+                            ForEach(DocumentKind.allCases) { kind in
+                                Label(kind.title, systemImage: kind.symbol).tag(kind)
+                            }
                         }
+                        TextField("Note (e.g. gate B, seat 14A)", text: $document.note, axis: .vertical)
+                            .lineLimit(1...4)
                     }
-                    TextField("Note (e.g. gate B, seat 14A)", text: $document.note, axis: .vertical)
-                        .lineLimit(1...4)
+                    .listRowBackground(Theme.surface)
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Theme.background)
             .navigationTitle("Document")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

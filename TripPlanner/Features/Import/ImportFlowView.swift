@@ -70,31 +70,37 @@ struct ImportFlowView: View {
     private var pickView: some View {
         Form {
             Section {
-                Button {
-                    showFilePicker = true
-                } label: {
-                    Label("Choose a file (PDF, Word, image, text)", systemImage: "doc.badge.plus")
+                Group {
+                    Button {
+                        showFilePicker = true
+                    } label: {
+                        Label("Choose a file (PDF, Word, image, text)", systemImage: "doc.badge.plus")
+                    }
+                    PhotosPicker(selection: $photoItem, matching: .images) {
+                        Label("Choose a photo or screenshot", systemImage: "photo.on.rectangle")
+                    }
                 }
-                PhotosPicker(selection: $photoItem, matching: .images) {
-                    Label("Choose a photo or screenshot", systemImage: "photo.on.rectangle")
-                }
+                .listRowBackground(Theme.surface)
             } footer: {
                 Text("Scanned PDFs and photos are read with on-device text recognition.")
             }
 
             Section {
-                let engine = AIRouter.current(geminiKey: secrets.keys.gemini)
-                Picker("Find stops with", selection: $useAI) {
-                    Text("Basic").tag(false)
-                    Text(engine?.label ?? "AI (not set up)").tag(true)
+                Group {
+                    let engine = AIRouter.current(geminiKey: secrets.keys.gemini)
+                    Picker("Find stops with", selection: $useAI) {
+                        Text("Basic").tag(false)
+                        Text(engine?.label ?? "AI (not set up)").tag(true)
+                    }
+                    .pickerStyle(.segmented)
+                    if useAI && engine == nil {
+                        Label("No AI available. Turn on Apple Intelligence, or add a free Gemini key in Settings.",
+                              systemImage: "key.fill")
+                            .font(.footnote)
+                            .foregroundStyle(Theme.warning)
+                    }
                 }
-                .pickerStyle(.segmented)
-                if useAI && engine == nil {
-                    Label("No AI available. Turn on Apple Intelligence, or add a free Gemini key in Settings.",
-                          systemImage: "key.fill")
-                        .font(.footnote)
-                        .foregroundStyle(Theme.warning)
-                }
+                .listRowBackground(Theme.surface)
             } footer: {
                 Text(useAI
                      ? "AI reads almost any layout and language. With Gemini, the document text is sent to Google for this import; Apple Intelligence stays on the phone."
@@ -102,9 +108,14 @@ struct ImportFlowView: View {
             }
 
             Section {
-                Toggle("Keep a copy in Documents", isOn: $saveCopy)
+                Group {
+                    Toggle("Keep a copy in Documents", isOn: $saveCopy)
+                }
+                .listRowBackground(Theme.surface)
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Theme.background)
     }
 
     private func workingView(_ message: String) -> some View {

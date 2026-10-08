@@ -174,26 +174,34 @@ struct PackingGeneratorView: View {
         NavigationStack {
             Form {
                 Section {
-                    Picker("Climate", selection: $options.climate) {
-                        ForEach(PackingOptions.Climate.allCases) { Text($0.title).tag($0) }
+                    Group {
+                        Picker("Climate", selection: $options.climate) {
+                            ForEach(PackingOptions.Climate.allCases) { Text($0.title).tag($0) }
+                        }
+                        .pickerStyle(.segmented)
+                        if let forecastNote {
+                            Label(forecastNote, systemImage: "cloud.sun")
+                                .font(.footnote)
+                                .foregroundStyle(Theme.inkSecondary)
+                        }
+                        Stepper("Nights: \(options.nights)", value: $options.nights, in: 1...60)
+                        Toggle("Expect rain", isOn: $options.rain)
                     }
-                    .pickerStyle(.segmented)
-                    if let forecastNote {
-                        Label(forecastNote, systemImage: "cloud.sun")
-                            .font(.footnote)
-                            .foregroundStyle(Theme.inkSecondary)
-                    }
-                    Stepper("Nights: \(options.nights)", value: $options.nights, in: 1...60)
-                    Toggle("Expect rain", isOn: $options.rain)
+                    .listRowBackground(Theme.surface)
                 }
                 Section("Activities") {
-                    Toggle("Beach", isOn: $options.beach)
-                    Toggle("Hiking", isOn: $options.hiking)
-                    Toggle("Business", isOn: $options.business)
-                    Toggle("Nightlife", isOn: $options.nightlife)
-                    Toggle("Travelling with kids", isOn: $options.kids)
+                    Group {
+                        Toggle("Beach", isOn: $options.beach)
+                        Toggle("Hiking", isOn: $options.hiking)
+                        Toggle("Business", isOn: $options.business)
+                        Toggle("Nightlife", isOn: $options.nightlife)
+                        Toggle("Travelling with kids", isOn: $options.kids)
+                    }
+                    .listRowBackground(Theme.surface)
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Theme.background)
             .navigationTitle("Suggest a list")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -88,26 +88,39 @@ struct NewTripWizard: View {
     private var whereStep: some View {
         Form {
             Section {
-                DestinationPicker(destination: $destination, coordinate: $coordinate) { city in
-                    if !nameEdited { name = "Trip to \(city)" }
+                Group {
+                    DestinationPicker(destination: $destination, coordinate: $coordinate) { city in
+                        if !nameEdited { name = "Trip to \(city)" }
+                    }
                 }
+                .listRowBackground(Theme.surface)
             } footer: {
                 Text("Pick a suggestion so the app knows where you're going. It then finds places, weather and ideas for you.")
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Theme.background)
     }
 
     private var whenStep: some View {
         Form {
             Section("Name") {
-                TextField("Name", text: $name)
-                    .onChange(of: name) { _, _ in nameEdited = true }
+                Group {
+                    TextField("Name", text: $name)
+                        .onChange(of: name) { _, _ in nameEdited = true }
+                }
+                .listRowBackground(Theme.surface)
             }
             Section("Dates") {
-                DatePicker("Start", selection: $startDate, displayedComponents: .date)
-                DatePicker("End", selection: $endDate, in: startDate..., displayedComponents: .date)
+                Group {
+                    DatePicker("Start", selection: $startDate, displayedComponents: .date)
+                    DatePicker("End", selection: $endDate, in: startDate..., displayedComponents: .date)
+                }
+                .listRowBackground(Theme.surface)
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Theme.background)
     }
 
     private var startStep: some View {

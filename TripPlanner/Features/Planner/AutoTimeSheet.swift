@@ -22,33 +22,44 @@ struct AutoTimeSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    DatePicker(hotel == nil ? "First stop at" : "Leave the hotel at",
-                               selection: $start, displayedComponents: .hourAndMinute)
+                    Group {
+                        DatePicker(hotel == nil ? "First stop at" : "Leave the hotel at",
+                                   selection: $start, displayedComponents: .hourAndMinute)
+                    }
+                    .listRowBackground(Theme.surface)
                 } footer: {
                     Text("Each stop starts after the previous one ends, plus travel time (\(travelDescription)) and 5 minutes of slack. \(hotel == nil ? "" : "The first stop adds the way from the hotel. ")This replaces existing times for this day.")
                 }
 
                 if let windowNote {
                     Section {
-                        Label(windowNote, systemImage: "airplane")
-                            .font(.footnote)
+                        Group {
+                            Label(windowNote, systemImage: "airplane")
+                                .font(.footnote)
+                        }
+                        .listRowBackground(Theme.surface)
                     }
                 }
 
                 Section("Preview") {
-                    let times = schedule()
-                    ForEach(Array(stops.enumerated()), id: \.element.persistentModelID) { index, stop in
-                        HStack {
-                            Text(Format.time(times[index]))
-                                .monospacedDigit()
-                                .foregroundStyle(Theme.inkSecondary)
-                                .frame(width: 70, alignment: .leading)
-                            Text(stop.name)
-                                .lineLimit(1)
+                    Group {
+                        let times = schedule()
+                        ForEach(Array(stops.enumerated()), id: \.element.persistentModelID) { index, stop in
+                            HStack {
+                                Text(Format.time(times[index]))
+                                    .monospacedDigit()
+                                    .foregroundStyle(Theme.inkSecondary)
+                                    .frame(width: 70, alignment: .leading)
+                                Text(stop.name)
+                                    .lineLimit(1)
+                            }
                         }
                     }
+                    .listRowBackground(Theme.surface)
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Theme.background)
             .navigationTitle("Adjust times")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -21,8 +21,11 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Section {
-                    SecureField("OpenTripMap key", text: $secrets.openTripMapKey)
-                    Link("Get a free key", destination: URL(string: "https://opentripmap.io/product")!)
+                    Group {
+                        SecureField("OpenTripMap key", text: $secrets.openTripMapKey)
+                        Link("Get a free key", destination: URL(string: "https://opentripmap.io/product")!)
+                    }
+                    .listRowBackground(Theme.surface)
                 } header: {
                     Text("Popular sights (OpenTripMap)")
                 } footer: {
@@ -30,8 +33,11 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    SecureField("Tripadvisor key", text: $secrets.tripadvisorKey)
-                    Link("Tripadvisor Content API", destination: URL(string: "https://www.tripadvisor.com/developers")!)
+                    Group {
+                        SecureField("Tripadvisor key", text: $secrets.tripadvisorKey)
+                        Link("Tripadvisor Content API", destination: URL(string: "https://www.tripadvisor.com/developers")!)
+                    }
+                    .listRowBackground(Theme.surface)
                 } header: {
                     Text("Ratings (Tripadvisor)")
                 } footer: {
@@ -39,7 +45,10 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    Toggle("Public transport routes", isOn: $transitRoutes)
+                    Group {
+                        Toggle("Public transport routes", isOn: $transitRoutes)
+                    }
+                    .listRowBackground(Theme.surface)
                 } header: {
                     Text("Public transport")
                 } footer: {
@@ -47,8 +56,11 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    SecureField("RapidAPI key for AeroDataBox", text: $secrets.aerodataboxKey)
-                    Link("Get the free plan on RapidAPI", destination: URL(string: "https://rapidapi.com/aedbx-aedbx/api/aerodatabox")!)
+                    Group {
+                        SecureField("RapidAPI key for AeroDataBox", text: $secrets.aerodataboxKey)
+                        Link("Get the free plan on RapidAPI", destination: URL(string: "https://rapidapi.com/aedbx-aedbx/api/aerodatabox")!)
+                    }
+                    .listRowBackground(Theme.surface)
                 } header: {
                     Text("Flight lookup (AeroDataBox)")
                 } footer: {
@@ -56,33 +68,36 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    Picker("AI engine", selection: $aiModeRaw) {
-                        ForEach(AIMode.allCases) { Text($0.title).tag($0.rawValue) }
-                    }
-                    Label(AIRouter.onDeviceAvailable
-                          ? "Apple Intelligence is available on this iPhone."
-                          : "Apple Intelligence isn't available here (needs iOS 26 and a supported iPhone with Apple Intelligence turned on).",
-                          systemImage: AIRouter.onDeviceAvailable ? "checkmark.seal.fill" : "info.circle")
-                        .font(.footnote)
-                        .foregroundStyle(AIRouter.onDeviceAvailable ? Theme.success : Theme.inkSecondary)
-                    SecureField("Gemini API key (optional)", text: $secrets.geminiKey)
-                    Link("Get a free Gemini key", destination: URL(string: "https://aistudio.google.com/apikey")!)
-                    Button {
-                        Task { await testGemini() }
-                    } label: {
-                        HStack {
-                            Label("Test Gemini key", systemImage: "checkmark.shield")
-                            Spacer()
-                            if testingGemini { ProgressView() }
+                    Group {
+                        Picker("AI engine", selection: $aiModeRaw) {
+                            ForEach(AIMode.allCases) { Text($0.title).tag($0.rawValue) }
+                        }
+                        Label(AIRouter.onDeviceAvailable
+                              ? "Apple Intelligence is available on this iPhone."
+                              : "Apple Intelligence isn't available here (needs iOS 26 and a supported iPhone with Apple Intelligence turned on).",
+                              systemImage: AIRouter.onDeviceAvailable ? "checkmark.seal.fill" : "info.circle")
+                            .font(.footnote)
+                            .foregroundStyle(AIRouter.onDeviceAvailable ? Theme.success : Theme.inkSecondary)
+                        SecureField("Gemini API key (optional)", text: $secrets.geminiKey)
+                        Link("Get a free Gemini key", destination: URL(string: "https://aistudio.google.com/apikey")!)
+                        Button {
+                            Task { await testGemini() }
+                        } label: {
+                            HStack {
+                                Label("Test Gemini key", systemImage: "checkmark.shield")
+                                Spacer()
+                                if testingGemini { ProgressView() }
+                            }
+                        }
+                        .disabled(secrets.keys.gemini.isEmpty || testingGemini)
+                        if let geminiResult {
+                            Label(geminiResult.message,
+                                  systemImage: geminiResult.ok ? "checkmark.circle.fill" : "xmark.octagon.fill")
+                                .font(.footnote)
+                                .foregroundStyle(geminiResult.ok ? Theme.success : Theme.danger)
                         }
                     }
-                    .disabled(secrets.keys.gemini.isEmpty || testingGemini)
-                    if let geminiResult {
-                        Label(geminiResult.message,
-                              systemImage: geminiResult.ok ? "checkmark.circle.fill" : "xmark.octagon.fill")
-                            .font(.footnote)
-                            .foregroundStyle(geminiResult.ok ? Theme.success : Theme.danger)
-                    }
+                    .listRowBackground(Theme.surface)
                 } header: {
                     Text("AI (import, trip planner, tips)")
                 } footer: {
@@ -90,36 +105,42 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    NavigationLink {
-                        DiagnosticsView()
-                    } label: {
-                        Label("Diagnostics", systemImage: "stethoscope")
+                    Group {
+                        NavigationLink {
+                            DiagnosticsView()
+                        } label: {
+                            Label("Diagnostics", systemImage: "stethoscope")
+                        }
                     }
+                    .listRowBackground(Theme.surface)
                 } footer: {
                     Text("Shows the last lookups that failed (public transport, opening hours, AI...) so a problem is easy to report.")
                 }
 
                 Section {
-                    if trips.isEmpty {
-                        Text("No trips to back up yet.")
-                            .foregroundStyle(Theme.inkSecondary)
-                    } else if let backupURL {
-                        ShareLink(item: backupURL) {
-                            Label("Back up all trips", systemImage: "externaldrive.badge.plus")
+                    Group {
+                        if trips.isEmpty {
+                            Text("No trips to back up yet.")
+                                .foregroundStyle(Theme.inkSecondary)
+                        } else if let backupURL {
+                            ShareLink(item: backupURL) {
+                                Label("Back up all trips", systemImage: "externaldrive.badge.plus")
+                            }
+                        } else {
+                            ProgressView()
                         }
-                    } else {
-                        ProgressView()
+                        Button {
+                            showRestore = true
+                        } label: {
+                            Label("Restore from a trip file", systemImage: "square.and.arrow.down")
+                        }
+                        if let restoreMessage {
+                            Text(restoreMessage)
+                                .font(.footnote)
+                                .foregroundStyle(Theme.inkSecondary)
+                        }
                     }
-                    Button {
-                        showRestore = true
-                    } label: {
-                        Label("Restore from a trip file", systemImage: "square.and.arrow.down")
-                    }
-                    if let restoreMessage {
-                        Text(restoreMessage)
-                            .font(.footnote)
-                            .foregroundStyle(Theme.inkSecondary)
-                    }
+                    .listRowBackground(Theme.surface)
                 } header: {
                     Text("Backup")
                 } footer: {
@@ -127,11 +148,16 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    Text("Keys never leave this iPhone except in requests to the service they belong to.")
-                        .font(.footnote)
-                        .foregroundStyle(Theme.inkSecondary)
+                    Group {
+                        Text("Keys never leave this iPhone except in requests to the service they belong to.")
+                            .font(.footnote)
+                            .foregroundStyle(Theme.inkSecondary)
+                    }
+                    .listRowBackground(Theme.surface)
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Theme.background)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

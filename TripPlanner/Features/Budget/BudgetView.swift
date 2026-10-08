@@ -321,63 +321,77 @@ struct ExpenseEditView: View {
             Form {
                 if expense == nil {
                     Section {
-                        PhotosPicker(selection: $photoItem, matching: .images) {
-                            Label("Scan a receipt from a photo", systemImage: "doc.viewfinder")
-                        }
-                        if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                            Button {
-                                showCamera = true
-                            } label: {
-                                Label("Take a photo of a receipt", systemImage: "camera")
+                        Group {
+                            PhotosPicker(selection: $photoItem, matching: .images) {
+                                Label("Scan a receipt from a photo", systemImage: "doc.viewfinder")
+                            }
+                            if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                                Button {
+                                    showCamera = true
+                                } label: {
+                                    Label("Take a photo of a receipt", systemImage: "camera")
+                                }
+                            }
+                            if scanning {
+                                HStack(spacing: Spacing.m) {
+                                    ProgressView()
+                                    Text("Reading the receipt…").foregroundStyle(Theme.inkSecondary)
+                                }
+                            }
+                            if let scanMessage {
+                                Text(scanMessage)
+                                    .font(.footnote)
+                                    .foregroundStyle(Theme.inkSecondary)
                             }
                         }
-                        if scanning {
-                            HStack(spacing: Spacing.m) {
-                                ProgressView()
-                                Text("Reading the receipt…").foregroundStyle(Theme.inkSecondary)
-                            }
-                        }
-                        if let scanMessage {
-                            Text(scanMessage)
-                                .font(.footnote)
-                                .foregroundStyle(Theme.inkSecondary)
-                        }
+                        .listRowBackground(Theme.surface)
                     } footer: {
                         Text("The text on the photo is read on the phone. Check the amount before you save.")
                     }
                 }
                 Section {
-                    TextField("What was it? (optional)", text: $title)
-                    HStack {
-                        TextField("Amount", text: $amountText)
-                            .keyboardType(.decimalPad)
-                        Text(currency)
-                            .foregroundStyle(Theme.inkSecondary)
-                    }
-                    Picker("Currency", selection: $currency) {
-                        ForEach(CurrencyList.codes(including: [trip.currencyCode, currency]), id: \.self) { code in
-                            Text(CurrencyList.label(code)).tag(code)
+                    Group {
+                        TextField("What was it? (optional)", text: $title)
+                        HStack {
+                            TextField("Amount", text: $amountText)
+                                .keyboardType(.decimalPad)
+                            Text(currency)
+                                .foregroundStyle(Theme.inkSecondary)
                         }
+                        Picker("Currency", selection: $currency) {
+                            ForEach(CurrencyList.codes(including: [trip.currencyCode, currency]), id: \.self) { code in
+                                Text(CurrencyList.label(code)).tag(code)
+                            }
+                        }
+                        .pickerStyle(.navigationLink)
                     }
-                    .pickerStyle(.navigationLink)
+                    .listRowBackground(Theme.surface)
                 }
                 Section {
-                    Picker("Category", selection: $category) {
-                        ForEach(ExpenseCategory.allCases) { c in
-                            Label(c.title, systemImage: c.symbol).tag(c)
+                    Group {
+                        Picker("Category", selection: $category) {
+                            ForEach(ExpenseCategory.allCases) { c in
+                                Label(c.title, systemImage: c.symbol).tag(c)
+                            }
                         }
+                        DatePicker("Date", selection: $date, displayedComponents: .date)
                     }
-                    DatePicker("Date", selection: $date, displayedComponents: .date)
+                    .listRowBackground(Theme.surface)
                 }
                 if let expense {
                     Section {
-                        Button("Delete expense", role: .destructive) {
-                            context.delete(expense)
-                            dismiss()
+                        Group {
+                            Button("Delete expense", role: .destructive) {
+                                context.delete(expense)
+                                dismiss()
+                            }
                         }
+                        .listRowBackground(Theme.surface)
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Theme.background)
             .navigationTitle(expense == nil ? "New expense" : "Edit expense")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -470,22 +484,27 @@ struct BudgetSettingsView: View {
         NavigationStack {
             Form {
                 Section {
-                    HStack {
-                        TextField("Total budget", text: $budgetText)
-                            .keyboardType(.decimalPad)
-                        Text(trip.currencyCode)
-                            .foregroundStyle(Theme.inkSecondary)
-                    }
-                    Picker("Trip currency", selection: $trip.currencyCode) {
-                        ForEach(CurrencyList.codes(including: [trip.currencyCode]), id: \.self) { code in
-                            Text(CurrencyList.label(code)).tag(code)
+                    Group {
+                        HStack {
+                            TextField("Total budget", text: $budgetText)
+                                .keyboardType(.decimalPad)
+                            Text(trip.currencyCode)
+                                .foregroundStyle(Theme.inkSecondary)
                         }
+                        Picker("Trip currency", selection: $trip.currencyCode) {
+                            ForEach(CurrencyList.codes(including: [trip.currencyCode]), id: \.self) { code in
+                                Text(CurrencyList.label(code)).tag(code)
+                            }
+                        }
+                        .pickerStyle(.navigationLink)
                     }
-                    .pickerStyle(.navigationLink)
+                    .listRowBackground(Theme.surface)
                 } footer: {
                     Text("All totals are shown in the trip currency. Expenses in other currencies are converted with current exchange rates.")
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Theme.background)
             .navigationTitle("Budget")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

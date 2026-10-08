@@ -24,34 +24,48 @@ struct TripEditView: View {
         NavigationStack {
             Form {
                 Section("Trip") {
-                    TextField("Name (e.g. Summer in Lisbon)", text: $name)
+                    Group {
+                        TextField("Name (e.g. Summer in Lisbon)", text: $name)
+                    }
+                    .listRowBackground(Theme.surface)
                 }
 
                 Section("Destination") {
-                    DestinationPicker(destination: $destination, coordinate: $coordinate) { city in
-                        if name.trimmingCharacters(in: .whitespaces).isEmpty {
-                            name = "Trip to \(city)"
+                    Group {
+                        DestinationPicker(destination: $destination, coordinate: $coordinate) { city in
+                            if name.trimmingCharacters(in: .whitespaces).isEmpty {
+                                name = "Trip to \(city)"
+                            }
                         }
                     }
+                    .listRowBackground(Theme.surface)
                 }
 
                 Section("Dates") {
-                    DatePicker("Start", selection: $startDate, displayedComponents: .date)
-                    DatePicker("End", selection: $endDate, in: startDate..., displayedComponents: .date)
+                    Group {
+                        DatePicker("Start", selection: $startDate, displayedComponents: .date)
+                        DatePicker("End", selection: $endDate, in: startDate..., displayedComponents: .date)
+                    }
+                    .listRowBackground(Theme.surface)
                 }
 
                 Section {
-                    Picker("Getting around", selection: $transport) {
-                        ForEach(TripPreferences.Transport.allCases) { option in
-                            Label(option.title, systemImage: option.symbol).tag(option)
+                    Group {
+                        Picker("Getting around", selection: $transport) {
+                            ForEach(TripPreferences.Transport.allCases) { option in
+                                Label(option.title, systemImage: option.symbol).tag(option)
+                            }
                         }
                     }
+                    .listRowBackground(Theme.surface)
                 } footer: {
                     Text(transport == .transit
                          ? "Between stops you'll see the best public transport route, with lines, stops and times."
                          : "With public transport selected, routes between stops show real lines and times.")
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Theme.background)
             .navigationTitle("Edit trip")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

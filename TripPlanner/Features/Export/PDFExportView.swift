@@ -14,55 +14,69 @@ struct PDFExportView: View {
     var body: some View {
         Form {
             Section("Include") {
-                Toggle("Map of each day", isOn: $options.maps)
-                Toggle("Photos of the places", isOn: $options.photos)
-                Toggle("My notes", isOn: $options.notes)
-                Toggle("Flights and hotel", isOn: $options.bookings)
-                Toggle("Emergency numbers and practical info", isOn: $options.practical)
+                Group {
+                    Toggle("Map of each day", isOn: $options.maps)
+                    Toggle("Photos of the places", isOn: $options.photos)
+                    Toggle("My notes", isOn: $options.notes)
+                    Toggle("Flights and hotel", isOn: $options.bookings)
+                    Toggle("Emergency numbers and practical info", isOn: $options.practical)
+                }
+                .listRowBackground(Theme.surface)
             }
 
             Section {
-                Button {
-                    Task { await create() }
-                } label: {
-                    HStack {
-                        Label(url == nil ? "Create PDF" : "Create again", systemImage: "doc.richtext")
-                        if working {
-                            Spacer()
-                            ProgressView()
+                Group {
+                    Button {
+                        Task { await create() }
+                    } label: {
+                        HStack {
+                            Label(url == nil ? "Create PDF" : "Create again", systemImage: "doc.richtext")
+                            if working {
+                                Spacer()
+                                ProgressView()
+                            }
                         }
                     }
+                    .disabled(working)
                 }
-                .disabled(working)
+                .listRowBackground(Theme.surface)
             } footer: {
                 Text("One A4 page per day (long days continue on a second page), with times, addresses, opening hours and the warnings you see in the app. Maps are drawn from Apple Maps, so a connection helps.")
             }
 
             if let url {
                 Section("Your PDF") {
-                    Button {
-                        preview = url
-                    } label: {
-                        Label("Preview", systemImage: "eye")
+                    Group {
+                        Button {
+                            preview = url
+                        } label: {
+                            Label("Preview", systemImage: "eye")
+                        }
+                        ShareLink(item: url) {
+                            Label("Share or save to Files", systemImage: "square.and.arrow.up")
+                        }
+                        Button {
+                            ItineraryPDF.printPDF(at: url, jobName: trip.name)
+                        } label: {
+                            Label("Print", systemImage: "printer")
+                        }
                     }
-                    ShareLink(item: url) {
-                        Label("Share or save to Files", systemImage: "square.and.arrow.up")
-                    }
-                    Button {
-                        ItineraryPDF.printPDF(at: url, jobName: trip.name)
-                    } label: {
-                        Label("Print", systemImage: "printer")
-                    }
+                    .listRowBackground(Theme.surface)
                 }
             }
 
             if failed {
                 Section {
-                    Text("The PDF couldn't be created. Try again.")
-                        .foregroundStyle(.red)
+                    Group {
+                        Text("The PDF couldn't be created. Try again.")
+                            .foregroundStyle(.red)
+                    }
+                    .listRowBackground(Theme.surface)
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Theme.background)
         .navigationTitle("PDF itinerary")
         .navigationBarTitleDisplayMode(.inline)
         .quickLookPreview($preview)
