@@ -5,6 +5,7 @@ import CoreLocation
 /// that combines the official timetables of many countries. Best effort, no live guarantees.
 /// Its rules: send an identifying User-Agent, keep the volume low, open-source non-commercial use.
 enum TransitousService {
+    static let baseURL = "https://api.transitous.org"
     static let endpoint = "https://api.transitous.org/api/v6/plan"
     static let userAgent = "TripPlanner/1.0 (+https://github.com/skysurfer1508/trip-planner)"
 
@@ -53,18 +54,22 @@ enum TransitousService {
 
     static func parse(_ json: [String: Any]) -> [TransitItinerary] {
         let rows = json["itineraries"] as? [[String: Any]] ?? []
-        return rows.compactMap { row in
-            let legs = (row["legs"] as? [[String: Any]] ?? []).compactMap(leg)
-            guard !legs.isEmpty else { return nil }
-            return TransitItinerary(duration: Net.int(row["duration"]) ?? legs.reduce(0) { $0 + $1.duration },
-                                    transfers: Net.int(row["transfers"]) ?? 0,
-                                    start: TransitTime.parse(row["startTime"] as? String),
-                                    end: TransitTime.parse(row["endTime"] as? String),
-                                    legs: legs)
-        }
+        return rows.compactMap(parseItinerary)
     }
 
-    private static func leg(_ row: [String: Any]) -> TransitLeg? {
+    /// One journey, as in a plan answer or as the answer to a refresh.
+    static func parseItinerary(_ row: [String: Any]) -> TransitItinerary? {
+        let legs = (row["legs"] as? [[String: Any]] ?? []).compactMap(leg)
+        guard !legs.isEmpty else { return nil }
+        return TransitItinerary(duration: Net.int(row["duration"]) ?? legs.reduce(0) { $0 + $1.duration },
+                                transfers: Net.int(row["transfers"]) ?? 0,
+                                start: TransitTime.parse(row["startTime"] as? String),
+                                end: TransitTime.parse(row["endTime"] as? String),
+                                legs: legs,
+                                id: row["id"] as? String)
+    }
+
+    static func leg(_ row: [String: Any]) -> TransitLeg? {
         guard let from = row["from"] as? [String: Any], let to = row["to"] as? [String: Any],
               let fromLat = Net.double(from["lat"]), let fromLon = Net.double(from["lon"]),
               let toLat = Net.double(to["lat"]), let toLon = Net.double(to["lon"]) else { return nil }
@@ -100,7 +105,13 @@ enum TransitousService {
                           distance: Net.double(row["distance"]) ?? 0,
                           duration: Net.int(row["duration"]) ?? 0,
                           stopCount: (row["intermediateStops"] as? [Any])?.count ?? 0,
-                          path: path)
+                          path: path,
+                          realTime: row["realTime"] as? Bool,
+                          cancelled: (row["cancelled"] as? Bool) ?? (from["cancelled"] as? Bool),
+                          scheduledDeparture: TransitTime.parse(from["scheduledDeparture"] as? String),
+                          scheduledArrival: TransitTime.parse(to["scheduledArrival"] as? String),
+                          fromStopId: from["stopId"] as? String,
+                          tripId: row["tripId"] as? String)
     }
 
     private static func nonEmpty(_ value: Any?) -> String? {

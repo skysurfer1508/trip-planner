@@ -52,6 +52,7 @@ enum RoutingService {
     static func eta(from: CLLocationCoordinate2D,
                     to: CLLocationCoordinate2D,
                     mode: TravelMode) async -> TimeInterval? {
+        guard await MapKitThrottle.shared.acquire() else { return nil }
         let request = MKDirections.Request()
         request.source = MKMapItem(placemark: MKPlacemark(coordinate: from))
         request.destination = MKMapItem(placemark: MKPlacemark(coordinate: to))

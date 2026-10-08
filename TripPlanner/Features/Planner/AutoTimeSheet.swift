@@ -70,7 +70,12 @@ struct AutoTimeSheet: View {
                 start = TimeAdjuster.suggestedStart(for: day)
                 applyWindow()
             }
-            .task(id: transitSignature) { await loadTransit() }
+            .task(id: transitSignature) {
+                // Spinning the time wheel changes the signature many times: wait for it to settle.
+                try? await Task.sleep(for: .milliseconds(600))
+                if Task.isCancelled { return }
+                await loadTransit()
+            }
         }
         .presentationDetents([.medium, .large])
     }

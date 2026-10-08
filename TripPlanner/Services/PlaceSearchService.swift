@@ -3,6 +3,7 @@ import MapKit
 enum PlaceSearchService {
     /// Free-text place search, optionally biased to a region.
     static func search(query: String, region: MKCoordinateRegion?) async throws -> [MKMapItem] {
+        guard await MapKitThrottle.shared.acquire() else { throw CancellationError() }
         let request = MKLocalSearch.Request()
         request.naturalLanguageQuery = query
         if let region {
@@ -34,7 +35,7 @@ enum PlaceSearchService {
     /// Finds a map region around a destination name like "Lisbon", used to bias place search.
     static func region(for destination: String) async -> MKCoordinateRegion? {
         let trimmed = destination.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
+        guard !trimmed.isEmpty, await MapKitThrottle.shared.acquire() else { return nil }
         let request = MKLocalSearch.Request()
         request.naturalLanguageQuery = trimmed
         guard let item = try? await MKLocalSearch(request: request).start().mapItems.first else { return nil }
@@ -49,6 +50,7 @@ enum PlaceSearchService {
                        categories: [MKPointOfInterestCategory],
                        center: CLLocationCoordinate2D,
                        radius: CLLocationDistance) async throws -> [MKMapItem] {
+        guard await MapKitThrottle.shared.acquire() else { throw CancellationError() }
         let filter = MKPointOfInterestFilter(including: categories)
         let items: [MKMapItem]
 

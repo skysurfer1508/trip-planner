@@ -46,10 +46,11 @@ struct MustSeeSheet: View {
         var include = true
     }
 
-    private var parsed: MustSeeParser.Parsed { MustSeeParser.parse(text) }
-    private var query: String { parsed.query }
+    /// What the text says, worked out once per keystroke (not once per use).
+    @State private var parsed = MustSeeParser.parse("")
     /// Several places in one text: they are found together instead of searched as one name.
-    private var isList: Bool { MustSeeParser.looksLikeList(text) }
+    @State private var isList = false
+    private var query: String { parsed.query }
 
     /// The time chosen by hand, else the one found in the text.
     private var minute: Int? {
@@ -79,6 +80,10 @@ struct MustSeeSheet: View {
                 }
             }
             .task(id: query) { await search() }
+            .onChange(of: text) { _, newValue in
+                parsed = MustSeeParser.parse(newValue)
+                isList = MustSeeParser.looksLikeList(newValue)
+            }
             .onAppear { focused = true }
             .sheet(isPresented: Binding(get: { changingID != nil }, set: { if !$0 { changingID = nil } })) {
                 PlacePickerView(query: batch.first { $0.id == changingID }?.title ?? "", region: region) { item in

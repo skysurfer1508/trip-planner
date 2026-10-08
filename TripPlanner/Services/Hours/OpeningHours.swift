@@ -45,7 +45,23 @@ struct OpeningHours {
                                      "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12]
     private static let dayNames = ["mo": 1, "tu": 2, "we": 3, "th": 4, "fr": 5, "sa": 6, "su": 7]
 
+    private final class Box {
+        let value: OpeningHours?
+        init(_ value: OpeningHours?) { self.value = value }
+    }
+
+    private static let parsed = NSCache<NSString, Box>()
+
+    /// Parsed once per text: rows ask for the same hours again and again while a list scrolls.
     static func parse(_ text: String) -> OpeningHours? {
+        let key = text as NSString
+        if let known = parsed.object(forKey: key) { return known.value }
+        let value = parseUncached(text)
+        parsed.setObject(Box(value), forKey: key)
+        return value
+    }
+
+    private static func parseUncached(_ text: String) -> OpeningHours? {
         let cleaned = text.replacingOccurrences(of: "\"[^\"]*\"", with: "", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleaned.isEmpty else { return nil }
@@ -249,7 +265,7 @@ struct OpeningHours {
                    let first = nextDay.first, first.start == 0 {
                     end = 1440 + first.end
                 }
-                return finish <= end + 20 ? .open : .closesEarly(min(current.end, 1440))
+                return finish <= end + 20 ? .open : .closesEarly(current.end)
             }
             if let next = intervals.first(where: { $0.start > begin }) {
                 return .opensLater(next.start)
@@ -265,7 +281,8 @@ struct OpeningHours {
     // MARK: Text
 
     static func clock(_ minute: Int) -> String {
-        let value = min(minute, 1440)
+        // Past midnight reads as the next morning (26:00 is 02:00); midnight itself stays 24:00.
+        let value = minute == 1440 ? 1440 : minute % 1440
         return String(format: "%02d:%02d", value / 60, value % 60)
     }
 

@@ -147,8 +147,7 @@ struct DayStopListView: View {
                                 day.duplicate(stop)
                             }
                             Button("Delete", systemImage: "trash", role: .destructive) {
-                                context.delete(stop)
-                                day.renumber(day.sortedStops.filter { $0 !== stop })
+                                day.remove(stop)
                             }
                         }
                         .swipeActions(edge: .leading) {
@@ -165,11 +164,9 @@ struct DayStopListView: View {
                         orderChanged = true
                     }
                     .onDelete { offsets in
-                        var ordered = day.sortedStops
+                        let ordered = day.sortedStops
                         let removed = offsets.map { ordered[$0] }
-                        ordered.remove(atOffsets: offsets)
-                        removed.forEach { context.delete($0) }
-                        day.renumber(ordered)
+                        removed.forEach { day.remove($0) }
                     }
                 } header: {
                     DaySummary(stops: stops, start: window.anchor)

@@ -205,6 +205,7 @@ struct StopDetailView: View {
                 .foregroundStyle(.secondary)
         }
         Button("These hours are wrong", systemImage: "hand.thumbsdown", role: .destructive) {
+            stop.rejectedHours = stop.openingHours
             stop.openingHours = ""
             stop.hoursSource = ""
             stop.hoursCheckedAt = Date()

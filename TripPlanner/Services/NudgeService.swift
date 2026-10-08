@@ -20,6 +20,28 @@ enum NudgeService {
         return granted ?? false
     }
 
+    private static let liveID = "nudge-live"
+
+    /// One reminder for the connection being watched; a new one replaces the old.
+    static func scheduleLive(at date: Date, title: String, body: String) async {
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: [liveID])
+        let wait = date.timeIntervalSinceNow
+        guard wait > 20 else { return }
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+        let request = UNNotificationRequest(identifier: liveID,
+                                            content: content,
+                                            trigger: UNTimeIntervalNotificationTrigger(timeInterval: wait, repeats: false))
+        try? await center.add(request)
+    }
+
+    static func cancelLive() async {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [liveID])
+    }
+
     static func cancelAll() async {
         let center = UNUserNotificationCenter.current()
         let ids = await center.pendingNotificationRequests().map(\.identifier).filter { $0.hasPrefix(prefix) }

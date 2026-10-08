@@ -70,8 +70,48 @@ struct TransitLeg: Codable {
     var duration: Int
     var stopCount: Int
     var path: [TransitPoint]
+    /// Live data. All optional, so routes saved before they existed still open.
+    var realTime: Bool?
+    var cancelled: Bool?
+    /// What the timetable says, when the live time differs.
+    var scheduledDeparture: Date?
+    var scheduledArrival: Date?
+    var fromStopId: String?
+    var tripId: String?
 
     var isWalking: Bool { mode == .walk }
+
+    /// True when the agency sends live positions for this trip.
+    var isLive: Bool { realTime ?? false }
+    var isCancelled: Bool { cancelled ?? false }
+
+    /// Minutes later (+) or earlier (-) than the timetable; nil without live data.
+    var departureDelayMinutes: Int? {
+        guard isLive, let departure, let scheduledDeparture else { return nil }
+        return Int((departure.timeIntervalSince(scheduledDeparture) / 60).rounded())
+    }
+
+    var arrivalDelayMinutes: Int? {
+        guard isLive, let arrival, let scheduledArrival else { return nil }
+        return Int((arrival.timeIntervalSince(scheduledArrival) / 60).rounded())
+    }
+
+    enum Status: Equatable {
+        case scheduled
+        case onTime
+        case late(Int)
+        case early(Int)
+        case cancelled
+    }
+
+    var status: Status {
+        if isCancelled { return .cancelled }
+        guard isLive else { return .scheduled }
+        let delay = departureDelayMinutes ?? 0
+        if delay >= 1 { return .late(delay) }
+        if delay <= -1 { return .early(-delay) }
+        return .onTime
+    }
 
     var coordinates: [CLLocationCoordinate2D] {
         path.isEmpty ? [from.coordinate, to.coordinate] : path.map(\.coordinate)
@@ -92,6 +132,34 @@ struct TransitItinerary: Codable {
     var start: Date?
     var end: Date?
     var legs: [TransitLeg]
+    /// The service's id for this journey, used to ask for fresh live data.
+    var id: String?
+
+    var hasLiveData: Bool { legs.contains { $0.isLive } }
+    var hasCancelledLeg: Bool { legs.contains { $0.isCancelled } }
+
+    /// When the first vehicle leaves (live if known).
+    var firstDeparture: Date? { transitLegs.first?.departure }
+
+    /// Minutes between getting off one vehicle and the next one leaving, walking included, per change.
+    /// A small number with a delay in it means the connection may be missed.
+    var changeSlackMinutes: [Int] {
+        var result: [Int] = []
+        var arrival: Date?
+        var walking: TimeInterval = 0
+        for leg in legs {
+            if leg.isWalking {
+                if arrival != nil { walking += TimeInterval(leg.duration) }
+                continue
+            }
+            if let previous = arrival, let departure = leg.departure {
+                result.append(Int(((departure.timeIntervalSince(previous) - walking) / 60).rounded(.down)))
+            }
+            arrival = leg.arrival
+            walking = 0
+        }
+        return result
+    }
 
     var transitLegs: [TransitLeg] { legs.filter { !$0.isWalking } }
 

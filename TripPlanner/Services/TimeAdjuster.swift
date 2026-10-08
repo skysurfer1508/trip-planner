@@ -44,8 +44,9 @@ enum TimeAdjuster {
         let window = day.trip?.window(for: day.date) ?? DayWindow()
         let stops = day.sortedStops
         var start = day.defaultWallClock(hour: 9)
-        if let time = stops.first?.plannedTime {
-            start = day.combine(time: time)
+        // The earliest time in the day is where it is meant to begin, wherever that stop sits in the list now.
+        if let time = stops.compactMap(\.plannedTime).map({ day.combine(time: $0) }).min() {
+            start = time
             if let hotel = window.anchor, let first = stops.first {
                 let minutes = travelMinutes(from: hotel, to: first.coordinate, transport: day.trip?.transport ?? .walking)
                 start = start.addingTimeInterval(-TimeInterval(minutes * 60))

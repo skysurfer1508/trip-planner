@@ -1,0 +1,677 @@
+{
+ "itineraries": [
+  {
+   "duration": 1980,
+   "startTime": "2026-10-08T09:24:00Z",
+   "endTime": "2026-10-08T09:57:00Z",
+   "transfers": 0,
+   "id": "ClUhE/JBz2YdSkAp3gIJih8DNUAyG3BsLVdhcnN6YXdhX2NlbnRydW0wOS0wZWE0OTl+qDRiZh1KQEHScqCH2gI1QEiwwp3WBlDEx53WBloEV0FMS2ABCqcBCgIyNBIrMjAyNjEwMDhfMTE6MDFfcGwtV2Fyc3phd2FfM2VmYTViYjBmOWE2YmU4NhobcGwtV2Fyc3phd2FfY2VudHJ1bTA5LTBlYTQ5IX6oNGJmHUpAKdJyoIfaAjVAMh9wbC1XYXJzemF3YV9ncmVuYWRpZXJvdzA0LTJzeWxmOamq0EAsH0pAQcQHdvwXFDVASIjHndYGUNjMndYGWgRUUkFNYAEKWRofcGwtV2Fyc3phd2FfZ3JlbmFkaWVyb3cwNC0yc3lsZiGpqtBALB9KQCnEB3b8FxQ1QDmfzarP1R5KQEET8kHPZhU1QEiUzZ3WBlDs0Z3WBloEV0FMS2AB",
+   "legs": [
+    {
+     "mode": "WALK",
+     "from": {
+      "name": "START",
+      "lat": 52.2297,
+      "lon": 21.0122,
+      "tz": "Europe/Warsaw",
+      "departure": "2026-10-08T09:24:00Z",
+      "scheduledDeparture": "2026-10-08T09:24:00Z",
+      "vertexType": "NORMAL"
+     },
+     "to": {
+      "name": "Centrum",
+      "stopId": "pl-Warszawa_centrum09-0ea49",
+      "importance": 0.0010484015801921487,
+      "lat": 52.229687,
+      "lon": 21.011147,
+      "tz": "Europe/Warsaw",
+      "arrival": "2026-10-08T09:35:00Z",
+      "scheduledArrival": "2026-10-08T09:35:00Z",
+      "stopCode": "09",
+      "vertexType": "TRANSIT",
+      "modes": [
+       "SUBWAY",
+       "TRAM",
+       "BUS"
+      ]
+     },
+     "duration": 660,
+     "startTime": "2026-10-08T09:24:00Z",
+     "endTime": "2026-10-08T09:35:00Z",
+     "scheduledStartTime": "2026-10-08T09:24:00Z",
+     "scheduledEndTime": "2026-10-08T09:35:00Z",
+     "realTime": false,
+     "scheduled": false,
+     "distance": 285.0,
+     "legGeometry": {
+      "points": "}azrbBsonag@]o@??xGG|JeA??t@qDz@eBb@]xCs@pBYz@NnAp@vBfB??jCkAl@W??\\`C??TxA??D\\??Fb@??PnA??Hh@??XlB??RxA??d@dD??v@zF??mO|HwC`E??cFfH??a@cAo@`@QJ??iCtA??w@`@??k@\\??oDmA??[`Bk@hBk@fAmA|A??BdC?fB??@zF???L??c@@?kG?II??^M???M??iACKC?w@j@OJ??X~B",
+      "precision": 6,
+      "length": 82
+     }
+    },
+    {
+     "mode": "TRAM",
+     "from": {
+      "name": "Centrum",
+      "stopId": "pl-Warszawa_centrum09-0ea49",
+      "importance": 0.0010484015801921487,
+      "lat": 52.229687,
+      "lon": 21.011147,
+      "tz": "Europe/Warsaw",
+      "departure": "2026-10-08T09:35:00Z",
+      "scheduledDeparture": "2026-10-08T09:34:00Z",
+      "stopCode": "09",
+      "vertexType": "TRANSIT",
+      "pickupType": "NORMAL",
+      "dropoffType": "NORMAL",
+      "cancelled": false,
+      "modes": [
+       "SUBWAY",
+       "TRAM",
+       "BUS"
+      ]
+     },
+     "to": {
+      "name": "Grenadier\u00f3w",
+      "stopId": "pl-Warszawa_grenadierow04-2sylf",
+      "importance": 1.2573043932206929e-05,
+      "lat": 52.24353800000001,
+      "lon": 21.078491,
+      "tz": "Europe/Warsaw",
+      "arrival": "2026-10-08T09:47:00Z",
+      "scheduledArrival": "2026-10-08T09:46:00Z",
+      "stopCode": "04",
+      "vertexType": "TRANSIT",
+      "pickupType": "NORMAL",
+      "dropoffType": "NORMAL",
+      "cancelled": false,
+      "modes": [
+       "TRAM",
+       "BUS"
+      ]
+     },
+     "duration": 720,
+     "startTime": "2026-10-08T09:35:00Z",
+     "endTime": "2026-10-08T09:47:00Z",
+     "scheduledStartTime": "2026-10-08T09:34:00Z",
+     "scheduledEndTime": "2026-10-08T09:46:00Z",
+     "realTime": true,
+     "scheduled": true,
+     "interlineWithPreviousLeg": false,
+     "headsign": "Goc\u0142awek",
+     "tripFrom": {
+      "name": "Nowe Bemowo",
+      "stopId": "pl-Warszawa_nowe-bemowo07-x1kje",
+      "importance": 4.537925633485429e-05,
+      "lat": 52.26023500000001,
+      "lon": 20.925031999999995,
+      "tz": "Europe/Warsaw",
+      "departure": "2026-10-08T09:01:00Z",
+      "scheduledDeparture": "2026-10-08T09:01:00Z",
+      "stopCode": "07",
+      "vertexType": "TRANSIT",
+      "pickupType": "NORMAL",
+      "dropoffType": "NORMAL",
+      "cancelled": false,
+      "modes": [
+       "TRAM",
+       "BUS"
+      ]
+     },
+     "tripTo": {
+      "name": "Goc\u0142awek",
+      "stopId": "pl-Warszawa_goclawek03-48sam",
+      "importance": 4.856221494264901e-05,
+      "lat": 52.238220000000005,
+      "lon": 21.118807000000004,
+      "tz": "Europe/Warsaw",
+      "arrival": "2026-10-08T09:59:00Z",
+      "scheduledArrival": "2026-10-08T09:58:00Z",
+      "stopCode": "03",
+      "vertexType": "TRANSIT",
+      "pickupType": "NORMAL",
+      "dropoffType": "NORMAL",
+      "cancelled": false,
+      "modes": [
+       "TRAM",
+       "BUS"
+      ]
+     },
+     "routeId": "pl-Warszawa_24",
+     "routeUrl": "",
+     "directionId": "0",
+     "routeColor": "be0d05",
+     "routeTextColor": "ffffff",
+     "routeType": 0,
+     "agencyName": "Warszawski Transport Publiczny",
+     "agencyUrl": "https://zbiorkom.live/",
+     "agencyFareUrl": "",
+     "agencyId": "default",
+     "tripId": "20261008_11:01_pl-Warszawa_3efa5bb0f9a6be86",
+     "routeShortName": "24",
+     "routeLongName": "Nowe Bemowo \u2014 Goc\u0142awek",
+     "tripShortName": "",
+     "displayName": "24",
+     "cancelled": false,
+     "source": "pl_Warszawa.gtfs.zip/stop_times.txt:133661:133700",
+     "intermediateStops": [
+      {
+       "name": "Krucza",
+       "stopId": "pl-Warszawa_krucza05-0kgcj",
+       "importance": 3.900681622326374e-05,
+       "lat": 52.23069,
+       "lon": 21.015850000000004,
+       "tz": "Europe/Warsaw",
+       "arrival": "2026-10-08T09:36:00Z",
+       "departure": "2026-10-08T09:36:00Z",
+       "scheduledArrival": "2026-10-08T09:35:00Z",
+       "scheduledDeparture": "2026-10-08T09:35:00Z",
+       "stopCode": "05",
+       "vertexType": "TRANSIT",
+       "pickupType": "NORMAL",
+       "dropoffType": "NORMAL",
+       "cancelled": false,
+       "modes": [
+        "TRAM",
+        "BUS"
+       ]
+      },
+      {
+       "name": "Muzeum Narodowe",
+       "stopId": "pl-Warszawa_muzeum-narodowe05-0puss",
+       "importance": 3.205651228199713e-05,
+       "lat": 52.231583,
+       "lon": 21.020079,
+       "tz": "Europe/Warsaw",
+       "arrival": "2026-10-08T09:37:00Z",
+       "departure": "2026-10-08T09:37:00Z",
+       "scheduledArrival": "2026-10-08T09:36:00Z",
+       "scheduledDeparture": "2026-10-08T09:36:00Z",
+       "stopCode": "05",
+       "vertexType": "TRANSIT",
+       "pickupType": "NORMAL",
+       "dropoffType": "NORMAL",
+       "cancelled": false,
+       "modes": [
+        "TRAM",
+        "BUS"
+       ]
+      }
+     ],
+     "legGeometry": {
+      "points": "mbzrbBuklag@hoGfyf@okKydy@av@edGqoIqir@}BqOoH}_@uHsj@_Du^gAm]qBcYyzJm|x@m@oNh`ArkI",
+      "precision": 6,
+      "length": 14
+     },
+     "bikesAllowed": false,
+     "wheelchairAccessible": "NOT_ACCESSIBLE",
+     "reservation": "NONE",
+     "alternatives": []
+    },
+    {
+     "mode": "WALK",
+     "from": {
+      "name": "Grenadier\u00f3w",
+      "stopId": "pl-Warszawa_grenadierow04-2sylf",
+      "importance": 1.2573043932206929e-05,
+      "lat": 52.24353800000001,
+      "lon": 21.078491,
+      "tz": "Europe/Warsaw",
+      "arrival": "2026-10-08T09:47:00Z",
+      "departure": "2026-10-08T09:47:00Z",
+      "scheduledArrival": "2026-10-08T09:46:00Z",
+      "scheduledDeparture": "2026-10-08T09:47:00Z",
+      "stopCode": "04",
+      "vertexType": "TRANSIT",
+      "cancelled": false,
+      "modes": [
+       "TRAM",
+       "BUS"
+      ]
+     },
+     "to": {
+      "name": "END",
+      "lat": 52.2409,
+      "lon": 21.0836,
+      "tz": "Europe/Warsaw",
+      "arrival": "2026-10-08T09:57:00Z",
+      "scheduledArrival": "2026-10-08T09:57:00Z",
+      "vertexType": "NORMAL"
+     },
+     "duration": 600,
+     "startTime": "2026-10-08T09:47:00Z",
+     "endTime": "2026-10-08T09:57:00Z",
+     "scheduledStartTime": "2026-10-08T09:47:00Z",
+     "scheduledEndTime": "2026-10-08T09:57:00Z",
+     "realTime": false,
+     "scheduled": false,
+     "distance": 668.0,
+     "legGeometry": {
+      "points": "icusbBc}oeg@hCxT??^O??h@vE??zCwA??z@WpZug@??jAoB??v@qA??l@cA??`LkR??dJ}O??dRc\\??zCsF??~F_K??rRa]??vByD??xDuG??nDiG??jAmB??l@cA??hNqV??nIqPpAuN??p@kH??vAiC??rByD??lBoD??hAwB??pBsD??j@gB??hAiB??l@gA??hEsH??bJoP??iGg]??eD{B??gAs@sMqH_FsD",
+      "precision": 6,
+      "length": 74
+     }
+    }
+   ]
+  },
+  {
+   "duration": 1920,
+   "startTime": "2026-10-08T09:25:00Z",
+   "endTime": "2026-10-08T09:57:00Z",
+   "transfers": 1,
+   "id": "ClUhE/JBz2YdSkAp3gIJih8DNUAyG3BsLVdhcnN6YXdhX2NlbnRydW0xNS0wZ3pjYzkbNPRPcB1KQEGnttRBXgM1QEjswp3WBlDUxZ3WBloEV0FMS2ABCqIBCgMxMjcSKzIwMjYxMDA4XzEwOjU1X3BsLVdhcnN6YXdhXzg3MGQxZTA4Y2I4MWVjNGEaG3BsLVdhcnN6YXdhX2NlbnRydW0xNS0wZ3pjYyEbNPRPcB1KQCmnttRBXgM1QDIacGwtV2Fyc3phd2Ffa3J1Y3phMDEtMG41a205SkONQpIdSkBBygORRZoENUBIoMSd1gZQmMWd1gZaA0JVU2ABCnAaGnBsLVdhcnN6YXdhX2tydWN6YTAxLTBuNWttIUpDjUKSHUpAKcoDkUWaBDVAMhpwbC1XYXJzemF3YV9rcnVjemEwNS0wa2djajnTwfo/hx1KQEFBpN++DgQ1QEjMxp3WBlDEx53WBloEV0FMS2ABCqYBCgIyNBIrMjAyNjEwMDhfMTE6MDFfcGwtV2Fyc3phd2FfM2VmYTViYjBmOWE2YmU4NhoacGwtV2Fyc3phd2Ffa3J1Y3phMDUtMGtnY2oh08H6P4cdSkApQaTfvg4ENUAyH3BsLVdhcnN6YXdhX2dyZW5hZGllcm93MDQtMnN5bGY5qarQQCwfSkBBxAd2/BcUNUBIxMed1gZQ2Myd1gZaBFRSQU1gAQpZGh9wbC1XYXJzemF3YV9ncmVuYWRpZXJvdzA0LTJzeWxmIamq0EAsH0pAKcQHdvwXFDVAOZ/Nqs/VHkpAQRPyQc9mFTVASJTNndYGUOzRndYGWgRXQUxLYAE=",
+   "legs": [
+    {
+     "mode": "WALK",
+     "from": {
+      "name": "START",
+      "lat": 52.2297,
+      "lon": 21.0122,
+      "tz": "Europe/Warsaw",
+      "departure": "2026-10-08T09:25:00Z",
+      "scheduledDeparture": "2026-10-08T09:25:00Z",
+      "vertexType": "NORMAL"
+     },
+     "to": {
+      "name": "Centrum",
+      "stopId": "pl-Warszawa_centrum15-0gzcc",
+      "importance": 0.0010484015801921487,
+      "lat": 52.22999000000001,
+      "lon": 21.013157000000003,
+      "tz": "Europe/Warsaw",
+      "arrival": "2026-10-08T09:31:00Z",
+      "scheduledArrival": "2026-10-08T09:31:00Z",
+      "stopCode": "15",
+      "vertexType": "TRANSIT",
+      "modes": [
+       "SUBWAY",
+       "TRAM",
+       "BUS"
+      ]
+     },
+     "duration": 360,
+     "startTime": "2026-10-08T09:25:00Z",
+     "endTime": "2026-10-08T09:31:00Z",
+     "scheduledStartTime": "2026-10-08T09:25:00Z",
+     "scheduledEndTime": "2026-10-08T09:31:00Z",
+     "realTime": false,
+     "scheduled": false,
+     "distance": 83.0,
+     "legGeometry": {
+      "points": "}azrbBsonag@]o@??yAsCkBoD_E_L}BmHoBwIoAoI",
+      "precision": 6,
+      "length": 9
+     }
+    },
+    {
+     "mode": "BUS",
+     "from": {
+      "name": "Centrum",
+      "stopId": "pl-Warszawa_centrum15-0gzcc",
+      "importance": 0.0010484015801921487,
+      "lat": 52.22999000000001,
+      "lon": 21.013157000000003,
+      "tz": "Europe/Warsaw",
+      "departure": "2026-10-08T09:31:00Z",
+      "scheduledDeparture": "2026-10-08T09:28:00Z",
+      "stopCode": "15",
+      "vertexType": "TRANSIT",
+      "pickupType": "NORMAL",
+      "dropoffType": "NORMAL",
+      "cancelled": false,
+      "modes": [
+       "SUBWAY",
+       "TRAM",
+       "BUS"
+      ]
+     },
+     "to": {
+      "name": "Krucza",
+      "stopId": "pl-Warszawa_krucza01-0n5km",
+      "importance": 3.900681622326374e-05,
+      "lat": 52.231026,
+      "lon": 21.017979000000004,
+      "tz": "Europe/Warsaw",
+      "arrival": "2026-10-08T09:33:00Z",
+      "scheduledArrival": "2026-10-08T09:30:00Z",
+      "stopCode": "01",
+      "vertexType": "TRANSIT",
+      "pickupType": "NORMAL",
+      "dropoffType": "NORMAL",
+      "cancelled": false,
+      "modes": [
+       "TRAM",
+       "BUS"
+      ]
+     },
+     "duration": 120,
+     "startTime": "2026-10-08T09:31:00Z",
+     "endTime": "2026-10-08T09:33:00Z",
+     "scheduledStartTime": "2026-10-08T09:28:00Z",
+     "scheduledEndTime": "2026-10-08T09:30:00Z",
+     "realTime": true,
+     "scheduled": true,
+     "interlineWithPreviousLeg": false,
+     "headsign": "Browarna",
+     "tripFrom": {
+      "name": "Nowe W\u0142ochy",
+      "stopId": "pl-Warszawa_nowe-wlochy01-vzmeg",
+      "importance": 7.652148269698955e-06,
+      "lat": 52.208797000000004,
+      "lon": 20.895458,
+      "tz": "Europe/Warsaw",
+      "departure": "2026-10-08T08:55:00Z",
+      "scheduledDeparture": "2026-10-08T08:55:00Z",
+      "stopCode": "01",
+      "vertexType": "TRANSIT",
+      "pickupType": "NORMAL",
+      "dropoffType": "NORMAL",
+      "cancelled": false,
+      "modes": [
+       "BUS"
+      ]
+     },
+     "tripTo": {
+      "name": "Browarna",
+      "stopId": "pl-Warszawa_browarna02-0qi1b",
+      "importance": 1.8010173334914725e-06,
+      "lat": 52.24311000000001,
+      "lon": 21.02056,
+      "tz": "Europe/Warsaw",
+      "arrival": "2026-10-08T09:46:00Z",
+      "scheduledArrival": "2026-10-08T09:43:00Z",
+      "stopCode": "02",
+      "vertexType": "TRANSIT",
+      "pickupType": "NORMAL",
+      "dropoffType": "NORMAL",
+      "cancelled": false,
+      "modes": [
+       "BUS"
+      ]
+     },
+     "routeId": "pl-Warszawa_127",
+     "routeUrl": "",
+     "directionId": "1",
+     "routeColor": "a4268f",
+     "routeTextColor": "ffffff",
+     "routeType": 3,
+     "agencyName": "Warszawski Transport Publiczny",
+     "agencyUrl": "https://zbiorkom.live/",
+     "agencyFareUrl": "",
+     "agencyId": "default",
+     "tripId": "20261008_10:55_pl-Warszawa_870d1e08cb81ec4a",
+     "routeShortName": "127",
+     "routeLongName": "Nowe W\u0142ochy \u2014 Browarna",
+     "tripShortName": "",
+     "displayName": "127",
+     "cancelled": false,
+     "source": "pl_Warszawa.gtfs.zip/stop_times.txt:907564:907594",
+     "intermediateStops": [],
+     "legGeometry": {
+      "points": "kuzrbBiipag@KhKclAwgJvK`n@",
+      "precision": 6,
+      "length": 4
+     },
+     "bikesAllowed": false,
+     "wheelchairAccessible": "NOT_ACCESSIBLE",
+     "reservation": "NONE",
+     "alternatives": []
+    },
+    {
+     "mode": "WALK",
+     "from": {
+      "name": "Krucza",
+      "stopId": "pl-Warszawa_krucza01-0n5km",
+      "importance": 3.900681622326374e-05,
+      "lat": 52.231026,
+      "lon": 21.017979000000004,
+      "tz": "Europe/Warsaw",
+      "arrival": "2026-10-08T09:33:00Z",
+      "departure": "2026-10-08T09:33:00Z",
+      "scheduledArrival": "2026-10-08T09:30:00Z",
+      "scheduledDeparture": "2026-10-08T09:33:00Z",
+      "stopCode": "01",
+      "vertexType": "TRANSIT",
+      "cancelled": false,
+      "modes": [
+       "TRAM",
+       "BUS"
+      ]
+     },
+     "to": {
+      "name": "Krucza",
+      "stopId": "pl-Warszawa_krucza05-0kgcj",
+      "importance": 3.900681622326374e-05,
+      "lat": 52.23069,
+      "lon": 21.015850000000004,
+      "tz": "Europe/Warsaw",
+      "arrival": "2026-10-08T09:35:00Z",
+      "scheduledArrival": "2026-10-08T09:35:00Z",
+      "stopCode": "05",
+      "vertexType": "TRANSIT",
+      "modes": [
+       "TRAM",
+       "BUS"
+      ]
+     },
+     "duration": 120,
+     "startTime": "2026-10-08T09:33:00Z",
+     "endTime": "2026-10-08T09:35:00Z",
+     "scheduledStartTime": "2026-10-08T09:33:00Z",
+     "scheduledEndTime": "2026-10-08T09:35:00Z",
+     "realTime": false,
+     "scheduled": false,
+     "distance": 198.0,
+     "legGeometry": {
+      "points": "oy|rbBwtyag@|BlQ??fMj~@??lB{@??jBy@??Jx@j@ZlAg@??`@dD??TtB??ZlC??Jt@??NnA??R`B??Hx@??mBx@VxB??mBz@??aBv@??q@Z??a@P??TlB??KD~AlM",
+      "precision": 6,
+      "length": 42
+     }
+    },
+    {
+     "mode": "TRAM",
+     "from": {
+      "name": "Krucza",
+      "stopId": "pl-Warszawa_krucza05-0kgcj",
+      "importance": 3.900681622326374e-05,
+      "lat": 52.23069,
+      "lon": 21.015850000000004,
+      "tz": "Europe/Warsaw",
+      "departure": "2026-10-08T09:36:00Z",
+      "scheduledDeparture": "2026-10-08T09:35:00Z",
+      "stopCode": "05",
+      "vertexType": "TRANSIT",
+      "pickupType": "NORMAL",
+      "dropoffType": "NORMAL",
+      "cancelled": false,
+      "modes": [
+       "TRAM",
+       "BUS"
+      ]
+     },
+     "to": {
+      "name": "Grenadier\u00f3w",
+      "stopId": "pl-Warszawa_grenadierow04-2sylf",
+      "importance": 1.2573043932206929e-05,
+      "lat": 52.24353800000001,
+      "lon": 21.078491,
+      "tz": "Europe/Warsaw",
+      "arrival": "2026-10-08T09:47:00Z",
+      "scheduledArrival": "2026-10-08T09:46:00Z",
+      "stopCode": "04",
+      "vertexType": "TRANSIT",
+      "pickupType": "NORMAL",
+      "dropoffType": "NORMAL",
+      "cancelled": false,
+      "modes": [
+       "TRAM",
+       "BUS"
+      ]
+     },
+     "duration": 660,
+     "startTime": "2026-10-08T09:36:00Z",
+     "endTime": "2026-10-08T09:47:00Z",
+     "scheduledStartTime": "2026-10-08T09:35:00Z",
+     "scheduledEndTime": "2026-10-08T09:46:00Z",
+     "realTime": true,
+     "scheduled": true,
+     "interlineWithPreviousLeg": false,
+     "headsign": "Goc\u0142awek",
+     "tripFrom": {
+      "name": "Nowe Bemowo",
+      "stopId": "pl-Warszawa_nowe-bemowo07-x1kje",
+      "importance": 4.537925633485429e-05,
+      "lat": 52.26023500000001,
+      "lon": 20.925031999999995,
+      "tz": "Europe/Warsaw",
+      "departure": "2026-10-08T09:01:00Z",
+      "scheduledDeparture": "2026-10-08T09:01:00Z",
+      "stopCode": "07",
+      "vertexType": "TRANSIT",
+      "pickupType": "NORMAL",
+      "dropoffType": "NORMAL",
+      "cancelled": false,
+      "modes": [
+       "TRAM",
+       "BUS"
+      ]
+     },
+     "tripTo": {
+      "name": "Goc\u0142awek",
+      "stopId": "pl-Warszawa_goclawek03-48sam",
+      "importance": 4.856221494264901e-05,
+      "lat": 52.238220000000005,
+      "lon": 21.118807000000004,
+      "tz": "Europe/Warsaw",
+      "arrival": "2026-10-08T09:59:00Z",
+      "scheduledArrival": "2026-10-08T09:58:00Z",
+      "stopCode": "03",
+      "vertexType": "TRANSIT",
+      "pickupType": "NORMAL",
+      "dropoffType": "NORMAL",
+      "cancelled": false,
+      "modes": [
+       "TRAM",
+       "BUS"
+      ]
+     },
+     "routeId": "pl-Warszawa_24",
+     "routeUrl": "",
+     "directionId": "0",
+     "routeColor": "be0d05",
+     "routeTextColor": "ffffff",
+     "routeType": 0,
+     "agencyName": "Warszawski Transport Publiczny",
+     "agencyUrl": "https://zbiorkom.live/",
+     "agencyFareUrl": "",
+     "agencyId": "default",
+     "tripId": "20261008_11:01_pl-Warszawa_3efa5bb0f9a6be86",
+     "routeShortName": "24",
+     "routeLongName": "Nowe Bemowo \u2014 Goc\u0142awek",
+     "tripShortName": "",
+     "displayName": "24",
+     "cancelled": false,
+     "source": "pl_Warszawa.gtfs.zip/stop_times.txt:133661:133700",
+     "intermediateStops": [
+      {
+       "name": "Muzeum Narodowe",
+       "stopId": "pl-Warszawa_muzeum-narodowe05-0puss",
+       "importance": 3.205651228199713e-05,
+       "lat": 52.231583,
+       "lon": 21.020079,
+       "tz": "Europe/Warsaw",
+       "arrival": "2026-10-08T09:37:00Z",
+       "departure": "2026-10-08T09:37:00Z",
+       "scheduledArrival": "2026-10-08T09:36:00Z",
+       "scheduledDeparture": "2026-10-08T09:36:00Z",
+       "stopCode": "05",
+       "vertexType": "TRANSIT",
+       "pickupType": "NORMAL",
+       "dropoffType": "NORMAL",
+       "cancelled": false,
+       "modes": [
+        "TRAM",
+        "BUS"
+       ]
+      },
+      {
+       "name": "Most Poniatowskiego",
+       "stopId": "pl-Warszawa_most-poniatowskiego03-1bz4f",
+       "importance": 3.3081731089623645e-05,
+       "lat": 52.23514600000001,
+       "lon": 21.037292,
+       "tz": "Europe/Warsaw",
+       "arrival": "2026-10-08T09:40:00Z",
+       "departure": "2026-10-08T09:40:00Z",
+       "scheduledArrival": "2026-10-08T09:39:00Z",
+       "scheduledDeparture": "2026-10-08T09:39:00Z",
+       "stopCode": "03",
+       "vertexType": "TRANSIT",
+       "pickupType": "NORMAL",
+       "dropoffType": "NORMAL",
+       "cancelled": false,
+       "modes": [
+        "TRAM",
+        "BUS",
+        "FERRY"
+       ]
+      }
+     ],
+     "legGeometry": {
+      "points": "ca|rbBsquag@o|@sdHav@edGqoIqir@}BqOoH}_@uHsj@_Du^gAm]qBcYyzJm|x@m@oNh`ArkI",
+      "precision": 6,
+      "length": 13
+     },
+     "bikesAllowed": false,
+     "wheelchairAccessible": "NOT_ACCESSIBLE",
+     "reservation": "NONE",
+     "alternatives": []
+    },
+    {
+     "mode": "WALK",
+     "from": {
+      "name": "Grenadier\u00f3w",
+      "stopId": "pl-Warszawa_grenadierow04-2sylf",
+      "importance": 1.2573043932206929e-05,
+      "lat": 52.24353800000001,
+      "lon": 21.078491,
+      "tz": "Europe/Warsaw",
+      "arrival": "2026-10-08T09:47:00Z",
+      "departure": "2026-10-08T09:47:00Z",
+      "scheduledArrival": "2026-10-08T09:46:00Z",
+      "scheduledDeparture": "2026-10-08T09:47:00Z",
+      "stopCode": "04",
+      "vertexType": "TRANSIT",
+      "cancelled": false,
+      "modes": [
+       "TRAM",
+       "BUS"
+      ]
+     },
+     "to": {
+      "name": "END",
+      "lat": 52.2409,
+      "lon": 21.0836,
+      "tz": "Europe/Warsaw",
+      "arrival": "2026-10-08T09:57:00Z",
+      "scheduledArrival": "2026-10-08T09:57:00Z",
+      "vertexType": "NORMAL"
+     },
+     "duration": 600,
+     "startTime": "2026-10-08T09:47:00Z",
+     "endTime": "2026-10-08T09:57:00Z",
+     "scheduledStartTime": "2026-10-08T09:47:00Z",
+     "scheduledEndTime": "2026-10-08T09:57:00Z",
+     "realTime": false,
+     "scheduled": false,
+     "distance": 668.0,
+     "legGeometry": {
+      "points": "icusbBc}oeg@hCxT??^O??h@vE??zCwA??z@WpZug@??jAoB??v@qA??l@cA??`LkR??dJ}O??dRc\\??zCsF??~F_K??rRa]??vByD??xDuG??nDiG??jAmB??l@cA??hNqV??nIqPpAuN??p@kH??vAiC??rByD??lBoD??hAwB??pBsD??j@gB??hAiB??l@gA??hEsH??bJoP??iGg]??eD{B??gAs@sMqH_FsD",
+      "precision": 6,
+      "length": 74
+     }
+    }
+   ]
+  }
+ ]
+}

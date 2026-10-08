@@ -65,6 +65,27 @@ final class TransitSanityTests: XCTestCase {
         XCTAssertEqual(result.first?.transitLegs.first?.routeShortName, "A")
     }
 
+    func testALateDepartureLosesToAnEarlierOne() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        func timed(_ minutesFromNow: Int, line: String) -> TransitItinerary {
+            var itinerary = route([leg(.walk, minutes: 3, meters: 250), leg(.bus, minutes: 15, meters: 4_500, line: line),
+                                   leg(.walk, minutes: 2, meters: 150)])
+            itinerary.start = now.addingTimeInterval(TimeInterval(minutesFromNow * 60))
+            return itinerary
+        }
+        let result = TransitSanity.refine([timed(50, line: "late"), timed(4, line: "soon")], from: origin, to: north(4_500), requestedAt: now)
+        XCTAssertEqual(result.first?.transitLegs.first?.routeShortName, "soon")
+    }
+
+    func testUnnamedLinesAreToldApartByTheirTrip() {
+        func unnamed(_ trip: String) -> TransitItinerary {
+            var vehicle = leg(.rail, minutes: 20, meters: 9_000, line: nil)
+            vehicle.tripId = trip
+            return route([leg(.walk, minutes: 4, meters: 300), vehicle])
+        }
+        XCTAssertEqual(TransitSanity.refine([unnamed("a"), unnamed("b")], from: origin, to: north(9_000)).count, 2)
+    }
+
     func testSameLinesAreOfferedOnce() {
         let a = route([leg(.walk, minutes: 4, meters: 300), leg(.bus, minutes: 12, meters: 4_000, line: "180")])
         let b = route([leg(.walk, minutes: 4, meters: 300), leg(.bus, minutes: 13, meters: 4_000, line: "180")])
@@ -75,6 +96,12 @@ final class TransitSanityTests: XCTestCase {
         let odd = route([leg(.walk, minutes: 22, meters: 1_700), leg(.rail, minutes: 25, meters: 28_000, line: "S1")])
         let result = TransitSanity.refine([odd], from: origin, to: north(30_000))
         XCTAssertEqual(result.count, 1, "far apart: the only answer is kept")
+        XCTAssertEqual(result.first?.transitLegs.first?.routeShortName, "S1")
+
+        // About a 25-minute walk, and the only transit answer has a rejected long walk: walk instead.
+        let near = TransitSanity.refine([route([leg(.walk, minutes: 22, meters: 1_700), leg(.tram, minutes: 10, meters: 800, line: "7")])],
+                                        from: origin, to: north(1_900))
+        XCTAssertTrue(near.first?.transitLegs.isEmpty ?? false)
     }
 }
 

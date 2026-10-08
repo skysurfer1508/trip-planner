@@ -162,9 +162,7 @@ enum PlanChatApplier {
                     continue
                 }
                 let name = stop.name
-                owner.renumber(owner.sortedStops.filter { $0 !== stop })
-                owner.stops.removeAll { $0 === stop }
-                trip.modelContext?.delete(stop)
+                owner.remove(stop)
                 outcome.changes.append("Removed \(name)")
 
             case "move":
@@ -192,7 +190,11 @@ enum PlanChatApplier {
                     outcome.notes.append("A shift needs a number of minutes.")
                     continue
                 }
-                let targets = (command.day ?? 0) == 0 ? days : [day(command.day)].compactMap { $0 }
+                guard let which = command.day else {
+                    outcome.notes.append("A shift needs a day number (0 for every day).")
+                    continue
+                }
+                let targets = which == 0 ? days : [day(which)].compactMap { $0 }
                 var moved = 0
                 for target in targets {
                     for stop in shiftable(target) {
@@ -245,8 +247,16 @@ enum PlanChatApplier {
                 let stop = Stop(name: place.name, latitude: place.coordinate.latitude,
                                 longitude: place.coordinate.longitude, address: place.address,
                                 category: place.kind.stopCategory)
+                let lastEnd = shiftable(target).compactMap { other in
+                    other.plannedTime.map { $0.addingTimeInterval(TimeInterval((other.durationMinutes + 15) * 60)) }
+                }.max()
                 target.append(stop)
-                if let wanted = minute(of: command.time) { stop.plannedTime = date(on: target, minute: wanted) }
+                if let wanted = minute(of: command.time) {
+                    stop.plannedTime = date(on: target, minute: wanted)
+                } else if let lastEnd {
+                    // No time asked for: after the last stop of the day, with a little room.
+                    stop.plannedTime = target.combine(time: lastEnd)
+                }
                 position(stop, in: target, after: command.after)
                 if !retimed.contains(where: { $0 === target }) { retimed.append(target) }
                 outcome.changes.append("Added \(place.name) to day \(number(of: target))")
@@ -265,8 +275,7 @@ enum PlanChatApplier {
                 let ordered = owner.sortedStops.filter { $0 !== new }.map { $0 === old ? new : $0 }
                 owner.renumber(ordered)
                 outcome.changes.append("Replaced \(old.name) with \(place.name)")
-                owner.stops.removeAll { $0 === old }
-                trip.modelContext?.delete(old)
+                owner.remove(old)
 
             default:
                 outcome.notes.append("Skipped something I didn't understand.")

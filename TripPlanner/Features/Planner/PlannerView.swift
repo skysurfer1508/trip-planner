@@ -56,6 +56,7 @@ struct PlannerView: View {
                     .padding(.top, 4)
 
                 DayStopListView(day: day) { editingStop = $0 }
+                    .id(day.persistentModelID)
             } else {
                 ContentUnavailableView("No days", systemImage: "calendar",
                                        description: Text("Edit the trip dates to add days."))

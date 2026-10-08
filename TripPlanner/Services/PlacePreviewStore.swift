@@ -20,7 +20,7 @@ final class PlacePreviewStore {
 
     private(set) var previews: [String: PlacePreview] = [:]
     @ObservationIgnored private var requested = Set<String>()
-    @ObservationIgnored private let gate = LookupGate()
+    @ObservationIgnored private let gate = RequestGate(limit: 3)
 
     nonisolated static func key(name: String, coordinate: CLLocationCoordinate2D) -> String {
         "\(name.lowercased())|" + String(format: "%.4f,%.4f", coordinate.latitude, coordinate.longitude)
@@ -36,7 +36,12 @@ final class PlacePreviewStore {
         guard !requested.contains(key) else { return }
         requested.insert(key)
 
-        await gate.enter()
+        do {
+            try await gate.enter()
+        } catch {
+            requested.remove(key)      // cancelled while waiting: asked for again when shown again
+            return
+        }
         let result = await PlaceInfoService.lookup(name: name, coordinate: coordinate, category: category)
         await gate.leave()
 

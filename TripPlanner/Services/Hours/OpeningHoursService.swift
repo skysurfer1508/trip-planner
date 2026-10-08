@@ -14,12 +14,12 @@ enum OpeningHoursService {
         var byName: Bool
     }
 
-    static func fetch(name: String, coordinate: CLLocationCoordinate2D, category: StopCategory = .other) async throws -> HoursMatch? {
-        let query = "[out:json][timeout:12];nwr(around:70,\(coordinate.latitude),\(coordinate.longitude))[\"opening_hours\"];out tags center 15;"
-        guard let encoded = query.addingPercentEncoding(withAllowedCharacters: .alphanumerics),
-              let url = URL(string: "https://overpass-api.de/api/interpreter?data=\(encoded)") else { return nil }
-        let json = try await Net.json(url: url, session: Net.cached)
-        return pickMatch(from: json["elements"] as? [[String: Any]] ?? [], name: name, coordinate: coordinate, category: category)
+    static func fetch(name: String, coordinate: CLLocationCoordinate2D, category: StopCategory = .other,
+                      rejectedHours: String = "") async throws -> HoursMatch? {
+        let query = "[out:json][timeout:12];nwr(around:70,\(coordinate.latitude),\(coordinate.longitude))[\"opening_hours\"];out tags center;"
+        let json = try await OverpassClient.query(query)
+        return pickMatch(from: json["elements"] as? [[String: Any]] ?? [], name: name, coordinate: coordinate,
+                         category: category, rejectedHours: rejectedHours)
     }
 
     /// Names an object can be known by: the local name and the translations and alternatives people add.
@@ -30,8 +30,9 @@ enum OpeningHoursService {
             .filter { !$0.isEmpty }
     }
 
-    private static func namesMatch(_ candidate: String, _ name: String) -> Bool {
-        NameMatch.similar(candidate, name) || PlaceFinder.similarity(name, candidate) >= 0.75
+    /// Both ways round: "Wawel Castle" is not "Wawel Castle Gift Shop", although all its words are in it.
+    static func namesMatch(_ candidate: String, _ name: String) -> Bool {
+        min(PlaceFinder.similarity(name, candidate), PlaceFinder.similarity(candidate, name)) >= 0.7
     }
 
     /// The hours of the object that is this place. Only an object with a matching name counts, or, for
@@ -40,7 +41,8 @@ enum OpeningHoursService {
     static func pickMatch(from elements: [[String: Any]],
                           name: String,
                           coordinate: CLLocationCoordinate2D,
-                          category: StopCategory = .food) -> HoursMatch? {
+                          category: StopCategory = .food,
+                          rejectedHours: String = "") -> HoursMatch? {
         struct Candidate {
             var hours: String
             var names: [String]
@@ -53,6 +55,8 @@ enum OpeningHoursService {
             guard let lat = Net.double(element["lat"] ?? center?["lat"]),
                   let lon = Net.double(element["lon"] ?? center?["lon"]) else { return nil }
             let distance = RoutingService.straightLine(from: coordinate, to: CLLocationCoordinate2D(latitude: lat, longitude: lon))
+            // Hours the traveller said were wrong are not offered again.
+            guard hours != rejectedHours || rejectedHours.isEmpty else { return nil }
             return Candidate(hours: hours, names: names(in: tags), distance: distance)
         }
         if let named = candidates.filter({ candidate in candidate.names.contains { namesMatch($0, name) } })
@@ -60,7 +64,9 @@ enum OpeningHoursService {
             let source = named.names.first { namesMatch($0, name) } ?? named.names.first ?? ""
             return HoursMatch(hours: named.hours, source: source, byName: true)
         }
-        guard category != .sight else { return nil }
+        // Only shops, restaurants and the like are found "at that spot"; a sight, a dropped pin or an
+        // unknown kind of place never borrows what is next to it.
+        guard category == .food || category == .cafe || category == .nightlife else { return nil }
         if let nearest = candidates.filter({ $0.distance <= 15 }).min(by: { $0.distance < $1.distance }) {
             return HoursMatch(hours: nearest.hours, source: nearest.names.first ?? "an unnamed place next to it", byName: false)
         }
@@ -75,31 +81,11 @@ enum OpeningHoursService {
     }
 }
 
-/// Keeps at most two lookups running and a small pause between them.
-private actor HoursGate {
-    private var active = 0
-    private var lastStart = Date.distantPast
-
-    func enter() async {
-        while active >= 2 {
-            try? await Task.sleep(for: .milliseconds(200))
-        }
-        active += 1
-        let wait = 0.4 - Date().timeIntervalSince(lastStart)
-        if wait > 0 { try? await Task.sleep(for: .milliseconds(Int(wait * 1000))) }
-        lastStart = Date()
-    }
-
-    func leave() {
-        active -= 1
-    }
-}
-
 /// Fills in a stop's opening hours once and keeps them on the stop, so they work offline.
 @MainActor
 enum OpeningHoursLoader {
     private static var inFlight = Set<PersistentIdentifier>()
-    private static let gate = HoursGate()
+    private static let gate = RequestGate(limit: 2, minGap: 0.4)
 
     static func shouldLookUp(_ stop: Stop) -> Bool {
         switch stop.category {
@@ -121,11 +107,13 @@ enum OpeningHoursLoader {
         let name = stop.name
         let coordinate = stop.coordinate
         let category = stop.category
+        let rejected = stop.rejectedHours
 
-        await gate.enter()
+        do { try await gate.enter() } catch { return }
         let result: Result<OpeningHoursService.HoursMatch?, Error>
         do {
-            result = .success(try await OpeningHoursService.fetch(name: name, coordinate: coordinate, category: category))
+            result = .success(try await OpeningHoursService.fetch(name: name, coordinate: coordinate, category: category,
+                                                                  rejectedHours: rejected))
         } catch {
             result = .failure(error)
         }

@@ -174,7 +174,7 @@ struct ItineraryReviewView: View {
 
         // Build every stop first: stops that were already in the trip are copied before the old
         // ones are removed.
-        var created: [(day: Day, stop: Stop, isNew: Bool)] = []
+        var created: [(day: Day, stop: Stop, isNew: Bool, original: Stop?)] = []
         for draftDay in draft.days {
             let day = tripDays[min(max(draftDay.targetIndex, 0), tripDays.count - 1)]
             for draftStop in draftDay.stops where draftStop.include {
@@ -193,11 +193,17 @@ struct ItineraryReviewView: View {
                 if let hour = draftStop.hour {
                     stop.plannedTime = calendar.date(bySettingHour: hour, minute: draftStop.minute ?? 0, second: 0, of: day.date)
                 }
-                created.append((day, stop, draftStop.existing == nil))
+                created.append((day, stop, draftStop.existing == nil, draftStop.existing))
             }
         }
 
         onBeforeAdd?()
+
+        // A stop that was already in the trip is replaced by its copy in the plan. Stops left out or unticked
+        // in the review stay where they are.
+        for original in created.compactMap(\.original) where original.day != nil {
+            original.day?.remove(original)
+        }
 
         for entry in created {
             entry.day.append(entry.stop)
@@ -217,6 +223,13 @@ private struct DraftStopRow: View {
     @Binding var stop: DraftStop
     let onChangePlace: () -> Void
 
+    private func matchedText(_ item: MKMapItem) -> String {
+        guard let name = item.name else { return "Matched" }
+        var parts: [String] = [name]
+        if let address = item.readableAddress { parts.append(address) }
+        return parts.joined(separator: " · ")
+    }
+
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             Toggle("Include", isOn: $stop.include)
@@ -232,8 +245,7 @@ private struct DraftStopRow: View {
                         .foregroundStyle(.secondary)
                 }
                 if let item = stop.item {
-                    Label(item.name.map { name in [name, item.readableAddress].compactMap { $0 }.joined(separator: " · ") } ?? "Matched",
-                          systemImage: "mappin.circle.fill")
+                    Label(matchedText(item), systemImage: "mappin.circle.fill")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)

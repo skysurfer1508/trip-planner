@@ -191,3 +191,140 @@ final class GeminiCheckTests: XCTestCase {
         XCTAssertTrue(GeminiAI.explain(AIError.api("something odd")).contains("something odd"))
     }
 }
+
+@MainActor
+final class AuditFixTests: XCTestCase {
+    private func makeTrip() throws -> (ModelContainer, Trip) {
+        let container = try ModelContainer(for: Trip.self, Day.self, Stop.self, Expense.self,
+                                           ChecklistItem.self, TripDocument.self, SavedPlace.self, Booking.self,
+                                           configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let start = Calendar.current.startOfDay(for: Date())
+        let trip = Trip(name: "T", destination: "Warsaw", startDate: start, endDate: start)
+        container.mainContext.insert(trip)
+        trip.syncDays()
+        return (container, trip)
+    }
+
+    func testRemoveTakesTheStopOutAtOnceAndKeepsTheOrder() throws {
+        let (_, trip) = try makeTrip()
+        let day = trip.sortedDays[0]
+        let a = Stop(name: "A", latitude: 0, longitude: 0); day.append(a)
+        let b = Stop(name: "B", latitude: 0, longitude: 0); day.append(b)
+        let c = Stop(name: "C", latitude: 0, longitude: 0); day.append(c)
+        day.remove(b)
+        XCTAssertEqual(day.sortedStops.map(\.name), ["A", "C"], "no ghost row for B")
+        XCTAssertEqual(day.sortedStops.map(\.order), [0, 1])
+    }
+
+    func testTheDayStartsAtItsEarliestTimeWhateverTheOrder() throws {
+        let (_, trip) = try makeTrip()
+        let day = trip.sortedDays[0]
+        let evening = Stop(name: "Evening", latitude: 0, longitude: 0); day.append(evening)
+        evening.plannedTime = WallClock.date(on: day.date, minute: 19 * 60)
+        let morning = Stop(name: "Morning", latitude: 0, longitude: 0.001); day.append(morning)
+        morning.plannedTime = WallClock.date(on: day.date, minute: 10 * 60)
+        let start = TimeAdjuster.suggestedStart(for: day)
+        XCTAssertEqual(WallClock.minute(of: start), 10 * 60, "dragging the evening stop to the top must not move the day to the evening")
+    }
+
+    func testHolidayCacheGivesTheSameListForTheSameText() {
+        let json = #"[{"date":"2026-11-11","name":"Independence Day","localName":"Święto Niepodległości","isRegional":false}]"#
+        XCTAssertEqual(HolidayCache.list(for: json).map(\.date), ["2026-11-11"])
+        XCTAssertEqual(HolidayCache.list(for: json).count, 1)
+        XCTAssertTrue(HolidayCache.list(for: "not json").isEmpty)
+    }
+}
+
+final class HoursMatchingTests: XCTestCase {
+    private let here = CLLocationCoordinate2D(latitude: 50.054, longitude: 19.935)
+
+    private func element(_ name: String, _ hours: String, dLat: Double = 0.00002) -> [String: Any] {
+        ["tags": ["name": name, "opening_hours": hours], "lat": here.latitude + dLat, "lon": here.longitude]
+    }
+
+    func testAShopWithAMatchingStartOfNameIsNotTheSight() {
+        XCTAssertFalse(OpeningHoursService.namesMatch("Wawel Castle Gift Shop", "Wawel Castle"))
+        XCTAssertTrue(OpeningHoursService.namesMatch("Belém Tower", "Tower of Belém"))
+        XCTAssertTrue(OpeningHoursService.namesMatch("Złote Tarasy", "Zlote Tarasy"))
+    }
+
+    func testASightGetsHoursOnlyFromItsOwnEntry() {
+        let elements = [element("Wawel Castle Gift Shop", "Mo-Su 09:00-17:00"), element("Wawel Castle", "Tu-Su 09:30-16:00")]
+        let match = OpeningHoursService.pickMatch(from: elements, name: "Wawel Castle", coordinate: here, category: .sight)
+        XCTAssertEqual(match?.hours, "Tu-Su 09:30-16:00")
+        XCTAssertEqual(match?.source, "Wawel Castle")
+        XCTAssertEqual(match?.byName, true)
+
+        let onlyTheShop = OpeningHoursService.pickMatch(from: [element("Wawel Castle Gift Shop", "Mo-Su 09:00-17:00")],
+                                                        name: "Wawel Castle", coordinate: here, category: .sight)
+        XCTAssertNil(onlyTheShop)
+    }
+
+    func testOnlyShopsAndRestaurantsMayUseTheNearestEntry() {
+        let unnamed: [[String: Any]] = [["tags": ["opening_hours": "Mo-Fr 08:00-20:00"], "lat": here.latitude + 0.00003, "lon": here.longitude]]
+        for category in [StopCategory.sight, .other, .hotel] {
+            XCTAssertNil(OpeningHoursService.pickMatch(from: unnamed, name: "Anything", coordinate: here, category: category), "\(category)")
+        }
+        for category in [StopCategory.food, .cafe, .nightlife] {
+            XCTAssertEqual(OpeningHoursService.pickMatch(from: unnamed, name: "Anything", coordinate: here, category: category)?.hours,
+                           "Mo-Fr 08:00-20:00", "\(category)")
+        }
+    }
+
+    func testHoursMarkedWrongAreNotOfferedAgain() {
+        let elements = [element("Old Town Market", "Mo-Su 08:00-14:00")]
+        XCTAssertNil(OpeningHoursService.pickMatch(from: elements, name: "Old Town Market", coordinate: here,
+                                                   category: .food, rejectedHours: "Mo-Su 08:00-14:00"))
+        XCTAssertNotNil(OpeningHoursService.pickMatch(from: elements, name: "Old Town Market", coordinate: here, category: .food))
+    }
+
+    func testClockPastMidnight() {
+        XCTAssertEqual(OpeningHours.clock(1560), "02:00")
+        XCTAssertEqual(OpeningHours.clock(1440), "24:00")
+        XCTAssertEqual(OpeningHours.clock(17 * 60 + 30), "17:30")
+    }
+
+    func testParsedHoursAreReusedAndStayCorrect() {
+        let first = OpeningHours.parse("Tu-Su 10:00-17:00")
+        let second = OpeningHours.parse("Tu-Su 10:00-17:00")
+        XCTAssertEqual(first?.rules.count, second?.rules.count)
+        XCTAssertNil(OpeningHours.parse("sunrise-sunset"))
+        XCTAssertNil(OpeningHours.parse("sunrise-sunset"), "an unsupported text stays unsupported when read from the cache")
+    }
+}
+
+final class OwnPlacesSafetyTests: XCTestCase {
+    func testTwoOfTheTravellersPlacesWithTheSameNameAreBothKept() {
+        let spot = CLLocationCoordinate2D(latitude: 52.23, longitude: 21.01)
+        var one = PlanCandidate(id: "a", name: "Old Town", coordinate: spot, kind: .sights, score: 1)
+        one.isMustSee = true
+        var two = PlanCandidate(id: "b", name: "Old Town", coordinate: spot, kind: .sights, score: 1)
+        two.isMustSee = true
+        let popular = PlanCandidate(id: "c", name: "Old Town Square", coordinate: spot, kind: .sights, score: 0.9)
+        let result = AutoPlanner.dedupe([popular, one, two])
+        XCTAssertEqual(Set(result.map(\.id)), ["a", "b"], "the popular lookalike goes, the traveller's own never do")
+    }
+}
+
+final class EntranceStorageTests: XCTestCase {
+    func testAnswersWithCoordinatesBecomeEntrances() {
+        // `out tags center` keeps the coordinates of nodes; the answer looks like this.
+        let json: [String: Any] = ["elements": [
+            ["type": "node", "id": 1, "lat": 52.23, "lon": 21.011, "tags": ["railway": "subway_entrance", "ref": "5"]],
+        ]]
+        XCTAssertEqual(TransitEntrances.parseOverpass(json).first?.name, "Exit 5")
+    }
+
+    func testEmptyAnswersAreKeptForAShorterTime() {
+        XCTAssertLessThan(EntranceDiskCache.maxAge(isEmpty: true), EntranceDiskCache.maxAge(isEmpty: false))
+    }
+
+    func testEntrancesSurviveTheDiskRoundTrip() {
+        let key = "test-\(UUID().uuidString)"
+        let door = StationEntrance(name: "Exit 1", latitude: 52.2, longitude: 21.0, source: "OpenStreetMap", isEntrance: true)
+        EntranceDiskCache.write(key, [door])
+        XCTAssertEqual(EntranceDiskCache.read(key), [door])
+        XCTAssertNil(EntranceDiskCache.read(key, now: Date().addingTimeInterval(61 * 86_400)), "too old")
+        XCTAssertNil(EntranceDiskCache.read("missing-\(UUID().uuidString)"))
+    }
+}

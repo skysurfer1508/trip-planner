@@ -206,8 +206,17 @@ enum MustSeeParser {
         return h * 60 + m
     }
 
+    private static var regexes: [String: NSRegularExpression] = [:]
+
+    private static func regex(_ pattern: String) -> NSRegularExpression? {
+        if let known = regexes[pattern] { return known }
+        let compiled = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive])
+        regexes[pattern] = compiled
+        return compiled
+    }
+
     private static func find(_ pattern: String, in text: String) -> (range: Range<String.Index>, groups: [String])? {
-        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]),
+        guard let regex = regex(pattern),
               let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
               let range = Range(match.range, in: text) else { return nil }
         var groups: [String] = []

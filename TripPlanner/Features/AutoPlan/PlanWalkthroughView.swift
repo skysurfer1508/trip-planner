@@ -34,7 +34,12 @@ struct PlanWalkthroughView: View {
     ]
 
     @State private var dayIndex = 0
-    @State private var history: [[PlannedDay]] = []
+    private struct Snapshot {
+        var plan: [PlannedDay]
+        var leftOut: [PlanCandidate]
+    }
+
+    @State private var history: [Snapshot] = []
     @State private var prompt = ""
     @State private var busy = false
     @State private var reply: Reply?
@@ -420,7 +425,15 @@ struct PlanWalkthroughView: View {
             reply = Reply(text: outcome.notes.first ?? "Nothing changed.", isError: true)
             return
         }
-        history.append(plan)
+        remember()
+        let removedOnPurpose: Set<String> = Set(edits.compactMap { edit in
+            switch edit {
+            case .remove(let id): id
+            case .replace(let id, _): id
+            default: nil
+            }
+        })
+        noteLost(from: plan[target], to: outcome.day, except: removedOnPurpose)
         plan[target] = outcome.day
         let notes = outcome.notes.joined(separator: " ")
         reply = Reply(text: [message, notes].filter { !$0.isEmpty }.joined(separator: " "))
@@ -486,11 +499,12 @@ struct PlanWalkthroughView: View {
                                            prefs: prefs,
                                            window: window(index),
                                            travelOverride: travelOverride)
+            noteLost(from: plan[index], to: outcome.day, except: Set(ids))
             updated[index] = outcome.day
             removed += ids.count
         }
         guard removed > 0 else { return }
-        history.append(plan)
+        remember()
         plan = updated
         reply = Reply(text: "Removed \(removed) nightlife \(removed == 1 ? "stop" : "stops").")
     }
@@ -507,7 +521,8 @@ struct PlanWalkthroughView: View {
                                        window: window(index),
                                        center: center,
                                        using: &generator)
-        history.append(plan)
+        remember()
+        noteLost(from: plan[index], to: fresh)
         plan[index] = fresh
         reply = Reply(text: "Here's another version of day \(index + 1).")
     }
@@ -516,14 +531,31 @@ struct PlanWalkthroughView: View {
         guard plan.indices.contains(index) else { return }
         let outcome = PlanEditor.shiftStart(plan[index], by: minutes, prefs: prefs, window: window(index),
                                             travelOverride: travelOverride)
-        history.append(plan)
+        remember()
+        noteLost(from: plan[index], to: outcome.day)
         plan[index] = outcome.day
         reply = Reply(text: minutes < 0 ? "Day \(index + 1) now starts earlier." : "Day \(index + 1) now starts later.")
     }
 
+    private func remember() {
+        history.append(Snapshot(plan: plan, leftOut: leftOut))
+    }
+
+    /// A place of the traveller's that a change pushed out of the day (it no longer fit) goes to the
+    /// "not in the plan yet" list instead of vanishing. Places removed on purpose don't.
+    private func noteLost(from old: PlannedDay, to new: PlannedDay, except purposely: Set<String> = []) {
+        let kept = Set(new.stops.map { $0.candidate.id })
+        for stop in old.stops where stop.candidate.isMustSee
+            && !kept.contains(stop.candidate.id) && !purposely.contains(stop.candidate.id)
+            && !leftOut.contains(where: { $0.id == stop.candidate.id }) {
+            leftOut.append(stop.candidate)
+        }
+    }
+
     private func undo() {
         guard let previous = history.popLast() else { return }
-        plan = previous
+        plan = previous.plan
+        leftOut = previous.leftOut
         reply = Reply(text: "Undone.")
     }
 }

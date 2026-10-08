@@ -589,7 +589,17 @@ enum AutoPlanner {
                 .filter { $0.isLetter || $0.isNumber }
         }
         var result: [PlanCandidate] = []
-        for candidate in candidates.sorted(by: { $0.score > $1.score }) {
+        // The traveller's own places come first and are never dropped (two of them may even share a name);
+        // other places are dropped when they duplicate one already kept.
+        let ordered = candidates.sorted { a, b in
+            if a.isMustSee != b.isMustSee { return a.isMustSee }
+            return a.score > b.score
+        }
+        for candidate in ordered {
+            if candidate.isMustSee {
+                result.append(candidate)
+                continue
+            }
             let name = key(candidate.name)
             let duplicate = result.contains { existing in
                 existing.kind == candidate.kind

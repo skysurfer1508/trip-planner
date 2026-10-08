@@ -1,27 +1,12 @@
 import Foundation
 import SwiftData
 
-/// Limits how many lookups run at once when a long list of stops appears.
-actor LookupGate {
-    private var active = 0
-
-    func enter() async {
-        while active >= 3 {
-            try? await Task.sleep(for: .milliseconds(120))
-        }
-        active += 1
-    }
-
-    func leave() {
-        active -= 1
-    }
-}
-
 /// Fills in a stop's photo and description once and keeps them on the stop, so they work offline.
 @MainActor
 enum PlaceInfoLoader {
     private static var inFlight = Set<PersistentIdentifier>()
-    private static let gate = LookupGate()
+    /// Limits how many lookups run at once when a long list of stops appears.
+    static let gate = RequestGate(limit: 3)
 
     /// Does nothing if the stop was already looked up (unless `force`). A photo the user chose
     /// is never replaced.
@@ -37,7 +22,7 @@ enum PlaceInfoLoader {
         let coordinate = stop.coordinate
         let category = stop.category
 
-        await gate.enter()
+        do { try await gate.enter() } catch { return }
         let result = await PlaceInfoService.lookup(name: name, coordinate: coordinate, category: category)
         await gate.leave()
 

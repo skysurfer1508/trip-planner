@@ -33,6 +33,7 @@ struct PlanChatView: View {
     @State private var busy = false
     @State private var pool: [PlanCandidate] = []
     @State private var undoStack: [TripSnapshot] = []
+    @State private var sendTask: Task<Void, Never>?
     @FocusState private var focused: Bool
 
     private var engine: (any AIEngine)? { AIRouter.current(geminiKey: secrets.keys.gemini) }
@@ -78,6 +79,7 @@ struct PlanChatView: View {
                 }
             }
             .task { await loadPool() }
+            .onDisappear { sendTask?.cancel() }
         }
         .presentationDetents([.large])
     }
@@ -150,9 +152,9 @@ struct PlanChatView: View {
                     .focused($focused)
                     .disabled(engine == nil || busy)
                     .submitLabel(.send)
-                    .onSubmit { Task { await send() } }
+                    .onSubmit { start() }
                 Button {
-                    Task { await send() }
+                    start()
                 } label: {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.title)
@@ -182,6 +184,12 @@ struct PlanChatView: View {
         pool = AutoPlanner.dedupe(places)
     }
 
+    /// The request runs in a task of its own that is cancelled when the sheet closes, so nothing
+    /// changes the plan after the traveller has left (and can no longer undo it).
+    private func start() {
+        sendTask = Task { await send() }
+    }
+
     private func send() async {
         let text = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let engine, !text.isEmpty, !busy else { return }
@@ -193,6 +201,7 @@ struct PlanChatView: View {
         let prepared = PlanChatService.prepare(instruction: text, trip: trip, pool: pool)
         do {
             let response = try await engine.editPlan(prepared.request)
+            guard !Task.isCancelled else { return }
             guard !response.commands.isEmpty else {
                 messages.append(Message(role: .assistant,
                                         text: response.summary.isEmpty ? "I couldn't find a way to do that with this plan." : response.summary))

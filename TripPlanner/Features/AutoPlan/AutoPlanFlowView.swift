@@ -145,7 +145,7 @@ struct AutoPlanFlowView: View {
                     ItineraryReviewView(trip: trip,
                                         draft: draft,
                                         notice: notice,
-                                        onBeforeAdd: existingMode == .add ? nil : clearTargetDays,
+                                        onBeforeAdd: existingMode == .replace ? clearTargetDays : nil,
                                         onRegenerate: { Task { await create() } },
                                         onWalkThrough: { phase = .walkthrough }) {
                         dismiss()
@@ -456,27 +456,23 @@ struct AutoPlanFlowView: View {
         QuestionPage(title: "Ready?", subtitle: "Here's what I'll plan.") {
             VStack(alignment: .leading, spacing: 10) {
                 summaryRow(approach.symbol, approach.title)
-                summaryRow("person.2.fill", "\(prefs.group.title), \(prefs.travelers) \(prefs.travelers == 1 ? "person" : "people")")
-                summaryRow("calendar", "\(prefs.days) \(prefs.days == 1 ? "day" : "days"), \(prefs.pace.title.lowercased()) pace, starting \(prefs.dayStart.title.lowercased())")
+                summaryRow("person.2.fill", groupSummary)
+                summaryRow("calendar", daysSummary)
                 if approach != .only {
                     summaryRow("heart.fill", prefs.interests.map(\.title).sorted().joined(separator: ", "))
                 }
                 if approach != .only && prefs.interests.contains(.food) {
-                    summaryRow("fork.knife", [prefs.includeLunch ? "Lunch" : nil, prefs.includeDinner ? "Dinner" : nil,
-                                              prefs.vegetarian ? "Vegetarian" : nil]
-                        .compactMap { $0 }.joined(separator: ", "))
+                    summaryRow("fork.knife", foodSummary)
                 }
                 if approach != .only && prefs.wantsNightlife {
-                    summaryRow("moon.stars.fill", "\(prefs.nightlifeStyle.title) until \(prefs.nightEndHour == 24 ? "midnight" : "\(prefs.nightEndHour):00")")
+                    summaryRow("moon.stars.fill", nightlifeSummary)
                 }
                 summaryRow(prefs.transport.symbol, prefs.transport.title)
                 if approach != .only {
                     summaryRow(prefs.budget.symbol, prefs.budget.title)
                 }
                 if !mustSees.isEmpty {
-                    summaryRow("mappin.and.ellipse", mustSees.map { entry in
-                        entry.whenText.map { "\(entry.name) (\($0.lowercased()))" } ?? entry.name
-                    }.joined(separator: ", "))
+                    summaryRow("mappin.and.ellipse", mustSeeSummary)
                 }
             }
             .card()
@@ -497,9 +493,48 @@ struct AutoPlanFlowView: View {
         }
     }
 
+    // The summary lines are built here, in small typed steps, so the compiler has little to work out.
+
+    private var groupSummary: String {
+        let people: String = prefs.travelers == 1 ? "person" : "people"
+        return "\(prefs.group.title), \(prefs.travelers) \(people)"
+    }
+
+    private var daysSummary: String {
+        let days: String = prefs.days == 1 ? "day" : "days"
+        let pace = prefs.pace.title.lowercased()
+        let start = prefs.dayStart.title.lowercased()
+        return "\(prefs.days) \(days), \(pace) pace, starting \(start)"
+    }
+
+    private var foodSummary: String {
+        var parts: [String] = []
+        if prefs.includeLunch { parts.append("Lunch") }
+        if prefs.includeDinner { parts.append("Dinner") }
+        if prefs.vegetarian { parts.append("Vegetarian") }
+        return parts.joined(separator: ", ")
+    }
+
+    private var nightlifeSummary: String {
+        let until: String = prefs.nightEndHour == 24 ? "midnight" : "\(prefs.nightEndHour):00"
+        return "\(prefs.nightlifeStyle.title) until \(until)"
+    }
+
+    private var mustSeeSummary: String {
+        var names: [String] = []
+        for entry in mustSees {
+            if let when = entry.whenText {
+                names.append("\(entry.name) (\(when.lowercased()))")
+            } else {
+                names.append(entry.name)
+            }
+        }
+        return names.joined(separator: ", ")
+    }
+
     private var existingFooter: String {
         switch existingMode {
-        case .keep: "Your stops stay, with their notes and photos, and the plan fits around their day and time. Flights and hotel check-ins are never touched."
+        case .keep: "Your stops stay, with their notes and photos, and the plan fits around their day and time. Stops you untick or that don't fit stay where they are. Flights and hotel check-ins are never touched."
         case .replace: "Stops on the days the plan fills are removed when you add the new plan. Flights and hotel check-ins stay."
         case .add: "The new plan is added to what you already have."
         }
@@ -662,13 +697,14 @@ struct AutoPlanFlowView: View {
         draft.load(plan: plan, themes: plan.map(\.theme), tripDays: trip.sortedDays, existing: existingStops)
     }
 
-    /// Removes the stops of the days the new plan is about to fill.
+    /// "Replace": removes the stops of the days the new plan is about to fill. (In "keep" mode only the
+    /// stops that were copied into the plan are replaced, by the review screen itself.)
     private func clearTargetDays() {
         let days = trip.sortedDays
         for index in Set(draft.days.map(\.targetIndex)) where days.indices.contains(index) {
             // Flights and hotel check-ins come from the bookings and stay.
             for stop in Array(days[index].stops) where !ExistingStops.isLogistics(stop) {
-                context.delete(stop)
+                days[index].remove(stop)
             }
         }
     }

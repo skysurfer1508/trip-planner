@@ -130,7 +130,11 @@ struct TransitConnector: View {
     /// What to show until the route arrives (the straight-line estimate).
     let fallback: String
     var inset: CGFloat = 36
+    /// Trip Mode: look again every minute while the screen is open, so live delays show.
+    var liveRefresh = false
     var onDuration: ((TimeInterval?) -> Void)?
+    /// The best route whenever it is looked up or refreshed (Trip Mode uses it for "Leave by").
+    var onBest: ((TransitItinerary?) -> Void)?
 
     @State private var outcome: TransitOutcome?
     @State private var zone: TimeZone = .current
@@ -158,14 +162,43 @@ struct TransitConnector: View {
         }
         .buttonStyle(.plain)
         .task(id: taskKey) {
+            outcome = nil
             zone = await TripTimeZone.ensure(trip)
             let result = await TransitRouter.lookup(from: from, to: to, timing: timing, timeZone: zone)
-            outcome = result
-            onDuration?(result.bestDuration)
+            guard !Task.isCancelled else { return }
+            publish(result)
+            guard liveRefresh else { return }
+            await keepFresh()
         }
         .sheet(isPresented: $showRoute) {
             if let outcome {
                 TransitRouteView(trip: trip, fromName: fromName, toName: toName, from: from, to: to, outcome: outcome)
+            }
+        }
+    }
+
+    private func publish(_ result: TransitOutcome) {
+        outcome = result
+        onDuration?(result.bestDuration)
+        if case .routes(let routes) = result {
+            onBest?(routes.best)
+        } else {
+            onBest?(nil)
+        }
+    }
+
+    /// Asks for the latest times every minute: the same journey when the service knows it, else a new search.
+    private func keepFresh() async {
+        while !Task.isCancelled {
+            try? await Task.sleep(for: .seconds(LivePolicy.refreshInterval))
+            guard !Task.isCancelled, case .routes(let current)? = outcome, let best = current.best else { continue }
+            if let fresh = try? await TransitLive.refresh(best) {
+                guard !Task.isCancelled else { return }
+                publish(.routes(current.replacing(fresh, at: 0)))
+            } else {
+                let result = await TransitRouter.lookup(from: from, to: to, timing: timing, timeZone: zone, refresh: true)
+                guard !Task.isCancelled else { return }
+                publish(result)
             }
         }
     }
@@ -180,12 +213,17 @@ struct TransitConnector: View {
             }
         case .routes(let result):
             if let best = result.best {
-                HStack(spacing: 6) {
-                    Image(systemName: best.headlineMode.symbol)
-                    Text((result.isTypical ? "≈ " : "") + best.summary)
-                        .lineLimit(2)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Image(systemName: best.headlineMode.symbol)
+                        Text((result.isTypical ? "≈ " : "") + best.summary)
+                            .lineLimit(2)
+                    }
+                    .foregroundStyle(.secondary)
+                    if !result.isTypical, let first = best.transitLegs.first {
+                        DepartureLine(leg: first, zone: result.timeZone)
+                    }
                 }
-                .foregroundStyle(.secondary)
             }
         case .noCoverage(let estimate):
             Label(estimate.map { "No transit timetable here · about \(Format.duration($0))" }
@@ -213,6 +251,24 @@ struct TransitRouteView: View {
     @State private var entrances: [Int: LegEntrances] = [:]
     @State private var walkOverrides: [Int: WalkOverride] = [:]
     @State private var walkPath: [CLLocationCoordinate2D]?
+    /// Fresher times than the answer the sheet was opened with.
+    @State private var liveResult: TransitResult?
+    @State private var updatedAt: Date?
+    @State private var updateFailed = false
+    @State private var board: BoardTarget?
+
+    private struct BoardTarget: Identifiable {
+        var id: String { stopId }
+        let stopId: String
+        let name: String
+        let line: String?
+        let zone: TimeZone
+    }
+
+    private var baseResult: TransitResult? {
+        if case .routes(let result) = outcome { return result }
+        return nil
+    }
 
     var body: some View {
         NavigationStack {
@@ -223,7 +279,7 @@ struct TransitRouteView: View {
 
                     switch outcome {
                     case .routes(let result):
-                        routes(result)
+                        routes(liveResult ?? result, original: result)
                     case .noCoverage(let estimate):
                         message("No public transport timetable was found for this area",
                                 detail: estimate.map { "Apple Maps estimates about \(Format.duration($0)) by public transport. " }
@@ -243,11 +299,14 @@ struct TransitRouteView: View {
 
                     TransitGuideCard(trip: trip)
 
-                    Text("Routes from Transitous (transitous.org), built on the timetables of the transit agencies. Scheduled times; delays aren't included.")
+                    Text("Routes from Transitous (transitous.org), built on the timetables of the transit agencies. Live times and delays appear where an agency shares them; otherwise times are the timetable's.")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
                 .padding()
+            }
+            .refreshable {
+                if let base = baseResult { await refreshNow(index: selected, base: base) }
             }
             .navigationTitle("Public transport")
             .navigationBarTitleDisplayMode(.inline)
@@ -258,10 +317,13 @@ struct TransitRouteView: View {
             }
         }
         .presentationDetents([.large])
+        .sheet(item: $board) { target in
+            DepartureBoardView(stopId: target.stopId, stopName: target.name, highlightLine: target.line, zone: target.zone)
+        }
     }
 
     @ViewBuilder
-    private func routes(_ result: TransitResult) -> some View {
+    private func routes(_ result: TransitResult, original: TransitResult) -> some View {
         let itineraries = result.itineraries
         let index = min(selected, itineraries.count - 1)
         let current = itineraries[index]
@@ -277,18 +339,24 @@ struct TransitRouteView: View {
 
         RouteMap(itinerary: current, from: from, to: to, walkOverrides: walkOverrides, entrances: entrances,
                  plainWalk: walkPath)
-            .id("\(index)-\(current.duration)-\(walkOverrides.count)-\(entrances.count)-\(walkPath?.count ?? 0)")
+            .id(current.id ?? "\(index)-\(current.duration)")
             .frame(height: 280)
             .clipShape(RoundedRectangle(cornerRadius: 16))
-            .task(id: "\(index)-\(current.duration)") { await loadExtras(current) }
+            .task(id: current.id ?? "\(index)-\(current.duration)") { await loadExtras(current) }
+
+        alerts(current, in: itineraries)
 
         header(current, result: result)
+            .task(id: current.id ?? "\(index)") { await liveLoop(index: index, base: original) }
 
         VStack(alignment: .leading, spacing: 0) {
             ForEach(Array(current.legs.enumerated()), id: \.offset) { number, leg in
                 LegRow(leg: leg, zone: result.timeZone,
                        walkOverride: walkOverrides[number],
-                       entrances: entrances[number])
+                       entrances: entrances[number]) { tapped in
+                    guard let stopId = tapped.fromStopId else { return }
+                    board = BoardTarget(stopId: stopId, name: tapped.fromName, line: tapped.routeShortName, zone: result.timeZone)
+                }
             }
         }
         .card()
@@ -330,12 +398,93 @@ struct TransitRouteView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            liveCaption(current, result: result)
             if result.isTypical {
                 Label("Your date is too far ahead for timetables. This is the typical timetable for that weekday and time.",
                       systemImage: "calendar.badge.clock")
                     .font(.caption)
                     .foregroundStyle(.orange)
             }
+        }
+    }
+
+    /// Says whether the times are live, and when they were last read.
+    @ViewBuilder
+    private func liveCaption(_ current: TransitItinerary, result: TransitResult) -> some View {
+        if current.hasLiveData {
+            let read = max(updatedAt ?? .distantPast, result.fetchedAt)
+            Label("Live times · updated \(TransitTime.timeText(read, in: result.timeZone))",
+                  systemImage: "dot.radiowaves.left.and.right")
+                .font(.caption)
+                .foregroundStyle(.green)
+            if updateFailed {
+                Text("The last update didn't work. These are the latest times known.")
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+            }
+        } else if let first = current.firstDeparture, LivePolicy.isLive(departure: first) {
+            Label("Timetable times. This agency doesn't share live data.", systemImage: "calendar")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    /// A cancelled vehicle, or a change that is too tight with today's delays.
+    @ViewBuilder
+    private func alerts(_ current: TransitItinerary, in all: [TransitItinerary]) -> some View {
+        if current.hasCancelledLeg {
+            VStack(alignment: .leading, spacing: 6) {
+                Label("A vehicle on this route is cancelled.", systemImage: "xmark.octagon.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.red)
+                if let other = all.firstIndex(where: { !$0.hasCancelledLeg }) {
+                    Button("Show the next option") { selected = other }
+                        .font(.subheadline.bold())
+                }
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.red.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
+        }
+        let tight = current.changeSlackMinutes.filter { $0 < 3 }
+        if !tight.isEmpty && !current.hasCancelledLeg {
+            Label(tightText(tight), systemImage: "exclamationmark.triangle.fill")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.orange)
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+        }
+    }
+
+    private func tightText(_ slack: [Int]) -> String {
+        let shortest = slack.min() ?? 0
+        if shortest < 1 { return "You may miss a connection: the change is shorter than the walk." }
+        return "Tight change: only \(shortest) min between vehicles."
+    }
+
+    /// While the sheet is open and the departure is close, read the live times again every minute.
+    private func liveLoop(index: Int, base: TransitResult) async {
+        while !Task.isCancelled {
+            let current = liveResult ?? base
+            guard current.itineraries.indices.contains(index),
+                  let first = current.itineraries[index].firstDeparture ?? current.itineraries[index].start,
+                  LivePolicy.isLive(departure: first) else { return }
+            try? await Task.sleep(for: .seconds(LivePolicy.refreshInterval))
+            if Task.isCancelled { return }
+            await refreshNow(index: index, base: base)
+        }
+    }
+
+    private func refreshNow(index: Int, base: TransitResult) async {
+        let current = liveResult ?? base
+        guard current.itineraries.indices.contains(index) else { return }
+        if let fresh = try? await TransitLive.refresh(current.itineraries[index]) {
+            liveResult = current.replacing(fresh, at: index)
+            updatedAt = Date()
+            updateFailed = false
+        } else {
+            updateFailed = current.itineraries[index].hasLiveData
         }
     }
 
@@ -359,12 +508,28 @@ struct TransitRouteView: View {
         }
 
         for (index, leg) in itinerary.legs.enumerated() where leg.mode == .subway || leg.mode == .rail {
-            let cameFrom = index > 0 ? itinerary.legs[index - 1].from.coordinate : from
-            let goingTo = index + 1 < itinerary.legs.count ? itinerary.legs[index + 1].to.coordinate : to
+            // Where you come from: the start of the walk before, or where the vehicle before let you off.
+            let cameFrom: CLLocationCoordinate2D
+            if index > 0 {
+                let before = itinerary.legs[index - 1]
+                cameFrom = before.isWalking ? before.from.coordinate : before.to.coordinate
+            } else {
+                cameFrom = from
+            }
+            let goingTo: CLLocationCoordinate2D
+            if index + 1 < itinerary.legs.count {
+                let after = itinerary.legs[index + 1]
+                goingTo = after.isWalking ? after.to.coordinate : after.from.coordinate
+            } else {
+                goingTo = to
+            }
 
             let boardingList = await TransitEntrances.find(stationName: leg.fromName, near: leg.from.coordinate)
             let alightingList = await TransitEntrances.find(stationName: leg.toName, near: leg.to.coordinate)
             if Task.isCancelled { return }
+            // Answers for another journey (the traveller switched option) are dropped.
+            let shownID = (liveResult ?? baseResult)?.itineraries[safe: selected]?.id
+            if let id = itinerary.id, id != shownID { return }
 
             var choice = LegEntrances()
             choice.boarding = TransitEntrances.nearest(boardingList.filter(\.isEntrance), to: cameFrom)
@@ -403,20 +568,22 @@ private struct LegRow: View {
     let zone: TimeZone
     var walkOverride: WalkOverride?
     var entrances: LegEntrances?
+    /// Tapping the boarding stop of a vehicle opens its departure board.
+    var onDepartures: ((TransitLeg) -> Void)?
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .trailing, spacing: 0) {
-                Text(time(leg.departure))
+                LiveTime(date: leg.departure, delay: leg.departureDelayMinutes, cancelled: leg.isCancelled, zone: zone)
                     .font(.caption.monospacedDigit().weight(.semibold))
                 Spacer(minLength: 0)
                 if !leg.isWalking {
-                    Text(time(leg.arrival))
+                    LiveTime(date: leg.arrival, delay: leg.arrivalDelayMinutes, cancelled: leg.isCancelled, zone: zone)
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(.secondary)
                 }
             }
-            .frame(width: 44, alignment: .trailing)
+            .frame(width: 58, alignment: .trailing)
 
             Rail(color: leg.color, dotted: leg.isWalking)
                 .frame(width: 10)
@@ -461,8 +628,20 @@ private struct LegRow: View {
                     .lineLimit(2)
             }
         }
-        Text(leg.fromName)
-            .font(.subheadline.weight(.medium))
+        if leg.fromStopId != nil, let onDepartures {
+            Button {
+                onDepartures(leg)
+            } label: {
+                Label(leg.fromName, systemImage: "list.bullet.clipboard")
+                    .font(.subheadline.weight(.medium))
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("Shows the next departures from this stop")
+        } else {
+            Text(leg.fromName)
+                .font(.subheadline.weight(.medium))
+        }
+        statusLine
         if let door = entrances?.boarding {
             Label("Go in at \(door.name)", systemImage: "door.left.hand.open")
                 .font(.caption)
@@ -482,8 +661,84 @@ private struct LegRow: View {
         }
     }
 
-    private func time(_ date: Date?) -> String {
-        date.map { TransitTime.timeText($0, in: zone) } ?? ""
+    /// Live, late, cancelled or just the timetable.
+    @ViewBuilder
+    private var statusLine: some View {
+        switch leg.status {
+        case .cancelled:
+            Label("Cancelled", systemImage: "xmark.circle.fill")
+                .font(.caption.bold())
+                .foregroundStyle(.red)
+        case .late(let minutes):
+            Label("\(minutes) min late", systemImage: "dot.radiowaves.left.and.right")
+                .font(.caption.bold())
+                .foregroundStyle(.red)
+        case .early(let minutes):
+            Label("\(minutes) min early", systemImage: "dot.radiowaves.left.and.right")
+                .font(.caption.bold())
+                .foregroundStyle(.orange)
+        case .onTime:
+            Label("On time · live", systemImage: "dot.radiowaves.left.and.right")
+                .font(.caption.bold())
+                .foregroundStyle(.green)
+        case .scheduled:
+            EmptyView()
+        }
+    }
+}
+
+/// A time with its delay next to it ("09:35 +1"), struck through when the vehicle is cancelled.
+struct LiveTime: View {
+    let date: Date?
+    let delay: Int?
+    var cancelled = false
+    let zone: TimeZone
+
+    var body: some View {
+        if let date {
+            HStack(spacing: 3) {
+                Text(TransitTime.timeText(date, in: zone))
+                    .strikethrough(cancelled)
+                    .foregroundStyle(cancelled ? Color.red : Color.primary)
+                if let delay, delay != 0, !cancelled {
+                    Text(delay > 0 ? "+\(delay)" : "\(delay)")
+                        .font(.caption2.bold())
+                        .foregroundStyle(delay > 0 ? Color.red : Color.green)
+                }
+            }
+        }
+    }
+}
+
+/// "leaves 09:35 +1 · in 4 min": when the first vehicle goes, counting down while the screen is open.
+struct DepartureLine: View {
+    let leg: TransitLeg
+    let zone: TimeZone
+
+    var body: some View {
+        if let departure = leg.departure {
+            TimelineView(.periodic(from: .now, by: 30)) { context in
+                HStack(spacing: 5) {
+                    if leg.isCancelled {
+                        Label("Cancelled", systemImage: "xmark.circle.fill")
+                            .foregroundStyle(.red)
+                    } else {
+                        Text("leaves")
+                            .foregroundStyle(.secondary)
+                        LiveTime(date: departure, delay: leg.departureDelayMinutes, zone: zone)
+                        if LivePolicy.isLive(departure: departure, now: context.date) {
+                            Text("· " + TransitLive.countdownText(until: departure, now: context.date))
+                                .foregroundStyle(.secondary)
+                        }
+                        if leg.isLive {
+                            Image(systemName: "dot.radiowaves.left.and.right")
+                                .foregroundStyle(.green)
+                        }
+                    }
+                }
+                .font(.caption2)
+            }
+        }
     }
 }
 

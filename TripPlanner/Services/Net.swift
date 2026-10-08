@@ -40,10 +40,18 @@ enum Net {
         for (key, value) in headers {
             request.setValue(value, forHTTPHeaderField: key)
         }
-        let (data, response) = try await session.data(for: request)
-        guard let http = response as? HTTPURLResponse else { throw NetError.badResponse }
-        guard (200..<300).contains(http.statusCode) else { throw NetError.badStatus(http.statusCode) }
-        return data
+        do {
+            let (data, response) = try await session.data(for: request)
+            guard let http = response as? HTTPURLResponse else { throw NetError.badResponse }
+            guard (200..<300).contains(http.statusCode) else { throw NetError.badStatus(http.statusCode) }
+            return data
+        } catch {
+            // Cancelled lookups (a list scrolled away) are not failures.
+            if !(error is CancellationError), (error as? URLError)?.code != .cancelled {
+                Diagnostics.shared.record(service: Diagnostics.service(for: url), message: error.localizedDescription)
+            }
+            throw error
+        }
     }
 
     static func get<T: Decodable>(_ type: T.Type,

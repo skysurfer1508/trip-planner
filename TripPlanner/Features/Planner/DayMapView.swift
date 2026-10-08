@@ -176,23 +176,30 @@ struct DayMapView: View {
 
         for entry in visible {
             let day = entry.day
-            var previous: (coordinate: CLLocationCoordinate2D, name: String, clock: Date)?
+            var previous: (coordinate: CLLocationCoordinate2D, clock: Date, fromHotel: Bool)?
             if let anchor = trip.window(for: day.date).anchor {
-                previous = (anchor, "Hotel", day.defaultWallClock(hour: 9))
+                previous = (anchor, day.defaultWallClock(hour: 9), true)
             }
             for (number, stop) in day.sortedStops.enumerated() {
                 if let origin = previous {
+                    // The same times the Plan list uses, so both ask for the same routes and share the saved answers.
+                    var timing: TransitTiming = .departAt(origin.clock)
+                    if origin.fromHotel, let planned = stop.plannedTime {
+                        timing = .arriveBy(day.combine(time: planned))
+                    }
                     let outcome = await TransitRouter.lookup(from: origin.coordinate, to: stop.coordinate,
-                                                             timing: .departAt(origin.clock), timeZone: zone)
+                                                             timing: timing, timeZone: zone)
                     if Task.isCancelled { return }
                     if case .routes(let result) = outcome, let best = result.best {
                         collected += TransitPaths.segments(from: best, prefix: "\(entry.index)-\(number)")
                         segments = collected
                     }
                 }
-                let leaves = stop.plannedTime.map { $0.addingTimeInterval(TimeInterval(stop.durationMinutes * 60)) }
-                    ?? day.defaultWallClock(hour: 10)
-                previous = (stop.coordinate, stop.name, leaves)
+                var leaves = day.defaultWallClock(hour: 10)
+                if let planned = stop.plannedTime {
+                    leaves = day.combine(time: planned).addingTimeInterval(TimeInterval(stop.durationMinutes * 60))
+                }
+                previous = (stop.coordinate, leaves, false)
             }
         }
     }

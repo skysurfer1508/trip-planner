@@ -43,23 +43,18 @@ actor TravelTimeCache {
 
     private var known: [String: TimeInterval] = [:]
     private var failed = Set<String>()
-    private var active = 0
+    private let gate = RequestGate(limit: 2, minGap: 0.1)
 
     func seconds(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D, mode: TravelMode) async -> TimeInterval? {
         let key = "\(mode.rawValue)|" + TransitRouter.pairKey(from, to)
         if let value = known[key] { return value }
         if failed.contains(key) { return nil }
-        // MapKit limits how often directions can be asked for.
-        while active >= 2 {
-            try? await Task.sleep(for: .milliseconds(150))
-            if Task.isCancelled { return nil }
-        }
-        active += 1
+        do { try await gate.enter() } catch { return nil }
         let value = await RoutingService.eta(from: from, to: to, mode: mode)
-        active -= 1
+        await gate.leave()
         if let value {
             known[key] = value
-        } else {
+        } else if !Task.isCancelled {
             failed.insert(key)
         }
         return value

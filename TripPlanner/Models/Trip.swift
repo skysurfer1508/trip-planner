@@ -54,7 +54,7 @@ final class Trip {
 
     var holidays: [Holiday] {
         guard !holidaysJSON.isEmpty else { return [] }
-        return (try? JSONDecoder().decode([Holiday].self, from: Data(holidaysJSON.utf8))) ?? []
+        return HolidayCache.list(for: holidaysJSON)
     }
 
     func holiday(on date: Date) -> Holiday? {
@@ -177,5 +177,20 @@ final class Trip {
             modelContext?.insert(day)
             days.append(day)
         }
+    }
+}
+
+/// The decoded holidays of the last text asked for: checking opening hours asks once per row.
+enum HolidayCache {
+    private static let lock = NSLock()
+    private static var last: (json: String, list: [Holiday])?
+
+    static func list(for json: String) -> [Holiday] {
+        lock.lock()
+        defer { lock.unlock() }
+        if let last, last.json == json { return last.list }
+        let list = (try? JSONDecoder().decode([Holiday].self, from: Data(json.utf8))) ?? []
+        last = (json, list)
+        return list
     }
 }

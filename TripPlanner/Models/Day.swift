@@ -23,6 +23,15 @@ final class Day {
         stops.append(stop)
     }
 
+    /// Takes a stop out of the day and deletes it, keeping the order of the others. Taking it out of the
+    /// list first means no ghost row is left behind until the next save.
+    func remove(_ stop: Stop) {
+        let rest = sortedStops.filter { $0 !== stop }
+        stops.removeAll { $0 === stop }
+        renumber(rest)
+        modelContext?.delete(stop)
+    }
+
     /// Rewrites `order` so it matches the given array.
     func renumber(_ ordered: [Stop]) {
         for (index, stop) in ordered.enumerated() {

@@ -34,6 +34,8 @@ final class Stop {
     var hoursCheckedAt: Date?
     /// Name of the OpenStreetMap object the hours came from, so a wrong match can be seen.
     var hoursSource: String = ""
+    /// Hours the traveller marked as wrong, so a new lookup doesn't bring the same ones back.
+    var rejectedHours: String = ""
     var day: Day?
 
     init(name: String,
@@ -75,6 +77,7 @@ final class Stop {
         copy.openingHours = openingHours
         copy.hoursCheckedAt = hoursCheckedAt
         copy.hoursSource = hoursSource
+        copy.rejectedHours = rejectedHours
         return copy
     }
 
