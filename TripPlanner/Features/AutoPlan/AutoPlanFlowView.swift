@@ -329,7 +329,7 @@ struct AutoPlanFlowView: View {
             Text("Favourite cuisines").font(.headline).padding(.top, Spacing.s)
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: Spacing.s)], alignment: .leading, spacing: Spacing.s) {
                 ForEach(Cuisine.allCases) { cuisine in
-                    FilterChip(title: cuisine.title, isOn: prefs.cuisines.contains(cuisine.rawValue)) {
+                    SelectableChip(title: cuisine.title, isOn: prefs.cuisines.contains(cuisine.rawValue)) {
                         if prefs.cuisines.contains(cuisine.rawValue) {
                             prefs.cuisines.remove(cuisine.rawValue)
                         } else {

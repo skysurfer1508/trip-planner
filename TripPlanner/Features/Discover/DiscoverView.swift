@@ -50,26 +50,24 @@ struct DiscoverView: View {
     var body: some View {
         Group {
             if center == nil {
-                ContentUnavailableView("No destination yet", systemImage: "mappin.slash",
-                                       description: Text("Edit the trip and pick a destination to see what's worth visiting."))
+                EmptyState(title: "No destination yet", systemImage: "mappin.slash",
+                           message: "Edit the trip and pick a destination to see what's worth visiting.")
             } else {
                 content
             }
         }
+        .background(Theme.background)
         .navigationTitle("Discover")
-        .navigationBarTitleDisplayMode(.inline)
-        .safeAreaInset(edge: .top, spacing: 0) {
-            TabHeader(title: "Discover") {
-                if let day = targetDay {
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                if targetDay != nil {
                     Button {
                         showSearch = true
                     } label: {
                         Image(systemName: "magnifyingglass")
                     }
                     .accessibilityLabel("Search places")
-                    .sheet(isPresented: $showSearch) {
-                        AddPlaceView(day: day)
-                    }
                 }
                 if !days.isEmpty {
                     Menu {
@@ -81,9 +79,13 @@ struct DiscoverView: View {
                     } label: {
                         Label("Add to Day \(min(targetIndex, days.count - 1) + 1)", systemImage: "calendar.badge.plus")
                             .labelStyle(.titleAndIcon)
-                            .font(.subheadline)
                     }
                 }
+            }
+        }
+        .sheet(isPresented: $showSearch) {
+            if let day = targetDay {
+                AddPlaceView(day: day)
             }
         }
         .sheet(item: $selected) { place in
@@ -106,24 +108,69 @@ struct DiscoverView: View {
     }
 
     private var content: some View {
-        VStack(spacing: 0) {
-            controls
-            Divider()
-            list
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: Spacing.m) {
+                if !secrets.hasOpenTripMap && !secrets.hasTripadvisor {
+                    Banner(kind: .info, title: "Rank places by popularity",
+                           message: "These are plain Apple Maps results. Add a free OpenTripMap key (and optionally Tripadvisor) to see the most popular and best-rated places first.") {
+                        Button("Add API keys") { showSettings = true }
+                            .buttonStyle(.primary(fullWidth: false))
+                            .padding(.top, Spacing.xs)
+                    }
+                }
+                ForEach(result.notices, id: \.self) { notice in
+                    Banner(kind: .warning, title: notice)
+                }
+
+                if isLoading && result.places.isEmpty {
+                    ForEach(0..<5, id: \.self) { _ in
+                        SuggestionSkeleton()
+                    }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Finding places")
+                } else if !isLoading && result.places.isEmpty && result.notices.isEmpty {
+                    EmptyState(title: "Nothing found", systemImage: "binoculars",
+                               message: "Try a bigger radius or another category.")
+                } else {
+                    ForEach(sortedPlaces) { place in
+                        Button {
+                            selected = place
+                        } label: {
+                            SuggestionRow(place: place,
+                                          isAdded: addedIDs.contains(place.id),
+                                          isSaved: isSaved(place),
+                                          onAdd: { add(place) },
+                                          onSave: { save(place) })
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                if result.places.contains(where: { $0.rating != nil }) {
+                    Text("Ratings by Tripadvisor")
+                        .font(Typography.caption)
+                        .foregroundStyle(Theme.inkSecondary)
+                }
+            }
+            .padding(.horizontal, Spacing.l)
+            .padding(.bottom, Spacing.xl)
+            .motion(Motion.fade, value: result.places.count)
         }
+        .safeAreaInset(edge: .top, spacing: 0) { controls }
     }
 
+    /// Category chips, then how to sort and how far to look. Stays at the top while the list scrolls.
     private var controls: some View {
-        VStack(alignment: .leading, spacing: Spacing.s) {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: Spacing.s) {
                     ForEach(DiscoverKind.allCases) { k in
-                        FilterChip(title: k.title, symbol: k.symbol, isOn: kind == k) { kind = k }
+                        SelectableChip(title: k.title, symbol: k.symbol, isOn: kind == k) { kind = k }
                     }
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, Spacing.l)
             }
-            HStack {
+            HStack(spacing: Spacing.m) {
                 Picker("Sort", selection: $sort) {
                     ForEach(SortOrder.allCases) { Text($0.rawValue).tag($0) }
                 }
@@ -136,63 +183,13 @@ struct DiscoverView: View {
                     Text("25 km").tag(25.0)
                 }
                 .pickerStyle(.menu)
+                .tint(Theme.accent)
+                .frame(minHeight: 44)
             }
-            .padding(.horizontal)
+            .padding(.horizontal, Spacing.l)
         }
-        .padding(.vertical, Spacing.s)
-    }
-
-    @ViewBuilder
-    private var list: some View {
-        List {
-            if !secrets.hasOpenTripMap && !secrets.hasTripadvisor {
-                Section {
-                    VStack(alignment: .leading, spacing: Spacing.s) {
-                        Label("Rank places by popularity", systemImage: "star.leadinghalf.filled")
-                            .font(.headline)
-                        Text("These are plain Apple Maps results. Add a free OpenTripMap key (and optionally Tripadvisor) to see the most popular and best-rated places first.")
-                            .font(.footnote)
-                            .foregroundStyle(Theme.inkSecondary)
-                        Button("Add API keys") { showSettings = true }
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.small)
-                    }
-                    .padding(.vertical, Spacing.xs)
-                }
-            }
-            ForEach(result.notices, id: \.self) { notice in
-                Label(notice, systemImage: "info.circle")
-                    .font(.footnote)
-                    .foregroundStyle(Theme.warning)
-            }
-            ForEach(sortedPlaces) { place in
-                Button {
-                    selected = place
-                } label: {
-                    SuggestionRow(place: place,
-                                  isAdded: addedIDs.contains(place.id),
-                                  isSaved: isSaved(place),
-                                  onAdd: { add(place) },
-                                  onSave: { save(place) })
-                }
-                .buttonStyle(.plain)
-            }
-            if result.places.contains(where: { $0.rating != nil }) {
-                Text("Ratings by Tripadvisor")
-                    .font(.caption2)
-                    .foregroundStyle(Theme.inkSecondary)
-                    .listRowBackground(Color.clear)
-            }
-        }
-        .listStyle(.plain)
-        .overlay {
-            if isLoading && result.places.isEmpty {
-                ProgressView("Finding places…")
-            } else if !isLoading && result.places.isEmpty && result.notices.isEmpty {
-                ContentUnavailableView("Nothing found", systemImage: "binoculars",
-                                       description: Text("Try a bigger radius or another category."))
-            }
-        }
+        .padding(.bottom, Spacing.xs)
+        .background(Theme.background)
     }
 
     private func load() async {
@@ -235,6 +232,9 @@ struct DiscoverView: View {
     }
 }
 
+/// A place as a card: its category tile, name, rating, distance and what makes it stand out, with
+/// Save and Add as separate 44 pt buttons. (Suggestions carry no photo, so the tile shows the
+/// category glyph.)
 private struct SuggestionRow: View {
     let place: SuggestedPlace
     let isAdded: Bool
@@ -242,17 +242,25 @@ private struct SuggestionRow: View {
     let onAdd: () -> Void
     let onSave: () -> Void
 
-    var body: some View {
-        HStack(spacing: Spacing.m) {
-            Image(systemName: place.kind.symbol)
-                .frame(width: 32, height: 32)
-                .background(place.kind.stopCategory.color.opacity(0.15), in: Circle())
-                .foregroundStyle(place.kind.stopCategory.color)
+    @ScaledMetric(relativeTo: .body) private var tile: CGFloat = 72
 
-            VStack(alignment: .leading, spacing: 3) {
+    var body: some View {
+        let category = place.kind.stopCategory
+
+        HStack(alignment: .top, spacing: Spacing.m) {
+            Image(systemName: place.kind.symbol)
+                .font(.title2)
+                .foregroundStyle(Theme.category(category))
+                .frame(width: tile, height: tile)
+                .background(Theme.category(category).opacity(0.14), in: Radius.shape(Radius.small))
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(place.name)
-                    .font(.headline)
+                    .font(Typography.headline)
+                    .foregroundStyle(Theme.ink)
                     .lineLimit(2)
+                    .multilineTextAlignment(.leading)
                 HStack(spacing: Spacing.s) {
                     if let rating = place.rating {
                         Label(String(format: "%.1f", rating), systemImage: "star.fill")
@@ -261,40 +269,68 @@ private struct SuggestionRow: View {
                             Text("(\(reviews.formatted()))")
                         }
                     }
-                    if let rate = place.otmRate, rate >= 3 {
-                        Label(rate == 7 ? "Heritage" : "Top rated", systemImage: "rosette")
-                            .foregroundStyle(.tint)
-                    }
-                    Text(Format.distance(place.distance))
+                    Label(Format.distance(place.distance), systemImage: "location")
                 }
-                .font(.caption)
+                .font(Typography.caption)
                 .foregroundStyle(Theme.inkSecondary)
+                if let rate = place.otmRate, rate >= 3 {
+                    Label(rate == 7 ? "Heritage" : "Top rated", systemImage: "rosette")
+                        .font(Typography.caption)
+                        .foregroundStyle(Theme.accent)
+                }
                 if let ranking = place.ranking {
                     Text(ranking)
-                        .font(.caption2)
+                        .font(Typography.caption)
                         .foregroundStyle(Theme.inkSecondary)
-                        .lineLimit(1)
+                        .lineLimit(2)
                 }
             }
-            Spacer(minLength: 0)
-            Button(action: onSave) {
-                Image(systemName: isSaved ? "bookmark.fill" : "bookmark")
-                    .font(.title3)
-            }
-            .buttonStyle(.borderless)
-            .disabled(isSaved)
-            .accessibilityLabel(isSaved ? "Saved" : "Save \(place.name) for later")
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-            Button(action: onAdd) {
-                Image(systemName: isAdded ? "checkmark.circle.fill" : "plus.circle")
-                    .font(.title2)
-                    .foregroundStyle(isAdded ? Theme.success : Theme.accent)
+            VStack(spacing: 0) {
+                Button(action: onSave) {
+                    Image(systemName: isSaved ? "bookmark.fill" : "bookmark")
+                        .font(.title3)
+                        .foregroundStyle(Theme.accent)
+                        .symbolEffect(.bounce, value: isSaved)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(isSaved)
+                .accessibilityLabel(isSaved ? "Saved" : "Save \(place.name) for later")
+
+                Button(action: onAdd) {
+                    Image(systemName: isAdded ? "checkmark.circle.fill" : "plus.circle")
+                        .font(.title2)
+                        .foregroundStyle(isAdded ? Theme.success : Theme.accent)
+                        .symbolEffect(.bounce, value: isAdded)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(isAdded)
+                .accessibilityLabel(isAdded ? "Added" : "Add \(place.name) to the plan")
             }
-            .buttonStyle(.borderless)
-            .disabled(isAdded)
-            .accessibilityLabel(isAdded ? "Added" : "Add \(place.name) to the plan")
         }
-        .padding(.vertical, 2)
-        .contentShape(Rectangle())
+        .card(padding: Spacing.m)
+        .contentShape(Radius.shape(Radius.card))
+    }
+}
+
+/// Placeholder card while places load.
+private struct SuggestionSkeleton: View {
+    @ScaledMetric(relativeTo: .body) private var tile: CGFloat = 72
+
+    var body: some View {
+        HStack(alignment: .top, spacing: Spacing.m) {
+            SkeletonView(height: tile, width: tile)
+            VStack(alignment: .leading, spacing: Spacing.s) {
+                SkeletonView(height: 18)
+                SkeletonView(height: 12, width: 140)
+                SkeletonView(height: 12, width: 90)
+            }
+        }
+        .card(padding: Spacing.m)
     }
 }

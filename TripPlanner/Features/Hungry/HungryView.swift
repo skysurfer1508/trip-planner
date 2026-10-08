@@ -50,11 +50,11 @@ struct HungryView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: Spacing.s) {
-                    FilterChip(title: "All", isOn: model.cuisine == nil) {
+                    SelectableChip(title: "All", isOn: model.cuisine == nil) {
                         model.cuisine = nil
                     }
                     ForEach(Cuisine.allCases) { cuisine in
-                        FilterChip(title: cuisine.title, isOn: model.cuisine == cuisine) {
+                        SelectableChip(title: cuisine.title, isOn: model.cuisine == cuisine) {
                             model.cuisine = model.cuisine == cuisine ? nil : cuisine
                         }
                     }
@@ -64,10 +64,10 @@ struct HungryView: View {
 
             HStack(spacing: Spacing.s) {
                 if model.source == .nearby || !secrets.hasTripadvisor {
-                    FilterChip(title: "Takeaway", symbol: "bag.fill", isOn: model.takeaway) {
+                    SelectableChip(title: "Takeaway", symbol: "bag.fill", isOn: model.takeaway) {
                         model.takeaway.toggle()
                     }
-                    FilterChip(title: "Vegetarian", symbol: "leaf.fill", isOn: model.vegetarian) {
+                    SelectableChip(title: "Vegetarian", symbol: "leaf.fill", isOn: model.vegetarian) {
                         model.vegetarian.toggle()
                     }
                 }

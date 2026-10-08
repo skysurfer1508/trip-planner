@@ -22,9 +22,9 @@ struct DestinationIdeasView: View {
             Section {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: Spacing.s) {
-                        FilterChip(title: "All", isOn: tag == nil) { tag = nil }
+                        SelectableChip(title: "All", isOn: tag == nil) { tag = nil }
                         ForEach(DestinationIdea.tags, id: \.self) { t in
-                            FilterChip(title: t, isOn: tag == t) { tag = (tag == t) ? nil : t }
+                            SelectableChip(title: t, isOn: tag == t) { tag = (tag == t) ? nil : t }
                         }
                     }
                 }
