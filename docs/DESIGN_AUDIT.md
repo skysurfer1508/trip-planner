@@ -45,7 +45,10 @@ progress bars). Not verified by measuring on a device.
 button, the map hint, map controls). No glass is used on cards, lists or text over photos, and glass is never
 nested.
 
-## Self review (1-10)
+## Self review (1-10), provisional
+Scored from the code only. None of the screens has been looked at, so treat every score as unconfirmed until
+screenshots exist.
+
 | Axis | Score | Why |
 |---|---|---|
 | Philosophy consistency | 7 | Tokens and components are used everywhere; Import review and Auto plan are only themed |
