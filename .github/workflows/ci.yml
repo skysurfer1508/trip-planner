@@ -1,0 +1,77 @@
+name: Build and test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A newer push cancels the run of an older one.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: macos-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use the newest Xcode on the runner
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          sudo xcode-select -s "$XCODE/Contents/Developer"
+          xcodebuild -version
+
+      - name: Install XcodeGen and generate the project
+        run: |
+          brew install xcodegen
+          xcodegen
+
+      - name: Pick an iPhone simulator
+        id: simulator
+        run: |
+          NAME=$(xcrun simctl list devices available | grep -E "iPhone [0-9]+" | head -1 | sed -E 's/^ +//; s/ \(.*//')
+          echo "Using: $NAME"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Build and run the unit tests
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project TripPlanner.xcodeproj \
+            -scheme TripPlanner \
+            -destination "platform=iOS Simulator,name=${{ steps.simulator.outputs.name }}" \
+            -resultBundlePath TestResults.xcresult \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee build.log
+
+      # Compiler errors and failed tests become annotations, which can be read without downloading logs.
+      - name: Report errors
+        if: failure()
+        run: |
+          grep -E "error:" build.log | sort -u | head -40 | while IFS= read -r line; do
+            file=$(echo "$line" | sed -nE 's|^(/[^:]+):([0-9]+):([0-9]+): error: (.*)$|\1|p')
+            ln=$(echo "$line" | sed -nE 's|^(/[^:]+):([0-9]+):([0-9]+): error: (.*)$|\2|p')
+            msg=$(echo "$line" | sed -nE 's|^(/[^:]+):([0-9]+):([0-9]+): error: (.*)$|\4|p')
+            if [ -n "$file" ]; then
+              rel=${file#$GITHUB_WORKSPACE/}
+              echo "::error file=$rel,line=$ln::$msg"
+            else
+              echo "::error::$line"
+            fi
+          done
+          grep -E "Test Case .* failed|XCTAssert.*failed" build.log | sort -u | head -20 | while IFS= read -r line; do
+            echo "::error::$line"
+          done
+
+      - name: Keep the logs when something failed
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log-and-results
+          path: |
+            build.log
+            TestResults.xcresult
+          retention-days: 7

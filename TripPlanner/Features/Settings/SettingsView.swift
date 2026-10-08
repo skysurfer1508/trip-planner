@@ -90,6 +90,16 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    NavigationLink {
+                        DiagnosticsView()
+                    } label: {
+                        Label("Diagnostics", systemImage: "stethoscope")
+                    }
+                } footer: {
+                    Text("Shows the last lookups that failed (public transport, opening hours, AI...) so a problem is easy to report.")
+                }
+
+                Section {
                     if trips.isEmpty {
                         Text("No trips to back up yet.")
                             .foregroundStyle(.secondary)

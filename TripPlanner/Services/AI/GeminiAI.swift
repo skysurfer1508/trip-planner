@@ -88,8 +88,11 @@ struct GeminiAI: AIEngine {
         let root = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
 
         guard let status = http?.statusCode, (200..<300).contains(status) else {
-            if http?.statusCode == 429 { throw AIError.rateLimited }
             let message = (root?["error"] as? [String: Any])?["message"] as? String
+            var detail = "status \(http?.statusCode ?? -1)"
+            if let message { detail += ": \(message)" }
+            Diagnostics.shared.record(service: "generativelanguage.googleapis.com", message: detail)
+            if http?.statusCode == 429 { throw AIError.rateLimited }
             throw AIError.api(message ?? "status \(http?.statusCode ?? -1)")
         }
 

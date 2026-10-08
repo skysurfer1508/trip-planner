@@ -175,3 +175,18 @@ session. Each Discover load uses about 11 Tripadvisor calls.
 
 Set a location with *Features → Location → Custom Location*. Give a stop a planned time a few minutes ahead to
 see reminders and the re-flow banner. Apple Intelligence and notifications are most reliable on a real iPhone.
+
+## Live public transport
+
+Routes show live departure times and delays wherever the transit agency shares real-time data (Warsaw does; many
+cities do, some don't — the sheet says "Live" or "Timetable"). A route sheet refreshes every minute while it is open;
+tapping a boarding stop shows that stop's departure board; in Trip Mode the next-stop card re-checks the connection each
+minute and *Leave by* follows the live departure (and can send one reminder at that moment). A cancelled vehicle or a
+change that is too tight with today's delays is flagged, with the next option one tap away. Live data only updates while
+the app is open: there is no server to push alerts to a closed app. Data: Transitous (`api.transitous.org`).
+
+## Diagnostics and CI
+
+Settings → Diagnostics lists the last failed lookups (public transport, opening hours, AI, ...) with the time and the
+service, and copies them as one report. `.github/workflows/ci.yml` builds the app and runs the unit tests on every push
+(macOS runner, Xcode picked automatically); compiler errors and failed tests are published as annotations.
