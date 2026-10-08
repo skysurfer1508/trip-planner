@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// A large single-choice card.
+/// A large single-choice card. Selected: accent border and a filled checkmark, so it never relies on
+/// colour alone.
 struct OptionCard: View {
     let title: String
     var detail: String?
@@ -9,43 +10,51 @@ struct OptionCard: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            Haptics.select()
+            action()
+        } label: {
             HStack(spacing: Spacing.l) {
                 Image(systemName: symbol)
-                    .font(.title3)
-                    .frame(width: 42, height: 42)
-                    .background(Theme.accent.opacity(isSelected ? 0.25 : 0.1),
-                                in: Radius.shape(Radius.small))
+                    .font(.title2)
                     .foregroundStyle(Theme.accent)
+                    .frame(width: 36)
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.headline)
-                        .foregroundStyle(.primary)
+                        .font(Typography.headline)
+                        .foregroundStyle(Theme.ink)
+                        .multilineTextAlignment(.leading)
                     if let detail {
                         Text(detail)
-                            .font(.footnote)
+                            .font(Typography.label)
                             .foregroundStyle(Theme.inkSecondary)
+                            .multilineTextAlignment(.leading)
                     }
                 }
-                Spacer()
+                Spacer(minLength: Spacing.s)
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
-                    .foregroundStyle(isSelected ? Theme.accent : Theme.inkSecondary.opacity(0.5))
+                    .foregroundStyle(isSelected ? Theme.accent : Theme.inkSecondary)
+                    .symbolEffect(.bounce, value: isSelected)
+                    .accessibilityHidden(true)
             }
+            .frame(minHeight: 44)
             .padding(Spacing.m)
-            .background(isSelected ? Theme.accent.opacity(0.08) : Color(.secondarySystemBackground),
-                        in: Radius.shape(Radius.card))
+            .background(isSelected ? Theme.accent.opacity(0.1) : Theme.surface, in: Radius.shape(Radius.card))
             .overlay(
                 Radius.shape(Radius.card)
-                    .stroke(isSelected ? Theme.accent : Color.clear, lineWidth: 1.5)
+                    .strokeBorder(isSelected ? Theme.accent : Theme.separator, lineWidth: isSelected ? 2 : 0.5)
             )
+            .contentShape(Radius.shape(Radius.card))
         }
         .buttonStyle(.plain)
+        .motion(Motion.snappy, value: isSelected)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
-/// A square-ish multi-select tile with an icon.
+/// A square-ish multi-select tile with an icon. When on it fills with the accent and shows a checkmark.
 struct SelectTile: View {
     let title: String
     let symbol: String
@@ -53,23 +62,36 @@ struct SelectTile: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            Haptics.select()
+            action()
+        } label: {
             VStack(spacing: Spacing.s) {
                 Image(systemName: symbol)
                     .font(.title2)
+                    .accessibilityHidden(true)
                 Text(title)
-                    .font(.footnote.weight(.medium))
+                    .font(Typography.label)
                     .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.8)
+                    .lineLimit(3)
             }
             .frame(maxWidth: .infinity, minHeight: 84)
             .padding(Spacing.s)
-            .background(isOn ? Theme.accent : Color(.secondarySystemBackground),
-                        in: Radius.shape(Radius.card))
-            .foregroundStyle(isOn ? Color.white : Theme.ink)
+            .background(isOn ? Theme.accent : Theme.surface, in: Radius.shape(Radius.card))
+            .overlay(Radius.shape(Radius.card).strokeBorder(isOn ? Color.clear : Theme.separator, lineWidth: 0.5))
+            .overlay(alignment: .topTrailing) {
+                if isOn {
+                    Image(systemName: "checkmark")
+                        .font(.caption.weight(.bold))
+                        .padding(Spacing.s)
+                        .accessibilityHidden(true)
+                }
+            }
+            .foregroundStyle(isOn ? Theme.onAccent : Theme.ink)
+            .contentShape(Radius.shape(Radius.card))
         }
         .buttonStyle(.plain)
+        .motion(Motion.snappy, value: isOn)
         .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 }
@@ -85,17 +107,20 @@ struct QuestionPage<Content: View>: View {
             VStack(alignment: .leading, spacing: Spacing.l) {
                 VStack(alignment: .leading, spacing: Spacing.s) {
                     Text(title)
-                        .font(.title.bold())
+                        .font(Typography.display)
+                        .foregroundStyle(Theme.ink)
+                        .accessibilityAddTraits(.isHeader)
                     if let subtitle {
                         Text(subtitle)
-                            .font(.subheadline)
+                            .font(Typography.body)
                             .foregroundStyle(Theme.inkSecondary)
                     }
                 }
                 content()
             }
-            .padding()
+            .padding(Spacing.l)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .background(Theme.background)
     }
 }

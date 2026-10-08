@@ -15,6 +15,8 @@ struct NewTripWizard: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var step = 0
+    /// Which way the last step change went, so the page slides in from the matching side.
+    @State private var movingForward = true
     @State private var destination = ""
     @State private var coordinate: CLLocationCoordinate2D?
     @State private var name = ""
@@ -34,17 +36,23 @@ struct NewTripWizard: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                progressDots
+                progressBar
+                    .padding(.horizontal, Spacing.l)
                     .padding(.top, Spacing.s)
 
-                Group {
+                ZStack {
                     switch step {
                     case 0: whereStep
                     case 1: whenStep
                     default: startStep
                     }
                 }
+                .id(step)
+                .transition(.asymmetric(
+                    insertion: .move(edge: movingForward ? .trailing : .leading).combined(with: .opacity),
+                    removal: .move(edge: movingForward ? .leading : .trailing).combined(with: .opacity)))
             }
+            .motion(Motion.state, value: step)
             .navigationTitle(["Where to?", "When?", "How to start?"][min(step, 2)])
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -61,7 +69,7 @@ struct NewTripWizard: View {
                 }
                 if step > 0 {
                     ToolbarItem(placement: .cancellationAction) {
-                        Button("Back") { step -= 1 }
+                        Button("Back") { go(to: step - 1) }
                     }
                 }
             }
@@ -72,15 +80,21 @@ struct NewTripWizard: View {
         .interactiveDismissDisabled(isCreating)
     }
 
-    private var progressDots: some View {
-        HStack(spacing: Spacing.s) {
-            ForEach(0..<3, id: \.self) { index in
-                Capsule()
-                    .fill(index <= step ? Theme.accent : Color(.tertiarySystemFill))
-                    .frame(width: index == step ? 28 : 10, height: 6)
+    /// A thin bar that fills as the steps go by (step 1 of 3 is a third full).
+    private var progressBar: some View {
+        Capsule()
+            .fill(Theme.separator)
+            .frame(height: 6)
+            .overlay(alignment: .leading) {
+                GeometryReader { proxy in
+                    Capsule()
+                        .fill(Theme.accent)
+                        .frame(width: proxy.size.width * CGFloat(step + 1) / 3)
+                }
             }
-        }
-        .animation(.snappy, value: step)
+            .motion(Motion.state, value: step)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Step \(step + 1) of 3")
     }
 
     // MARK: Steps
@@ -142,6 +156,8 @@ struct NewTripWizard: View {
                 Text("You can do any of these later from the trip's Overview.")
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Theme.background)
         .disabled(isCreating)
         .overlay {
             if isCreating { ProgressView() }
@@ -155,28 +171,40 @@ struct NewTripWizard: View {
             HStack(spacing: Spacing.l) {
                 Image(systemName: symbol)
                     .font(.title3)
-                    .frame(width: 36, height: 36)
-                    .background(Theme.accent.opacity(0.12), in: Radius.shape(Radius.small))
+                    .foregroundStyle(Theme.accent)
+                    .frame(width: 36)
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .foregroundStyle(.primary)
+                        .font(Typography.body)
+                        .foregroundStyle(Theme.ink)
+                        .multilineTextAlignment(.leading)
                     Text(detail)
-                        .font(.caption)
+                        .font(Typography.caption)
                         .foregroundStyle(Theme.inkSecondary)
+                        .multilineTextAlignment(.leading)
                 }
-                Spacer()
+                Spacer(minLength: Spacing.s)
                 Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Theme.inkSecondary)
+                    .accessibilityHidden(true)
             }
+            .frame(minHeight: 44)
             .padding(.vertical, Spacing.xs)
         }
+        .listRowBackground(Theme.surface)
     }
 
     // MARK: Actions
 
     private func advance() {
-        step += 1
+        go(to: step + 1)
+    }
+
+    private func go(to target: Int) {
+        movingForward = target > step
+        Motion.perform { step = target }
     }
 
     private func create(startWith action: TripStartAction?) async {
