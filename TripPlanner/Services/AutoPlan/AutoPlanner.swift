@@ -172,7 +172,14 @@ enum AutoPlanner {
             if prefs.includeDinner && !dinnerCovered && !untimedFood.isEmpty { dinnerFixed = untimedFood.removeFirst() }
             reserved[dayIndex].append(contentsOf: untimedFood)
 
-            let activities = max(prefs.pace.activitiesPerDay - timed[dayIndex].count, reserved[dayIndex].count)
+            let startMinute = max(prefs.dayStart.minutes, window.startMinute ?? 0)
+            let limit = min(prefs.endLimitMinutes, window.endMinute ?? Int.max)
+            // A short day (the evening of arrival) takes fewer activities, so dinner still fits.
+            let budget = activityBudget(prefs: prefs, startMinute: startMinute, limit: limit,
+                                        lunch: prefs.includeLunch && !lunchCovered,
+                                        dinner: prefs.includeDinner && !dinnerCovered)
+            let wanted = min(max(prefs.pace.activitiesPerDay - timed[dayIndex].count, 0), budget)
+            let activities = max(wanted, reserved[dayIndex].count)
             let before = (activities + 1) / 2
             for _ in 0..<before { add(nextActivity(rng: &rng), .activity) }
             if prefs.includeLunch && !lunchCovered {
@@ -185,8 +192,6 @@ enum AutoPlanner {
             }
             if prefs.wantsNightlife { add(pick(kind: .nightlife, near: current, rng: &rng), .nightlife) }
 
-            let startMinute = max(prefs.dayStart.minutes, window.startMinute ?? 0)
-            let limit = min(prefs.endLimitMinutes, window.endMinute ?? Int.max)
             var stops = schedule(slots, prefs: prefs, from: window.anchor, startMinute: startMinute, limit: limit)
             if !timed[dayIndex].isEmpty {
                 stops = insertTimed(timed[dayIndex], into: stops, prefs: prefs, anchor: window.anchor,
@@ -198,6 +203,19 @@ enum AutoPlanner {
     }
 
     // MARK: Spreading places over days
+
+    /// How many sightseeing stops fit between the start and the end of a day once its meals are taken out,
+    /// at about 100 minutes each with the way between them. A normal day is unchanged (a packed pace still
+    /// gets five); an arrival evening gets one or two.
+    static func activityBudget(prefs: TripPreferences, startMinute: Int, limit: Int, lunch: Bool, dinner: Bool) -> Int {
+        var meals = 0
+        if lunch && startMinute <= 15 * 60 { meals += 70 }          // later than that the lunch is skipped
+        if dinner { meals += 100 }
+        if prefs.wantsCafes { meals += 40 }
+        if prefs.wantsNightlife { meals += 130 }
+        let free = max(0, min(limit, 24 * 60) - startMinute - meals)
+        return free / 100
+    }
 
     /// Minutes of a day that can be used: from its start (after landing, or the usual start) to its end.
     static func availableMinutes(prefs: TripPreferences, window: DayWindow) -> Int {
@@ -261,7 +279,14 @@ enum AutoPlanner {
         }
         for place in ordered {
             let byDistance = (0..<dayCount).sorted { distance(place, day: $0) < distance(place, day: $1) }
-            let day = byDistance.first { free[$0] > 0 } ?? (0..<dayCount).max { free[$0] < free[$1] } ?? 0
+            // When every day is full, the extra place goes to the day with the most time, not to a short one.
+            let day = byDistance.first { free[$0] > 0 }
+                ?? (0..<dayCount).max { a, b in
+                    let roomA = capacities.indices.contains(a) ? capacities[a] : 6
+                    let roomB = capacities.indices.contains(b) ? capacities[b] : 6
+                    return roomA != roomB ? roomA < roomB : buckets[a].count > buckets[b].count
+                }
+                ?? 0
             buckets[day].append(place)
             free[day] -= 1
         }

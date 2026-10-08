@@ -68,7 +68,8 @@ struct OpeningHours {
         let lower = cleaned.lowercased()
 
         if lower == "24/7" {
-            return OpeningHours(rules: [Rule(months: nil, weekdays: [], appliesOnHolidays: true, isOff: false,
+            // Every day, public holidays included: no weekday and no "PH" mark, which would mean "holidays only".
+            return OpeningHours(rules: [Rule(months: nil, weekdays: [], appliesOnHolidays: false, isOff: false,
                                              intervals: [Interval(start: 0, end: 1440)])])
         }
         if isUnsupported(lower) { return nil }

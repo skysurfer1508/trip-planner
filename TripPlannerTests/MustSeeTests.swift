@@ -396,3 +396,34 @@ final class ReadableAddressTests: XCTestCase {
         XCTAssertEqual(Stop.from(item).address, "")
     }
 }
+
+final class ActivityBudgetTests: XCTestCase {
+    private func prefs(_ change: (inout TripPreferences) -> Void = { _ in }) -> TripPreferences {
+        var value = TripPreferences()
+        value.group = .couple
+        value.interests = [.sights, .food]
+        change(&value)
+        return value
+    }
+
+    func testANormalDayKeepsItsPace() {
+        let normal = prefs()
+        let budget = AutoPlanner.activityBudget(prefs: normal, startMinute: 9 * 60, limit: normal.endLimitMinutes, lunch: true, dinner: true)
+        XCTAssertGreaterThanOrEqual(budget, TripPreferences.Pace.packed.activitiesPerDay, "even a packed pace fits a full day")
+    }
+
+    func testAnArrivalEveningGetsFewActivitiesAndKeepsDinner() {
+        let evening = prefs()
+        XCTAssertEqual(AutoPlanner.activityBudget(prefs: evening, startMinute: 16 * 60 + 30, limit: evening.endLimitMinutes,
+                                                  lunch: true, dinner: true), 2, "lunch is skipped after 15:00, dinner is kept")
+        XCTAssertEqual(AutoPlanner.activityBudget(prefs: evening, startMinute: 20 * 60, limit: evening.endLimitMinutes,
+                                                  lunch: true, dinner: true), 0)
+    }
+
+    func testNightlifeAndCafesTakeTimeToo() {
+        let night = prefs { $0.interests = [.sights, .food, .nightlife, .cafes] }
+        let plain = prefs()
+        XCTAssertLessThan(AutoPlanner.activityBudget(prefs: night, startMinute: 9 * 60, limit: 23 * 60, lunch: true, dinner: true),
+                          AutoPlanner.activityBudget(prefs: plain, startMinute: 9 * 60, limit: 23 * 60, lunch: true, dinner: true))
+    }
+}
