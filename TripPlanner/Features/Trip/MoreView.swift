@@ -32,8 +32,9 @@ struct MoreView: View {
         }
         .scrollContentBackground(.hidden)
         .background(Theme.background)
-        .navigationTitle("More")
-        .navigationBarTitleDisplayMode(.inline)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            PageHeader(title: "More")
+        }
         .sheet(isPresented: $showSaved) { SavedPlacesView(trip: trip) }
         .sheet(isPresented: $showExport) { ExportView(trip: trip) }
         .sheet(isPresented: $showEdit) { TripEditView(trip: trip) }

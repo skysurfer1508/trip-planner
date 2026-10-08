@@ -49,20 +49,6 @@ struct PlannerView: View {
             }
         }
         .background(Theme.background)
-        .navigationTitle("Plan")
-        .navigationBarTitleDisplayMode(.large)
-        .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                Button {
-                    showChat = true
-                } label: {
-                    Label("Ask AI", systemImage: "bubble.left.and.text.bubble.right")
-                        .labelStyle(.titleAndIcon)
-                }
-                .accessibilityLabel("Ask the AI to change the plan")
-                actionsMenu
-            }
-        }
         .sheet(isPresented: $showAddPlace) {
             if let day = selectedDay {
                 AddPlaceView(day: day)
@@ -103,6 +89,19 @@ struct PlannerView: View {
     @ViewBuilder
     private func topPanel(availableHeight: CGFloat) -> some View {
         VStack(spacing: 0) {
+            PageHeader(title: "Plan") {
+                Button {
+                    showChat = true
+                } label: {
+                    Label("Ask AI", systemImage: "bubble.left.and.text.bubble.right")
+                        .labelStyle(.titleAndIcon)
+                        .headerAction()
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Ask the AI to change the plan")
+                actionsMenu
+            }
+
             DayStrip(days: days, selectedIndex: $selectedIndex)
 
             if let day = selectedDay {
@@ -174,7 +173,9 @@ struct PlannerView: View {
                 Button("Share & export", systemImage: "square.and.arrow.up") { showExport = true }
             }
         } label: {
-            Image(systemName: "plus.circle.fill")
+            Image(systemName: "plus")
+                .font(.body.weight(.semibold))
+                .headerAction()
         }
         .accessibilityLabel("Plan actions")
     }

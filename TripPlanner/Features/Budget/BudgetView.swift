@@ -86,14 +86,20 @@ struct BudgetView: View {
             .padding(.bottom, Spacing.xl)
         }
         .background(Theme.background)
-        .navigationTitle("Budget")
-        .navigationBarTitleDisplayMode(.large)
-        .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                Button { showBudget = true } label: { Image(systemName: "slider.horizontal.3") }
-                    .accessibilityLabel("Budget settings")
-                Button { showAdd = true } label: { Image(systemName: "plus.circle.fill") }
-                    .accessibilityLabel("Add expense")
+        .safeAreaInset(edge: .top, spacing: 0) {
+            PageHeader(title: "Budget") {
+                Button { showBudget = true } label: {
+                    Image(systemName: "slider.horizontal.3").headerAction()
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Budget settings")
+                Button { showAdd = true } label: {
+                    Label("Add", systemImage: "plus")
+                        .labelStyle(.titleAndIcon)
+                        .headerAction()
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Add expense")
             }
         }
         .sheet(isPresented: $showAdd) {

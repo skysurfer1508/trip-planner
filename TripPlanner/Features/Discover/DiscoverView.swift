@@ -57,16 +57,16 @@ struct DiscoverView: View {
             }
         }
         .background(Theme.background)
-        .navigationTitle("Discover")
-        .navigationBarTitleDisplayMode(.large)
-        .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
+        .safeAreaInset(edge: .top, spacing: 0) {
+            PageHeader(title: "Discover") {
                 if targetDay != nil {
                     Button {
                         showSearch = true
                     } label: {
                         Image(systemName: "magnifyingglass")
+                            .headerAction()
                     }
+                    .buttonStyle(.plain)
                     .accessibilityLabel("Search places")
                 }
                 if !days.isEmpty {
@@ -77,9 +77,11 @@ struct DiscoverView: View {
                             }
                         }
                     } label: {
-                        Label("Add to Day \(min(targetIndex, days.count - 1) + 1)", systemImage: "calendar.badge.plus")
+                        Label("Day \(min(targetIndex, days.count - 1) + 1)", systemImage: "calendar.badge.plus")
                             .labelStyle(.titleAndIcon)
+                            .headerAction()
                     }
+                    .accessibilityLabel("Add places to day \(min(targetIndex, days.count - 1) + 1)")
                 }
             }
         }
