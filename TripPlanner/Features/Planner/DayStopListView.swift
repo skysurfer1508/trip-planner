@@ -257,7 +257,7 @@ struct StopRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 12) {
-                StopPin(number: number, category: stop.category, isDone: stop.isDone)
+                StopPin(number: number, category: stop.category, isDone: stop.isDone, showsCategory: true)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(stop.name)

@@ -116,6 +116,7 @@ struct TodayView: View {
                     }
 
                     StopsMapView(stops: day.sortedStops, showsUser: true, highlighted: nextStop,
+                                 dayIndex: days.firstIndex(where: { $0.persistentModelID == day.persistentModelID }) ?? 0,
                                  start: trip.window(for: day.date).anchor,
                                  startName: trip.window(for: day.date).anchorName)
                         .frame(height: 220)

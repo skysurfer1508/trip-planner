@@ -30,17 +30,8 @@ enum StopCategory: String, CaseIterable, Identifiable, Codable {
         }
     }
 
-    var color: Color {
-        switch self {
-        case .sight: .blue
-        case .food: .orange
-        case .cafe: .brown
-        case .hotel: .indigo
-        case .transport: .gray
-        case .nightlife: .purple
-        case .other: .teal
-        }
-    }
+    /// Glyph tint on a neutral surface (see `Theme.category`). Never use it as a pin or route fill.
+    var color: Color { Theme.category(self) }
 
     /// Used for the rain warning in the weather chip.
     var isOutdoor: Bool { self == .sight }

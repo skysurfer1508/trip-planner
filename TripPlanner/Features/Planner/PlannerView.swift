@@ -29,7 +29,7 @@ struct PlannerView: View {
 
             if let day = selectedDay {
                 let window = trip.window(for: day.date)
-                StopsMapView(stops: day.sortedStops, start: window.anchor, startName: window.anchorName)
+                StopsMapView(stops: day.sortedStops, dayIndex: selectedIndex, start: window.anchor, startName: window.anchorName)
                     .id(day.persistentModelID)
                     .frame(height: 220)
                     .overlay(alignment: .topTrailing) {

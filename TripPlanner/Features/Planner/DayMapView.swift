@@ -2,12 +2,10 @@ import SwiftUI
 import SwiftData
 import MapKit
 
-/// A colour per day, used on the full-screen map.
+/// A colour per day, used on the full-screen map. The colours live in `Theme.day`.
 enum DayPalette {
-    static let colors: [Color] = [.blue, .orange, .green, .purple, .pink, .teal, .red, .indigo]
-
     static func color(_ index: Int) -> Color {
-        colors[index % colors.count]
+        Theme.day(index)
     }
 }
 
@@ -69,7 +67,7 @@ struct DayMapView: View {
                                 StopPin(number: number + 1,
                                         category: stop.category,
                                         isDone: stop.isDone,
-                                        tint: DayPalette.color(entry.index))
+                                        dayIndex: entry.index)
                                     .onTapGesture { selected = stop }
                             }
                         }

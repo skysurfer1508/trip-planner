@@ -27,16 +27,9 @@ struct StopThumbnail: View {
     }
 }
 
-/// The hotel a day starts from.
+/// The hotel a day starts from. Thin wrapper over the design-system `Pin`.
 struct HotelPin: View {
     var body: some View {
-        Image(systemName: "bed.double.fill")
-            .font(.caption.bold())
-            .foregroundStyle(.white)
-            .frame(width: 28, height: 28)
-            .background(Color.indigo, in: Circle())
-            .overlay(Circle().stroke(.white, lineWidth: 2))
-            .shadow(radius: 2)
-            .accessibilityLabel("Hotel")
+        Pin(kind: .hotel)
     }
 }

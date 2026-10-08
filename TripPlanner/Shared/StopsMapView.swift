@@ -6,6 +6,8 @@ struct StopsMapView: View {
     let stops: [Stop]
     var showsUser = false
     var highlighted: Stop?
+    /// Index of the day being shown; picks the pin and route colour (`Theme.day`).
+    var dayIndex = 0
     /// The hotel the day starts from; the route line begins here.
     var start: CLLocationCoordinate2D?
     var startName: String?
@@ -22,7 +24,8 @@ struct StopsMapView: View {
                     StopPin(number: index + 1,
                             category: stop.category,
                             isDone: stop.isDone,
-                            isHighlighted: highlighted?.persistentModelID == stop.persistentModelID)
+                            isHighlighted: highlighted?.persistentModelID == stop.persistentModelID,
+                            dayIndex: dayIndex)
                 }
             }
             if let start {
@@ -33,7 +36,7 @@ struct StopsMapView: View {
             let path = (start.map { [$0] } ?? []) + stops.map(\.coordinate)
             if path.count > 1 {
                 MapPolyline(coordinates: path)
-                    .stroke(Color.accentColor.opacity(0.7), lineWidth: 3)
+                    .stroke(Theme.day(dayIndex).opacity(0.7), lineWidth: 3)
             }
         }
         .mapControls {
@@ -45,20 +48,21 @@ struct StopsMapView: View {
     }
 }
 
+/// Thin wrapper over the design-system `Pin`, kept so existing call sites don't change.
 struct StopPin: View {
     let number: Int
     let category: StopCategory
     var isDone = false
     var isHighlighted = false
-    var tint: Color?
+    /// Index of the day this stop belongs to; picks the fill colour.
+    var dayIndex = 0
+    /// Show the category glyph badge (lists have room for it, maps don't).
+    var showsCategory = false
 
     var body: some View {
-        Text("\(number)")
-            .font(.caption.bold())
-            .foregroundStyle(.white)
-            .frame(width: isHighlighted ? 32 : 24, height: isHighlighted ? 32 : 24)
-            .background(isDone ? Color.gray : (tint ?? category.color), in: Circle())
-            .overlay(Circle().stroke(.white, lineWidth: 2))
-            .shadow(radius: 2)
+        Pin(kind: .stop(number: number, day: dayIndex),
+            category: showsCategory ? category : nil,
+            isSelected: isHighlighted,
+            isDone: isDone)
     }
 }
