@@ -26,19 +26,17 @@ struct WeatherChip: View {
                         Text("\(weather.rainChance)% rain")
                             .foregroundStyle(Theme.inkSecondary)
                     }
-                    .font(.subheadline)
+                    .font(Typography.label)
+                    .foregroundStyle(Theme.ink)
 
                     if weather.isWet && outdoorStops > 0 {
                         Label("Rain likely, \(outdoorStops) outdoor \(outdoorStops == 1 ? "stop" : "stops") planned",
                               systemImage: "umbrella.fill")
-                            .font(.footnote)
+                            .font(Typography.caption)
                             .foregroundStyle(Theme.warning)
                     }
                 }
-                .padding(.horizontal, Spacing.m)
-                .padding(.vertical, Spacing.s)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.thinMaterial, in: Radius.shape(Radius.small))
+                .card(padding: Spacing.m)
             }
         }
         .task(id: taskKey) {

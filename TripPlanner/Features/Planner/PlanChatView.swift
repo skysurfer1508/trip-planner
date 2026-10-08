@@ -139,7 +139,7 @@ struct PlanChatView: View {
                                 .font(.footnote)
                                 .padding(.horizontal, Spacing.m)
                                 .padding(.vertical, Spacing.s)
-                                .background(Color(.secondarySystemBackground), in: Capsule())
+                                .background(Theme.surface, in: Capsule())
                         }
                         .buttonStyle(.plain)
                     }

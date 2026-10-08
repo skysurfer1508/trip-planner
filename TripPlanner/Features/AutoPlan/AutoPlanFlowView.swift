@@ -428,7 +428,7 @@ struct AutoPlanFlowView: View {
                     .accessibilityLabel("Remove \(entry.name)")
                 }
                 .padding(Spacing.m)
-                .background(Color(.secondarySystemBackground), in: Radius.shape(Radius.small))
+                .background(Theme.surface, in: Radius.shape(Radius.small))
             }
             Button {
                 showMustSeeSheet = true

@@ -63,7 +63,7 @@ private struct IdeaRow: View {
             AsyncImage(url: summary?.thumbnail) { image in
                 image.resizable().scaledToFill()
             } placeholder: {
-                Rectangle().fill(Color(.secondarySystemBackground))
+                Rectangle().fill(Theme.surface)
                     .overlay(Image(systemName: "photo").foregroundStyle(.tertiary))
             }
             .frame(width: 72, height: 72)

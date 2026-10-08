@@ -97,10 +97,11 @@ struct DayMapView: View {
             .overlay(alignment: .top) {
                 if dropMode {
                     Label("Tap the map to drop a pin", systemImage: "hand.tap")
-                        .font(.subheadline.bold())
+                        .font(Typography.label)
+                        .foregroundStyle(Theme.ink)
                         .padding(.horizontal, Spacing.l)
-                        .padding(.vertical, Spacing.s)
-                        .background(.thinMaterial, in: Capsule())
+                        .frame(minHeight: 44)
+                        .floatingChrome()
                         .padding(.top, Spacing.s)
                 }
             }

@@ -22,7 +22,7 @@ struct SuggestionDetailView: View {
                         AsyncImage(url: url) { image in
                             image.resizable().scaledToFill()
                         } placeholder: {
-                            Rectangle().fill(Color(.secondarySystemBackground))
+                            Rectangle().fill(Theme.surface)
                         }
                         .frame(height: 200)
                         .clipShape(Radius.shape(Radius.card))

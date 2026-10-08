@@ -330,7 +330,7 @@ struct PlanWalkthroughView: View {
                     }
                 }
                 .padding(Spacing.m)
-                .background(Color(.secondarySystemBackground), in: Radius.shape(Radius.small))
+                .background(Theme.surface, in: Radius.shape(Radius.small))
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
@@ -343,7 +343,7 @@ struct PlanWalkthroughView: View {
                                 .font(.footnote)
                                 .padding(.horizontal, Spacing.m)
                                 .padding(.vertical, Spacing.s)
-                                .background(Color(.secondarySystemBackground), in: Capsule())
+                                .background(Theme.surface, in: Capsule())
                         }
                         .buttonStyle(.plain)
                     }
