@@ -16,99 +16,131 @@ struct NextUpCard: View {
     /// The best connection, kept fresh while this card is on screen.
     @State private var liveBest: TransitItinerary?
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.m) {
-            Text("NEXT UP")
-                .font(.caption.bold())
-                .foregroundStyle(Theme.inkSecondary)
+    @Environment(\.dynamicTypeSize) private var typeSize
 
-            HStack(alignment: .top) {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            StopPhoto(stop: stop, height: 150)
+
+            VStack(alignment: .leading, spacing: Spacing.m) {
+                Text("Next up").eyebrow()
+
                 VStack(alignment: .leading, spacing: Spacing.xs) {
                     Text(stop.name)
-                        .font(.title2.bold())
+                        .font(Typography.title)
+                        .foregroundStyle(Theme.ink)
                     if let time = stop.plannedTime {
                         Label(Format.time(time), systemImage: "clock")
-                            .font(.subheadline)
+                            .font(Typography.label)
                             .foregroundStyle(Theme.inkSecondary)
                     }
                     if !stop.address.isEmpty {
                         Text(stop.address)
-                            .font(.footnote)
+                            .font(Typography.caption)
                             .foregroundStyle(Theme.inkSecondary)
                             .lineLimit(2)
                     }
                 }
-                Spacer()
-                StopThumbnail(stop: stop, size: 72, corner: 14)
-            }
 
-            if !stop.summary.isEmpty {
-                Text(stop.summary)
-                    .font(.footnote)
-                    .foregroundStyle(Theme.inkSecondary)
-                    .lineLimit(3)
-            }
-
-            Picker("Travel mode", selection: $mode) {
-                ForEach(TravelMode.allCases) { m in
-                    Label(m.title, systemImage: m.symbol).tag(m)
-                }
-            }
-            .pickerStyle(.segmented)
-
-            HStack {
-                if let eta = etas[mode] {
-                    Label(Format.duration(eta), systemImage: mode.symbol)
-                        .font(.headline)
-                } else if distance != nil {
-                    Label("Calculating…", systemImage: mode.symbol)
-                        .font(.headline)
+                if !stop.summary.isEmpty {
+                    Text(stop.summary)
+                        .font(Typography.caption)
                         .foregroundStyle(Theme.inkSecondary)
-                } else {
-                    Label("Turn on location for travel times", systemImage: "location.slash")
-                        .font(.footnote)
-                        .foregroundStyle(Theme.inkSecondary)
+                        .lineLimit(3)
                 }
-                if let distance {
-                    Text("· \(Format.distance(distance))")
-                        .foregroundStyle(Theme.inkSecondary)
+
+                Picker("Travel mode", selection: $mode) {
+                    ForEach(TravelMode.allCases) { m in
+                        Label(m.title, systemImage: m.symbol).tag(m)
+                    }
                 }
+                .pickerStyle(.segmented)
+
+                HStack {
+                    if let eta = etas[mode] {
+                        Label(Format.duration(eta), systemImage: mode.symbol)
+                            .font(Typography.headline)
+                            .foregroundStyle(Theme.ink)
+                    } else if distance != nil {
+                        Label("Calculating…", systemImage: mode.symbol)
+                            .font(Typography.headline)
+                            .foregroundStyle(Theme.inkSecondary)
+                    } else {
+                        Label("Turn on location for travel times", systemImage: "location.slash")
+                            .font(Typography.caption)
+                            .foregroundStyle(Theme.inkSecondary)
+                    }
+                    if let distance {
+                        Text("· \(Format.distance(distance))")
+                            .font(Typography.label)
+                            .foregroundStyle(Theme.inkSecondary)
+                    }
+                }
+
+                if mode == .transit, let transitTrip, let origin {
+                    TransitConnector(trip: transitTrip, fromName: "Your location", toName: stop.name,
+                                     from: origin, to: stop.coordinate, timing: .now,
+                                     fallback: "Looking for the best route…", inset: 0, liveRefresh: true,
+                                     onDuration: { duration in transitDuration = duration },
+                                     onBest: { best in
+                                         liveBest = best
+                                         Task { await scheduleLeaveReminder(for: best) }
+                                     })
+                }
+
+                leaveBy
+
+                actions
             }
-
-            if mode == .transit, let transitTrip, let origin {
-                TransitConnector(trip: transitTrip, fromName: "Your location", toName: stop.name,
-                                 from: origin, to: stop.coordinate, timing: .now,
-                                 fallback: "Looking for the best route…", liveRefresh: true,
-                                 onDuration: { duration in transitDuration = duration },
-                                 onBest: { best in
-                                     liveBest = best
-                                     Task { await scheduleLeaveReminder(for: best) }
-                                 })
-                .padding(.leading, -36)
-            }
-
-            leaveBy
-
-            HStack(spacing: Spacing.m) {
-                Button {
-                    RoutingService.openInMaps(name: stop.name, coordinate: stop.coordinate, mode: mode)
-                } label: {
-                    Label("Navigate", systemImage: "arrow.triangle.turn.up.right.diamond.fill")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-
-                Button(action: onDone) {
-                    Label("Done", systemImage: "checkmark")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-            }
-            .controlSize(.large)
+            .padding(Spacing.l)
         }
-        .padding()
-        .background(.thinMaterial, in: Radius.shape(Radius.card))
+        .background(Theme.surface)
+        .clipShape(Radius.shape(Radius.card))
+        .overlay(Radius.shape(Radius.card).strokeBorder(Theme.separator, lineWidth: 0.5))
+        .elevation(.raised)
         .task { await PlaceInfoLoader.ensureInfo(for: stop) }
+    }
+
+    /// Navigate is the one primary action, Done sits next to it (stacked at accessibility text sizes).
+    private var actions: some View {
+        let layout = typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: Spacing.s))
+            : AnyLayout(HStackLayout(spacing: Spacing.m))
+        return layout {
+            Button {
+                RoutingService.openInMaps(name: stop.name, coordinate: stop.coordinate, mode: mode)
+            } label: {
+                Label("Navigate", systemImage: "arrow.triangle.turn.up.right.diamond.fill")
+            }
+            .buttonStyle(.primary)
+
+            Button(action: onDone) {
+                Label("Done", systemImage: "checkmark")
+            }
+            .buttonStyle(.secondary)
+        }
+    }
+
+    /// "Leave by 09:28" with the minutes left as a large number that ticks down. Urgent and late states
+    /// change the icon and the words as well as the colour.
+    @ViewBuilder
+    private func leaveByLabel(leave: Date, minutes: Int, urgentAt: Int) -> some View {
+        if minutes > 0 {
+            VStack(alignment: .leading, spacing: 0) {
+                Label("Leave by \(Format.time(leave))", systemImage: "alarm")
+                    .font(Typography.label)
+                    .foregroundStyle(minutes <= urgentAt ? Theme.warning : Theme.inkSecondary)
+                Text("in \(Format.minutes(minutes))")
+                    .font(Typography.numeric)
+                    .contentTransition(.numericText())
+                    .foregroundStyle(minutes <= urgentAt ? Theme.warning : Theme.ink)
+            }
+        } else {
+            Label(minutes == 0 ? "Time to leave" : "You're \(Format.minutes(-minutes)) behind",
+                  systemImage: "exclamationmark.alarm")
+                .font(Typography.headline)
+                .foregroundStyle(Theme.danger)
+        }
     }
 
     /// "Leave by 09:28 for the 09:35 tram +1": from the live departure, not the plan.
@@ -117,22 +149,13 @@ struct NextUpCard: View {
         return TimelineView(.periodic(from: .now, by: 30)) { context in
             let minutes = Int((leave.timeIntervalSince(context.date) / 60).rounded(.down))
             VStack(alignment: .leading, spacing: 2) {
-                if minutes > 0 {
-                    Label("Leave by \(Format.time(leave)) · in \(Format.minutes(minutes))", systemImage: "alarm")
-                        .font(.subheadline.bold())
-                        .foregroundStyle(minutes <= 5 ? Theme.warning : Theme.ink)
-                } else {
-                    Label(minutes == 0 ? "Time to leave" : "You're \(Format.minutes(-minutes)) behind",
-                          systemImage: "exclamationmark.alarm")
-                        .font(.subheadline.bold())
-                        .foregroundStyle(Theme.danger)
-                }
+                leaveByLabel(leave: leave, minutes: minutes, urgentAt: 5)
                 HStack(spacing: Spacing.xs) {
                     Text("for the")
                     LiveTime(date: first.departure, delay: first.departureDelayMinutes, cancelled: first.isCancelled, zone: zone)
                     Text(first.label)
                 }
-                .font(.caption)
+                .font(Typography.caption)
                 .foregroundStyle(Theme.inkSecondary)
             }
         }
@@ -162,16 +185,7 @@ struct NextUpCard: View {
             TimelineView(.periodic(from: .now, by: 30)) { context in
                 let leave = planned.addingTimeInterval(-(eta + 5 * 60))
                 let minutes = Int((leave.timeIntervalSince(context.date) / 60).rounded(.down))
-                if minutes > 0 {
-                    Label("Leave by \(Format.time(leave)) · in \(Format.minutes(minutes))", systemImage: "alarm")
-                        .font(.subheadline.bold())
-                        .foregroundStyle(minutes <= 10 ? Theme.warning : Theme.ink)
-                } else {
-                    Label(minutes == 0 ? "Time to leave" : "You're \(Format.minutes(-minutes)) behind",
-                          systemImage: "exclamationmark.alarm")
-                        .font(.subheadline.bold())
-                        .foregroundStyle(Theme.danger)
-                }
+                leaveByLabel(leave: leave, minutes: minutes, urgentAt: 10)
             }
         }
     }

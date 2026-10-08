@@ -143,10 +143,11 @@ struct TodayView: View {
                 }
                 .padding()
             } else {
-                ContentUnavailableView("No days", systemImage: "calendar",
-                                       description: Text("Edit the trip dates to add days."))
+                EmptyState(title: "No days", systemImage: "calendar",
+                           message: "Edit the trip dates to add days.")
             }
         }
+        .background(Theme.background)
         .navigationTitle("Trip Mode")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { toolbarContent }
@@ -203,22 +204,19 @@ struct TodayView: View {
     // MARK: Pieces
 
     private func header(for day: Day) -> some View {
-        let index = (days.firstIndex(where: { $0.persistentModelID == day.persistentModelID }) ?? 0) + 1
-        let total = day.stops.count
+        let index = days.firstIndex(where: { $0.persistentModelID == day.persistentModelID }) ?? 0
         return VStack(alignment: .leading, spacing: Spacing.s) {
+            Text("Day \(index + 1) of \(days.count) · \(day.date.formatted(date: .abbreviated, time: .omitted))")
+                .eyebrow()
             Text(isToday ? "Today" : day.date.formatted(.dateTime.weekday(.wide)))
-                .font(.largeTitle.bold())
-            Text("\(trip.name) · Day \(index) of \(days.count) · \(day.date.formatted(date: .abbreviated, time: .omitted))")
-                .font(.subheadline)
+                .font(Typography.display)
+                .foregroundStyle(Theme.ink)
+            Text(trip.name)
+                .font(Typography.label)
                 .foregroundStyle(Theme.inkSecondary)
-            if total > 0 {
-                HStack(spacing: Spacing.m) {
-                    ProgressView(value: Double(doneCount), total: Double(total))
-                    Text("\(doneCount)/\(total) done")
-                        .font(.caption.bold())
-                        .foregroundStyle(Theme.inkSecondary)
-                }
-                .padding(.top, 2)
+            if !day.stops.isEmpty {
+                DayProgressRail(stops: day.sortedStops, next: nextStop, dayIndex: index)
+                    .padding(.top, Spacing.xs)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -229,21 +227,10 @@ struct TodayView: View {
     private func logisticsToday(for day: Day) -> some View {
         let window = trip.window(for: day.date)
         if !window.items.isEmpty {
-            VStack(alignment: .leading, spacing: Spacing.m) {
-                Text("TRAVEL TODAY")
-                    .font(.caption.bold())
-                    .foregroundStyle(Theme.inkSecondary)
+            VStack(alignment: .leading, spacing: 0) {
+                Text("Travel today").eyebrow()
                 ForEach(window.items) { item in
-                    HStack(spacing: Spacing.m) {
-                        Image(systemName: item.symbol)
-                            .frame(width: 24)
-                            .foregroundStyle(.tint)
-                        Text(TripLogistics.timeText(item.minute))
-                            .monospacedDigit()
-                            .foregroundStyle(Theme.inkSecondary)
-                        Text(item.text)
-                    }
-                    .font(.subheadline)
+                    InfoRow(symbol: item.symbol, title: item.text, detail: TripLogistics.timeText(item.minute))
                 }
                 if let flight = trip.bookings.first(where: {
                     $0.kind == .departureFlight && $0.hasCoordinate
@@ -256,38 +243,43 @@ struct TodayView: View {
                     } label: {
                         Label("Directions to the airport", systemImage: "arrow.triangle.turn.up.right.diamond.fill")
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.secondary(fullWidth: false))
+                    .padding(.top, Spacing.s)
                 }
             }
             .card()
         }
     }
 
-    /// One-tap lookups for things you need on the road.
+    /// One-tap lookups for things you need on the road. "What now?" is the tinted one.
     private var quickActions: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Spacing.s) {
                 Button {
+                    Haptics.select()
                     showWhatNow = true
                 } label: {
                     Label("What now?", systemImage: "wand.and.stars")
-                        .font(.subheadline.bold())
+                        .font(Typography.label)
+                        .foregroundStyle(Theme.onAccent)
                         .padding(.horizontal, Spacing.m)
-                        .padding(.vertical, Spacing.s)
+                        .frame(minHeight: 44)
                         .background(Theme.accent, in: Capsule())
-                        .foregroundStyle(.white)
                 }
                 .buttonStyle(.plain)
 
                 ForEach(NearbyKind.allCases) { kind in
                     Button {
+                        Haptics.select()
                         nearbyKind = kind
                     } label: {
                         Label(kind.title, systemImage: kind.symbol)
-                            .font(.subheadline)
+                            .font(Typography.label)
+                            .foregroundStyle(Theme.ink)
                             .padding(.horizontal, Spacing.m)
-                            .padding(.vertical, Spacing.s)
-                            .background(Color(.secondarySystemBackground), in: Capsule())
+                            .frame(minHeight: 44)
+                            .background(Theme.surface, in: Capsule())
+                            .overlay(Capsule().strokeBorder(Theme.separator, lineWidth: 1))
                     }
                     .buttonStyle(.plain)
                 }
@@ -325,12 +317,15 @@ struct TodayView: View {
             Image(systemName: hasStops ? "checkmark.seal.fill" : "calendar.badge.plus")
                 .font(.largeTitle)
                 .foregroundStyle(hasStops ? Theme.success : Theme.inkSecondary)
+                .symbolEffect(.bounce, value: hasStops && nextStop == nil)
             Text(hasStops ? "All done for this day" : "Nothing planned")
-                .font(.headline)
+                .font(Typography.headline)
+                .foregroundStyle(Theme.ink)
             Text(hasStops ? "Hungry? Tap the button below." : "Add places in the planner, or find food nearby.")
-                .font(.footnote)
+                .font(Typography.label)
                 .foregroundStyle(Theme.inkSecondary)
         }
+        .frame(maxWidth: .infinity)
         .card()
     }
 
