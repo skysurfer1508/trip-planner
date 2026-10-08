@@ -56,7 +56,8 @@ struct PlannerView: View {
                 Button {
                     showChat = true
                 } label: {
-                    Image(systemName: "bubble.left.and.text.bubble.right")
+                    Label("Ask AI", systemImage: "bubble.left.and.text.bubble.right")
+                        .labelStyle(.titleAndIcon)
                 }
                 .accessibilityLabel("Ask the AI to change the plan")
                 actionsMenu

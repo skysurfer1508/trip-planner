@@ -61,7 +61,6 @@ SF Rounded for titles, numbers and pins, SF Pro for running text. All are Dynami
 | `EmptyState` | Direct `ContentUnavailableView` use |
 | `StopPhoto` (in `Shared/StopThumbnail.swift`) | A wide stop photo with a category-glyph placeholder |
 | `.floatingChrome()`, `FloatingActionButton`, `.minimizingTabBar()` | The only code that uses Liquid Glass, behind `#available(iOS 26)` and `#if compiler(>=6.2)` |
-| `.zoomTransitionSource` / `.zoomTransition` | Card-to-detail zoom (iOS 18+, a normal push before that) |
 | `Color.readableForeground` (in `TransitViews.swift`) | Fixed white text on agency line colours: now black or white by luminance |
 
 ## Motion and haptics (`Motion.swift`)
@@ -78,7 +77,7 @@ SF Rounded for titles, numbers and pins, SF Pro for running text. All are Dynami
 - Increase Contrast: cards get a stronger hairline, and every colour has a high-contrast variant.
 
 ## What changed where
-- **Trip list:** featured card for the running or next trip, photo-first cards on a scrim, LIVE pill, zoom into the trip.
+- **Trip list:** featured card for the running or next trip, photo-first cards on a scrim, LIVE pill, opens the trip with the normal push.
 - **Trip hub:** Overview, Plan, Discover, Budget, More. Different icons for Plan (map), Discover (compass) and the AI chat (chat bubble). A floating Today button while the trip is live, and the tab bar minimises on scroll on iOS 26.
 - **Overview:** parallax hero with a countdown, one raised Today / Coming up card, a flights and hotel strip, a 2x2 tools grid, a collapsible Get ready checklist with a ring, then Good to know.
 - **Plan:** one large title, a sticky day strip, a map that drags between strip, half and full, and a timeline with pins on a day-coloured line. Reorder by hold and drop (haptics), or Move up / Move down for VoiceOver.

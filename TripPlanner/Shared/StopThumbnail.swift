@@ -33,24 +33,27 @@ struct StopPhoto: View {
     var height: CGFloat = 160
 
     var body: some View {
-        Group {
-            if let data = stop.imageData, let image = UIImage(data: data) {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                ZStack {
-                    Theme.category(stop.category).opacity(0.14)
-                    Image(systemName: stop.category.symbol)
-                        .font(.system(size: 44, weight: .light))
-                        .foregroundStyle(Theme.category(stop.category))
+        // The picture goes in an overlay so that its aspect-fill size can't widen the layout: a fill
+        // image reports the size it overflows to, which would make the whole page wider than the screen.
+        Color.clear
+            .frame(height: height)
+            .frame(maxWidth: .infinity)
+            .overlay {
+                if let data = stop.imageData, let image = UIImage(data: data) {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    ZStack {
+                        Theme.category(stop.category).opacity(0.14)
+                        Image(systemName: stop.category.symbol)
+                            .font(.system(size: 44, weight: .light))
+                            .foregroundStyle(Theme.category(stop.category))
+                    }
                 }
             }
-        }
-        .frame(maxWidth: .infinity)
-        .frame(height: height)
-        .clipped()
-        .accessibilityHidden(true)
+            .clipped()
+            .accessibilityHidden(true)
     }
 }
 

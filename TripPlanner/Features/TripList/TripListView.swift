@@ -12,7 +12,6 @@ struct TripListView: View {
     @State private var path: [Trip] = []
     @State private var openMessage: String?
     @State private var startActions: [PersistentIdentifier: TripStartAction] = [:]
-    @Namespace private var zoom
 
     /// Running trips first, then upcoming ones by start date.
     private var upcoming: [Trip] { trips.filter { !$0.isPast } }
@@ -55,7 +54,6 @@ struct TripListView: View {
             .navigationTitle("Trips")
             .navigationDestination(for: Trip.self) { trip in
                 TripHubView(trip: trip, startAction: startActions[trip.persistentModelID])
-                    .zoomTransition(from: trip.persistentModelID, in: zoom)
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -120,7 +118,6 @@ private extension TripListView {
                 TripCard(trip: trip, style: style)
             }
             .buttonStyle(.plain)
-            .zoomTransitionSource(id: trip.persistentModelID, in: zoom)
 
             Menu {
                 Button("Edit", systemImage: "pencil") { tripToEdit = trip }
