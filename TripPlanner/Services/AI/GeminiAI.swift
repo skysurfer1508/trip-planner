@@ -105,6 +105,67 @@ struct GeminiAI: AIEngine {
     }
 }
 
+/// The outcome of a connection test for the Settings screen.
+struct GeminiCheck: Equatable {
+    var ok: Bool
+    var message: String
+}
+
+extension GeminiAI {
+    /// Sends one tiny request to find out whether the key works, and says what is wrong if it doesn't.
+    func check() async -> GeminiCheck {
+        let started = Date()
+        let schema = AISchema.object(["reply": AISchema.string("The word OK")], required: ["reply"])
+        do {
+            _ = try await generate(prompt: "Reply with the single word OK.", schema: schema)
+            let seconds = Date().timeIntervalSince(started)
+            return GeminiCheck(ok: true, message: "Works. \(Self.model) answered in \(String(format: "%.1f", seconds)) s.")
+        } catch {
+            return GeminiCheck(ok: false, message: Self.explain(error))
+        }
+    }
+
+    /// A plain-language reason and what to do about it.
+    static func explain(_ error: Error) -> String {
+        if let url = error as? URLError {
+            switch url.code {
+            case .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed:
+                return "No internet connection. Connect and try again."
+            case .timedOut:
+                return "Gemini didn't answer in time. Try again in a moment."
+            default:
+                return "Couldn't reach Gemini (\(url.localizedDescription))."
+            }
+        }
+        if let ai = error as? AIError {
+            switch ai {
+            case .rateLimited:
+                return "The key works, but the free limit is used up for now (or too many requests in a minute). Try again soon."
+            case .badOutput:
+                return "Gemini answered, but not in the expected format. The model may have changed."
+            case .unavailable:
+                return ai.localizedDescription
+            case .api(let message):
+                let lower = message.lowercased()
+                if lower.contains("api key not valid") || lower.contains("api_key_invalid") || lower.contains("key not found") {
+                    return "Google rejected this key. Copy it again from AI Studio (aistudio.google.com/apikey) without spaces."
+                }
+                if lower.contains("permission") || lower.contains("403") || lower.contains("not enabled") {
+                    return "The key is not allowed to use Gemini. Create a new key in AI Studio, or enable the Generative Language API for it."
+                }
+                if lower.contains("not found") || lower.contains("404") {
+                    return "The model \(model) wasn't found. Google may have retired it, the app needs an update. (\(message))"
+                }
+                if lower.contains("location") || lower.contains("not supported") {
+                    return "Gemini isn't available for this account or region. (\(message))"
+                }
+                return "Gemini answered with an error: \(message)"
+            }
+        }
+        return error.localizedDescription
+    }
+}
+
 /// Response schemas in Gemini's format.
 enum AISchema {
     static func string(_ description: String? = nil) -> [String: Any] {

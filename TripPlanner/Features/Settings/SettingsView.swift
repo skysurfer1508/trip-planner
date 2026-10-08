@@ -12,6 +12,8 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage(AIMode.storageKey) private var aiModeRaw = AIMode.automatic.rawValue
     @AppStorage(TransitRouter.settingsKey) private var transitRoutes = true
+    @State private var testingGemini = false
+    @State private var geminiResult: GeminiCheck?
 
     var body: some View {
         @Bindable var secrets = secrets
@@ -65,6 +67,22 @@ struct SettingsView: View {
                         .foregroundStyle(AIRouter.onDeviceAvailable ? Color.green : Color.secondary)
                     SecureField("Gemini API key (optional)", text: $secrets.geminiKey)
                     Link("Get a free Gemini key", destination: URL(string: "https://aistudio.google.com/apikey")!)
+                    Button {
+                        Task { await testGemini() }
+                    } label: {
+                        HStack {
+                            Label("Test Gemini key", systemImage: "checkmark.shield")
+                            Spacer()
+                            if testingGemini { ProgressView() }
+                        }
+                    }
+                    .disabled(secrets.keys.gemini.isEmpty || testingGemini)
+                    if let geminiResult {
+                        Label(geminiResult.message,
+                              systemImage: geminiResult.ok ? "checkmark.circle.fill" : "xmark.octagon.fill")
+                            .font(.footnote)
+                            .foregroundStyle(geminiResult.ok ? Color.green : Color.red)
+                    }
                 } header: {
                     Text("AI (import, trip planner, tips)")
                 } footer: {
@@ -130,8 +148,19 @@ struct SettingsView: View {
             }
             .onChange(of: secrets.openTripMapKey) { secrets.persist() }
             .onChange(of: secrets.tripadvisorKey) { secrets.persist() }
-            .onChange(of: secrets.geminiKey) { secrets.persist() }
+            .onChange(of: secrets.geminiKey) {
+                secrets.persist()
+                geminiResult = nil
+            }
             .onChange(of: secrets.aerodataboxKey) { secrets.persist() }
         }
+    }
+
+    /// Asks Gemini a one-word question with the key typed above, whatever AI engine is chosen.
+    private func testGemini() async {
+        testingGemini = true
+        geminiResult = nil
+        defer { testingGemini = false }
+        geminiResult = await GeminiAI(apiKey: secrets.keys.gemini).check()
     }
 }

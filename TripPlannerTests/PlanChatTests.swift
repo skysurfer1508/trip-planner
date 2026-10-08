@@ -180,3 +180,14 @@ final class PlanChatTests: XCTestCase {
         XCTAssertEqual(prepared.places["p1"]?.id, "b")
     }
 }
+
+final class GeminiCheckTests: XCTestCase {
+    func testErrorsAreExplainedInPlainLanguage() {
+        XCTAssertTrue(GeminiAI.explain(AIError.api("API key not valid. Please pass a valid API key.")).contains("rejected this key"))
+        XCTAssertTrue(GeminiAI.explain(AIError.rateLimited).contains("free limit"))
+        XCTAssertTrue(GeminiAI.explain(URLError(.notConnectedToInternet)).contains("No internet"))
+        XCTAssertTrue(GeminiAI.explain(URLError(.timedOut)).contains("in time"))
+        XCTAssertTrue(GeminiAI.explain(AIError.api("models/gemini-x is not found for API version v1beta")).contains("wasn't found"))
+        XCTAssertTrue(GeminiAI.explain(AIError.api("something odd")).contains("something odd"))
+    }
+}
