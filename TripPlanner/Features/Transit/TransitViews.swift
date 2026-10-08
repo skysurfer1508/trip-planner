@@ -39,10 +39,63 @@ struct RouteSegment: Identifiable {
 }
 
 enum TransitPaths {
-    static func segments(from itinerary: TransitItinerary, prefix: String) -> [RouteSegment] {
+    static func segments(from itinerary: TransitItinerary, prefix: String,
+                         walkOverrides: [Int: WalkOverride] = [:]) -> [RouteSegment] {
         itinerary.legs.enumerated().map { index, leg in
-            RouteSegment(id: "\(prefix)-\(index)", coordinates: leg.coordinates, color: leg.color, dashed: leg.isWalking)
+            RouteSegment(id: "\(prefix)-\(index)",
+                         coordinates: walkOverrides[index]?.path ?? leg.coordinates,
+                         color: leg.color,
+                         dashed: leg.isWalking)
         }
+    }
+}
+
+/// A walk that replaces the timetable's own: along real streets, to the station entrance.
+struct WalkOverride {
+    var path: [CLLocationCoordinate2D]
+    var meters: Double
+    /// Where it leads to or starts from, when that is an entrance.
+    var entranceName: String?
+
+    var seconds: Int { Int((meters / TransitSanity.walkingSpeed).rounded()) }
+
+    static func length(of path: [CLLocationCoordinate2D]) -> Double {
+        zip(path, path.dropFirst()).reduce(0) { $0 + RoutingService.straightLine(from: $1.0, to: $1.1) }
+    }
+}
+
+/// The entrances chosen for one metro or train leg.
+struct LegEntrances {
+    var boarding: StationEntrance?
+    var alighting: StationEntrance?
+}
+
+enum RouteDrawing {
+    /// Each line is drawn twice: a wide light line underneath, then the coloured line, so it stays readable
+    /// on any map. Walks are dotted.
+    @MapContentBuilder
+    static func lines(_ segments: [RouteSegment]) -> some MapContent {
+        ForEach(segments) { segment in
+            MapPolyline(coordinates: segment.coordinates)
+                .stroke(Color.white.opacity(0.95),
+                        style: StrokeStyle(lineWidth: segment.dashed ? 7 : 10, lineCap: .round, lineJoin: .round))
+            MapPolyline(coordinates: segment.coordinates)
+                .stroke(segment.color,
+                        style: StrokeStyle(lineWidth: segment.dashed ? 4 : 6, lineCap: .round, lineJoin: .round,
+                                           dash: segment.dashed ? [0.5, 7] : []))
+        }
+    }
+
+    /// A map rectangle around the points, with some air around it.
+    static func rect(around points: [CLLocationCoordinate2D]) -> MKMapRect? {
+        guard let first = points.first else { return nil }
+        var rect = MKMapRect(origin: MKMapPoint(first), size: MKMapSize(width: 0, height: 0))
+        for point in points.dropFirst() {
+            rect = rect.union(MKMapRect(origin: MKMapPoint(point), size: MKMapSize(width: 0, height: 0)))
+        }
+        let paddingX = max(rect.size.width * 0.25, 400)
+        let paddingY = max(rect.size.height * 0.25, 400)
+        return rect.insetBy(dx: -paddingX, dy: -paddingY)
     }
 }
 
@@ -157,6 +210,9 @@ struct TransitRouteView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var selected = 0
+    @State private var entrances: [Int: LegEntrances] = [:]
+    @State private var walkOverrides: [Int: WalkOverride] = [:]
+    @State private var walkPath: [CLLocationCoordinate2D]?
 
     var body: some View {
         NavigationStack {
@@ -207,27 +263,71 @@ struct TransitRouteView: View {
     @ViewBuilder
     private func routes(_ result: TransitResult) -> some View {
         let itineraries = result.itineraries
-        let current = itineraries[min(selected, itineraries.count - 1)]
+        let index = min(selected, itineraries.count - 1)
+        let current = itineraries[index]
 
         if itineraries.count > 1 {
             Picker("Option", selection: $selected) {
-                ForEach(Array(itineraries.enumerated()), id: \.offset) { index, itinerary in
-                    Text(Format.duration(TimeInterval(itinerary.duration))).tag(index)
+                ForEach(Array(itineraries.enumerated()), id: \.offset) { number, itinerary in
+                    Text(optionTitle(itinerary, number: number)).tag(number)
                 }
             }
             .pickerStyle(.segmented)
         }
 
-        RouteMap(itinerary: current, from: from, to: to)
-            .frame(height: 240)
+        RouteMap(itinerary: current, from: from, to: to, walkOverrides: walkOverrides, entrances: entrances,
+                 plainWalk: walkPath)
+            .id("\(index)-\(current.duration)-\(walkOverrides.count)-\(entrances.count)-\(walkPath?.count ?? 0)")
+            .frame(height: 280)
             .clipShape(RoundedRectangle(cornerRadius: 16))
+            .task(id: "\(index)-\(current.duration)") { await loadExtras(current) }
 
-        VStack(alignment: .leading, spacing: 4) {
-            Text(current.summary)
-                .font(.subheadline.bold())
+        header(current, result: result)
+
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(current.legs.enumerated()), id: \.offset) { number, leg in
+                LegRow(leg: leg, zone: result.timeZone,
+                       walkOverride: walkOverrides[number],
+                       entrances: entrances[number])
+            }
+        }
+        .card()
+
+        if entrances.values.contains(where: { $0.boarding != nil || $0.alighting != nil }) {
+            Text("Station entrances: Apple Maps where it lists them, otherwise OpenStreetMap contributors (ODbL).")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func optionTitle(_ itinerary: TransitItinerary, number: Int) -> String {
+        let time = Format.duration(TimeInterval(itinerary.duration))
+        return itinerary.transitLegs.isEmpty ? "Walk \(time)" : time
+    }
+
+    /// Total time, changes and walking, at a glance.
+    private func header(_ current: TransitItinerary, result: TransitResult) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                chip(Format.duration(TimeInterval(current.duration)), "clock")
+                if !current.transitLegs.isEmpty {
+                    chip(current.transfers == 0 ? "Direct" : "\(current.transfers) \(current.transfers == 1 ? "change" : "changes")",
+                         "arrow.triangle.swap")
+                    chip("\(Format.duration(TimeInterval(current.walkingSeconds))) walking", "figure.walk")
+                }
+            }
+            if !current.transitLegs.isEmpty {
+                Text(current.transitLegs.map(\.label).joined(separator: " → "))
+                    .font(.subheadline.bold())
+            }
             if let start = current.start, let end = current.end {
                 Text("\(TransitTime.timeText(start, in: result.timeZone)) → \(TransitTime.timeText(end, in: result.timeZone))")
                     .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            if current.transitLegs.isEmpty {
+                Label("Walking is about as fast as public transport here.", systemImage: "figure.walk")
+                    .font(.caption)
                     .foregroundStyle(.secondary)
             }
             if result.isTypical {
@@ -237,14 +337,51 @@ struct TransitRouteView: View {
                     .foregroundStyle(.orange)
             }
         }
+    }
 
-        VStack(alignment: .leading, spacing: 0) {
-            ForEach(Array(current.legs.enumerated()), id: \.offset) { index, leg in
-                LegRow(leg: leg, zone: result.timeZone)
-                if index < current.legs.count - 1 { Divider() }
+    private func chip(_ text: String, _ symbol: String) -> some View {
+        Label(text, systemImage: symbol)
+            .font(.caption.weight(.semibold))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(Color(.secondarySystemBackground), in: Capsule())
+    }
+
+    /// Station entrances and street-level walking paths for the chosen route.
+    private func loadExtras(_ itinerary: TransitItinerary) async {
+        entrances = [:]
+        walkOverrides = [:]
+        walkPath = nil
+
+        // A walk-only answer has no line of its own: ask Apple Maps for the real streets.
+        if itinerary.transitLegs.isEmpty, itinerary.legs.first?.path.isEmpty ?? false {
+            walkPath = await WalkingPath.fetch(from: from, to: to)
+        }
+
+        for (index, leg) in itinerary.legs.enumerated() where leg.mode == .subway || leg.mode == .rail {
+            let cameFrom = index > 0 ? itinerary.legs[index - 1].from.coordinate : from
+            let goingTo = index + 1 < itinerary.legs.count ? itinerary.legs[index + 1].to.coordinate : to
+
+            let boardingList = await TransitEntrances.find(stationName: leg.fromName, near: leg.from.coordinate)
+            let alightingList = await TransitEntrances.find(stationName: leg.toName, near: leg.to.coordinate)
+            if Task.isCancelled { return }
+
+            var choice = LegEntrances()
+            choice.boarding = TransitEntrances.nearest(boardingList.filter(\.isEntrance), to: cameFrom)
+            choice.alighting = TransitEntrances.nearest(alightingList.filter(\.isEntrance), to: goingTo)
+            guard choice.boarding != nil || choice.alighting != nil else { continue }
+            entrances[index] = choice
+
+            // The walk before and after goes to and from the entrance, along real streets.
+            if let door = choice.boarding, index > 0, itinerary.legs[index - 1].isWalking,
+               let path = await WalkingPath.fetch(from: cameFrom, to: door.coordinate) {
+                walkOverrides[index - 1] = WalkOverride(path: path, meters: WalkOverride.length(of: path), entranceName: door.name)
+            }
+            if let door = choice.alighting, index + 1 < itinerary.legs.count, itinerary.legs[index + 1].isWalking,
+               let path = await WalkingPath.fetch(from: door.coordinate, to: goingTo) {
+                walkOverrides[index + 1] = WalkOverride(path: path, meters: WalkOverride.length(of: path), entranceName: nil)
             }
         }
-        .card()
     }
 
     private func message(_ title: String, detail: String) -> some View {
@@ -260,50 +397,115 @@ struct TransitRouteView: View {
     }
 }
 
+/// One step of the journey, on a timeline: a coloured rail for a vehicle, a dotted one for a walk.
 private struct LegRow: View {
     let leg: TransitLeg
     let zone: TimeZone
+    var walkOverride: WalkOverride?
+    var entrances: LegEntrances?
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            if leg.isWalking {
-                Image(systemName: "figure.walk")
-                    .frame(width: 44)
-                    .foregroundStyle(.secondary)
-            } else {
-                TransitBadge(leg: leg)
-                    .frame(width: 70, alignment: .leading)
-            }
-
-            VStack(alignment: .leading, spacing: 3) {
-                if leg.isWalking {
-                    Text("Walk \(Format.duration(TimeInterval(leg.duration))) · \(Format.distance(leg.distance))")
-                        .font(.subheadline)
-                    Text("to \(leg.toName)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } else {
-                    if let headsign = leg.headsign {
-                        Text("towards \(headsign)")
-                            .font(.subheadline)
-                    }
-                    Text("\(time(leg.departure)) \(leg.fromName)")
-                        .font(.caption)
-                    Text("\(time(leg.arrival)) \(leg.toName)")
-                        .font(.caption)
-                    Text([leg.stopCount > 0 ? "\(leg.stopCount + 1) stops" : nil, leg.agencyName]
-                        .compactMap { $0 }.joined(separator: " · "))
-                        .font(.caption2)
+            VStack(alignment: .trailing, spacing: 0) {
+                Text(time(leg.departure))
+                    .font(.caption.monospacedDigit().weight(.semibold))
+                Spacer(minLength: 0)
+                if !leg.isWalking {
+                    Text(time(leg.arrival))
+                        .font(.caption.monospacedDigit())
                         .foregroundStyle(.secondary)
                 }
             }
-            Spacer()
+            .frame(width: 44, alignment: .trailing)
+
+            Rail(color: leg.color, dotted: leg.isWalking)
+                .frame(width: 10)
+
+            VStack(alignment: .leading, spacing: 4) {
+                if leg.isWalking {
+                    walkText
+                } else {
+                    vehicleText
+                }
+            }
+            .padding(.vertical, 8)
+            Spacer(minLength: 0)
         }
-        .padding(.vertical, 8)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    @ViewBuilder
+    private var walkText: some View {
+        let seconds = walkOverride?.seconds ?? leg.duration
+        let meters = walkOverride?.meters ?? leg.distance
+        Label("Walk \(Format.duration(TimeInterval(seconds))) · \(Format.distance(meters))", systemImage: "figure.walk")
+            .font(.subheadline)
+        if let entrance = walkOverride?.entranceName {
+            Label("to \(entrance)", systemImage: "door.left.hand.open")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        } else {
+            Text("to \(leg.toName)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private var vehicleText: some View {
+        HStack(spacing: 8) {
+            TransitBadge(leg: leg)
+            if let headsign = leg.headsign {
+                Text("towards \(headsign)")
+                    .font(.subheadline)
+                    .lineLimit(2)
+            }
+        }
+        Text(leg.fromName)
+            .font(.subheadline.weight(.medium))
+        if let door = entrances?.boarding {
+            Label("Go in at \(door.name)", systemImage: "door.left.hand.open")
+                .font(.caption)
+                .foregroundStyle(.tint)
+        }
+        Text([leg.stopCount > 0 ? "\(leg.stopCount + 1) stops" : nil,
+              Format.duration(TimeInterval(leg.duration)), leg.agencyName]
+            .compactMap { $0 }.joined(separator: " · "))
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        Text(leg.toName)
+            .font(.subheadline.weight(.medium))
+        if let door = entrances?.alighting {
+            Label("Come out at \(door.name)", systemImage: "door.right.hand.open")
+                .font(.caption)
+                .foregroundStyle(.tint)
+        }
     }
 
     private func time(_ date: Date?) -> String {
-        date.map { TransitTime.timeText($0, in: zone) } ?? "--:--"
+        date.map { TransitTime.timeText($0, in: zone) } ?? ""
+    }
+}
+
+/// The line down the side of a timeline step. It stretches to the height of the step.
+private struct Rail: View {
+    let color: Color
+    let dotted: Bool
+
+    var body: some View {
+        RailLine()
+            .stroke(color, style: StrokeStyle(lineWidth: dotted ? 3 : 6, lineCap: .round, dash: dotted ? [0.5, 6] : []))
+            .frame(width: 10)
+            .frame(maxHeight: .infinity)
+    }
+}
+
+private struct RailLine: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.midX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
+        return path
     }
 }
 
@@ -311,36 +513,136 @@ private struct RouteMap: View {
     let itinerary: TransitItinerary
     let from: CLLocationCoordinate2D
     let to: CLLocationCoordinate2D
+    var walkOverrides: [Int: WalkOverride] = [:]
+    var entrances: [Int: LegEntrances] = [:]
+    /// The streets of a walk-only route, when Apple Maps found them.
+    var plainWalk: [CLLocationCoordinate2D]?
+
+    private var segments: [RouteSegment] {
+        var list = TransitPaths.segments(from: itinerary, prefix: "r", walkOverrides: walkOverrides)
+        if let plainWalk, itinerary.transitLegs.isEmpty, !list.isEmpty {
+            list[0] = RouteSegment(id: list[0].id, coordinates: plainWalk, color: list[0].color, dashed: true)
+        }
+        return list
+    }
+
+    private var allPoints: [CLLocationCoordinate2D] {
+        segments.flatMap(\.coordinates) + [from, to]
+    }
 
     var body: some View {
-        Map {
-            ForEach(TransitPaths.segments(from: itinerary, prefix: "r")) { segment in
-                MapPolyline(coordinates: segment.coordinates)
-                    .stroke(segment.color,
-                            style: StrokeStyle(lineWidth: 5, lineCap: .round, dash: segment.dashed ? [2, 7] : []))
-            }
-            ForEach(Array(itinerary.transitLegs.enumerated()), id: \.offset) { _, leg in
-                Annotation(leg.fromName, coordinate: leg.from.coordinate) {
-                    Circle()
-                        .fill(.white)
-                        .frame(width: 12, height: 12)
-                        .overlay(Circle().stroke(leg.color, lineWidth: 3))
+        let lines = segments
+        Map(initialPosition: ownPosition) {
+            RouteDrawing.lines(lines)
+
+            ForEach(Array(itinerary.legs.enumerated()), id: \.offset) { index, leg in
+                if !leg.isWalking {
+                    // Where the vehicle is boarded and left.
+                    Annotation(leg.fromName, coordinate: leg.from.coordinate, anchor: .center) {
+                        StationDot(color: leg.color, symbol: leg.mode.symbol, large: true)
+                    }
+                    Annotation(leg.toName, coordinate: leg.to.coordinate, anchor: .center) {
+                        StationDot(color: leg.color, symbol: nil, large: false)
+                    }
+                    // The line's name on the line itself.
+                    if let middle = leg.coordinates[safe: leg.coordinates.count / 2] {
+                        Annotation("", coordinate: middle, anchor: .center) {
+                            TransitBadge(leg: leg)
+                                .scaleEffect(0.85)
+                                .shadow(color: .black.opacity(0.25), radius: 2, y: 1)
+                        }
+                    }
                 }
-                Annotation(leg.toName, coordinate: leg.to.coordinate) {
-                    Circle()
-                        .fill(.white)
-                        .frame(width: 12, height: 12)
-                        .overlay(Circle().stroke(leg.color, lineWidth: 3))
+                if let choice = entrances[index] {
+                    if let door = choice.boarding {
+                        Annotation(door.name, coordinate: door.coordinate, anchor: .center) {
+                            EntrancePin(color: leg.color, boarding: true)
+                        }
+                    }
+                    if let door = choice.alighting {
+                        Annotation(door.name, coordinate: door.coordinate, anchor: .center) {
+                            EntrancePin(color: leg.color, boarding: false)
+                        }
+                    }
                 }
             }
-            Marker("Start", systemImage: "figure.walk", coordinate: from)
-                .tint(.green)
-            Marker("Destination", systemImage: "flag.fill", coordinate: to)
-                .tint(.red)
+
+            Annotation("Start", coordinate: from, anchor: .center) {
+                EndPin(symbol: "figure.walk", color: .green)
+            }
+            Annotation("Destination", coordinate: to, anchor: .center) {
+                EndPin(symbol: "flag.fill", color: .red)
+            }
         }
+        .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .including([.publicTransport])))
         .mapControls {
             MapCompass()
+            MapScaleView()
         }
+    }
+
+    /// Frames the whole route.
+    private var ownPosition: MapCameraPosition {
+        if let rect = RouteDrawing.rect(around: allPoints) { return .rect(rect) }
+        return .automatic
+    }
+}
+
+private extension Array {
+    subscript(safe index: Int) -> Element? {
+        indices.contains(index) ? self[index] : nil
+    }
+}
+
+/// A stop on the line: a big one with the vehicle where you get on, a small one where you get off.
+private struct StationDot: View {
+    let color: Color
+    let symbol: String?
+    let large: Bool
+
+    var body: some View {
+        ZStack {
+            Circle().fill(.white)
+            Circle().stroke(color, lineWidth: large ? 4 : 3)
+            if let symbol {
+                Image(systemName: symbol)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(color)
+            }
+        }
+        .frame(width: large ? 24 : 14, height: large ? 24 : 14)
+        .shadow(color: .black.opacity(0.25), radius: 2, y: 1)
+    }
+}
+
+/// Where you walk into or out of a station.
+private struct EntrancePin: View {
+    let color: Color
+    let boarding: Bool
+
+    var body: some View {
+        Image(systemName: boarding ? "door.left.hand.open" : "door.right.hand.open")
+            .font(.system(size: 11, weight: .bold))
+            .foregroundStyle(.white)
+            .frame(width: 24, height: 24)
+            .background(color, in: RoundedRectangle(cornerRadius: 7))
+            .overlay(RoundedRectangle(cornerRadius: 7).stroke(.white, lineWidth: 2))
+            .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
+    }
+}
+
+private struct EndPin: View {
+    let symbol: String
+    let color: Color
+
+    var body: some View {
+        Image(systemName: symbol)
+            .font(.system(size: 12, weight: .bold))
+            .foregroundStyle(.white)
+            .frame(width: 28, height: 28)
+            .background(color, in: Circle())
+            .overlay(Circle().stroke(.white, lineWidth: 2.5))
+            .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
     }
 }
 

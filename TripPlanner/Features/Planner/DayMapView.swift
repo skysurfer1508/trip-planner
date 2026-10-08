@@ -80,11 +80,7 @@ struct DayMapView: View {
                         }
                     }
                     if showTransit {
-                        ForEach(segments) { segment in
-                            MapPolyline(coordinates: segment.coordinates)
-                                .stroke(segment.color,
-                                        style: StrokeStyle(lineWidth: 5, lineCap: .round, dash: segment.dashed ? [2, 7] : []))
-                        }
+                        RouteDrawing.lines(segments)
                     }
                     if let pending {
                         Marker(pending.name, systemImage: "mappin", coordinate: pending.coordinate)

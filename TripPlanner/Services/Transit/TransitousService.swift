@@ -23,17 +23,30 @@ enum TransitousService {
         case .departAt(let date): instant = date; arriveBy = false
         case .arriveBy(let date): instant = date; arriveBy = true
         }
-        components.queryItems = [
+        let base = [
             URLQueryItem(name: "fromPlace", value: "\(from.latitude),\(from.longitude)"),
             URLQueryItem(name: "toPlace", value: "\(to.latitude),\(to.longitude)"),
             URLQueryItem(name: "time", value: TransitTime.requestString(instant)),
             URLQueryItem(name: "arriveBy", value: arriveBy ? "true" : "false"),
-            URLQueryItem(name: "numItineraries", value: "3"),
+            URLQueryItem(name: "numItineraries", value: "5"),
             URLQueryItem(name: "detailedLegs", value: "true"),
         ]
-        guard let url = components.url else { return [] }
-        let json = try await Net.json(url: url, headers: ["User-Agent": userAgent])
-        return parse(json)
+        // Limits that keep answers sensible: few changes, no endless walks to a stop.
+        let limits = [
+            URLQueryItem(name: "maxTransfers", value: "3"),
+            URLQueryItem(name: "maxPreTransitTime", value: "1200"),
+            URLQueryItem(name: "maxPostTransitTime", value: "1200"),
+        ]
+        do {
+            components.queryItems = base + limits
+            guard let url = components.url else { return [] }
+            return parse(try await Net.json(url: url, headers: ["User-Agent": userAgent]))
+        } catch NetError.badStatus(let code) where code == 400 || code == 422 {
+            // The service didn't know a limit: ask again without them (the answer is checked anyway).
+            components.queryItems = base
+            guard let url = components.url else { return [] }
+            return parse(try await Net.json(url: url, headers: ["User-Agent": userAgent]))
+        }
     }
 
     // MARK: Parsing

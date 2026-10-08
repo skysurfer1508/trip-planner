@@ -131,7 +131,9 @@ enum TransitRouter {
 
         let key = cacheKey(from: from, to: to, instant: query.instant, arriveBy: arriveBy)
         if let cached = TransitDiskCache.read(key, maxAge: isNow ? 20 * 60 : 30 * 86_400) {
-            return .routes(TransitResult(itineraries: cached.itineraries, isTypical: cached.isTypical,
+            // Routes saved before the sanity check are checked now.
+            let sensible = TransitSanity.refine(cached.itineraries, from: from, to: to)
+            return .routes(TransitResult(itineraries: sensible, isTypical: cached.isTypical,
                                          fromCache: true, timeZone: timeZone))
         }
 
@@ -140,9 +142,10 @@ enum TransitRouter {
             let itineraries = try await TransitousService.plan(from: from, to: to,
                                                                timing: arriveBy ? .arriveBy(query.instant) : .departAt(query.instant))
             await gate.leave()
-            if hasUsefulRoute(itineraries) {
-                TransitDiskCache.write(key, itineraries: itineraries, isTypical: query.isTypical)
-                return .routes(TransitResult(itineraries: itineraries, isTypical: query.isTypical,
+            let sensible = TransitSanity.refine(itineraries, from: from, to: to)
+            if hasUsefulRoute(sensible) {
+                TransitDiskCache.write(key, itineraries: sensible, isTypical: query.isTypical)
+                return .routes(TransitResult(itineraries: sensible, isTypical: query.isTypical,
                                              fromCache: false, timeZone: timeZone))
             }
             return .noCoverage(estimate: await RoutingService.eta(from: from, to: to, mode: .transit))
