@@ -14,19 +14,31 @@ extension Color {
     }
 }
 
+extension Color {
+    /// Black or white, whichever reads better on this colour. Agencies publish their own line colours, so
+    /// the text on a badge can't be fixed. The 0.179 luminance threshold gives at least 4.5:1 either way.
+    var readableForeground: Color {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        UIColor(self).getRed(&r, green: &g, blue: &b, alpha: &a)
+        func linear(_ c: CGFloat) -> CGFloat { c <= 0.03928 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4) }
+        let luminance = 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b)
+        return luminance > 0.179 ? .black : .white
+    }
+}
+
 extension TransitLeg {
     /// The line's own colour when the agency publishes one, else a colour per kind of vehicle.
     var color: Color {
         if let colorHex, let color = Color(hex: colorHex) { return color }
         switch mode {
-        case .walk: return .gray
-        case .bus: return .blue
-        case .tram: return .orange
-        case .subway: return .red
-        case .rail: return .green
-        case .ferry: return .teal
-        case .cableCar: return .purple
-        case .other: return .indigo
+        case .walk: return Theme.day(7)
+        case .bus: return Theme.day(0)
+        case .tram: return Theme.day(1)
+        case .subway: return Theme.day(3)
+        case .rail: return Theme.day(5)
+        case .ferry: return Theme.day(5)
+        case .cableCar: return Theme.day(2)
+        case .other: return Theme.day(6)
         }
     }
 }
@@ -110,11 +122,12 @@ struct TransitBadge: View {
             Text(leg.routeShortName ?? leg.mode.title)
                 .lineLimit(1)
         }
-        .font(.caption.bold())
+        .font(Typography.caption.bold())
         .padding(.horizontal, Spacing.s)
         .padding(.vertical, Spacing.xs)
         .background(leg.color, in: Radius.shape(Radius.small))
-        .foregroundStyle(.white)
+        .foregroundStyle(leg.color.readableForeground)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -220,7 +233,7 @@ struct TransitConnector: View {
                         Text((result.isTypical ? "≈ " : "") + best.summary)
                             .lineLimit(2)
                     }
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
                     if !result.isTypical, let first = best.transitLegs.first {
                         DepartureLine(leg: first, zone: result.timeZone)
                     }
@@ -229,7 +242,7 @@ struct TransitConnector: View {
         case .noCoverage(let estimate):
             Label(estimate.map { "No transit timetable here · about \(Format.duration($0))" }
                   ?? "No transit timetable for this area", systemImage: "tram.fill")
-                .foregroundStyle(.orange)
+                .foregroundStyle(Theme.warning)
         case .failed:
             Label("Route unavailable · tap to see why", systemImage: "wifi.slash")
                 .foregroundStyle(.tertiary)
@@ -302,7 +315,7 @@ struct TransitRouteView: View {
 
                     Text("Routes from Transitous (transitous.org), built on the timetables of the transit agencies. Live times and delays appear where an agency shares them; otherwise times are the timetable's.")
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                 }
                 .padding()
             }
@@ -365,7 +378,7 @@ struct TransitRouteView: View {
         if entrances.values.contains(where: { $0.boarding != nil || $0.alighting != nil }) {
             Text("Station entrances: Apple Maps where it lists them, otherwise OpenStreetMap contributors (ODbL).")
                 .font(.caption2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.inkSecondary)
         }
     }
 
@@ -392,19 +405,19 @@ struct TransitRouteView: View {
             if let start = current.start, let end = current.end {
                 Text("\(TransitTime.timeText(start, in: result.timeZone)) → \(TransitTime.timeText(end, in: result.timeZone))")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
             }
             if current.transitLegs.isEmpty {
                 Label("Walking is about as fast as public transport here.", systemImage: "figure.walk")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
             }
             liveCaption(current, result: result)
             if result.isTypical {
                 Label("Your date is too far ahead for timetables. This is the typical timetable for that weekday and time.",
                       systemImage: "calendar.badge.clock")
                     .font(.caption)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.warning)
             }
         }
     }
@@ -417,16 +430,16 @@ struct TransitRouteView: View {
             Label("Live times · updated \(TransitTime.timeText(read, in: result.timeZone))",
                   systemImage: "dot.radiowaves.left.and.right")
                 .font(.caption)
-                .foregroundStyle(.green)
+                .foregroundStyle(Theme.success)
             if updateFailed {
                 Text("The last update didn't work. These are the latest times known.")
                     .font(.caption2)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.warning)
             }
         } else if let first = current.firstDeparture, LivePolicy.isLive(departure: first) {
             Label("Timetable times. This agency doesn't share live data.", systemImage: "calendar")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.inkSecondary)
         }
     }
 
@@ -434,27 +447,17 @@ struct TransitRouteView: View {
     @ViewBuilder
     private func alerts(_ current: TransitItinerary, in all: [TransitItinerary]) -> some View {
         if current.hasCancelledLeg {
-            VStack(alignment: .leading, spacing: Spacing.s) {
-                Label("A vehicle on this route is cancelled.", systemImage: "xmark.octagon.fill")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.red)
+            Banner(kind: .danger, title: "A vehicle on this route is cancelled.") {
                 if let other = all.firstIndex(where: { !$0.hasCancelledLeg }) {
                     Button("Show the next option") { selected = other }
-                        .font(.subheadline.bold())
+                        .buttonStyle(.secondary(fullWidth: false))
+                        .padding(.top, Spacing.xs)
                 }
             }
-            .padding(Spacing.m)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.red.opacity(0.1), in: Radius.shape(Radius.small))
         }
         let tight = current.changeSlackMinutes.filter { $0 < 3 }
         if !tight.isEmpty && !current.hasCancelledLeg {
-            Label(tightText(tight), systemImage: "exclamationmark.triangle.fill")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.orange)
-                .padding(Spacing.m)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.orange.opacity(0.12), in: Radius.shape(Radius.small))
+            Banner(kind: .warning, title: tightText(tight))
         }
     }
 
@@ -491,10 +494,12 @@ struct TransitRouteView: View {
 
     private func chip(_ text: String, _ symbol: String) -> some View {
         Label(text, systemImage: symbol)
-            .font(.caption.weight(.semibold))
+            .font(Typography.label)
+            .foregroundStyle(Theme.ink)
             .padding(.horizontal, Spacing.m)
             .padding(.vertical, Spacing.xs)
-            .background(Color(.secondarySystemBackground), in: Capsule())
+            .background(Theme.surface, in: Capsule())
+            .overlay(Capsule().strokeBorder(Theme.separator, lineWidth: 0.5))
     }
 
     /// Station entrances and street-level walking paths for the chosen route.
@@ -554,10 +559,10 @@ struct TransitRouteView: View {
         VStack(alignment: .leading, spacing: Spacing.s) {
             Label(title, systemImage: "exclamationmark.triangle.fill")
                 .font(.subheadline.bold())
-                .foregroundStyle(.orange)
+                .foregroundStyle(Theme.warning)
             Text(detail)
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.inkSecondary)
         }
         .card()
     }
@@ -581,7 +586,7 @@ private struct LegRow: View {
                 if !leg.isWalking {
                     LiveTime(date: leg.arrival, delay: leg.arrivalDelayMinutes, cancelled: leg.isCancelled, zone: zone)
                         .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                 }
             }
             .frame(width: 58, alignment: .trailing)
@@ -611,11 +616,11 @@ private struct LegRow: View {
         if let entrance = walkOverride?.entranceName {
             Label("to \(entrance)", systemImage: "door.left.hand.open")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.inkSecondary)
         } else {
             Text("to \(leg.toName)")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.inkSecondary)
         }
     }
 
@@ -652,7 +657,7 @@ private struct LegRow: View {
               Format.duration(TimeInterval(leg.duration)), leg.agencyName]
             .compactMap { $0 }.joined(separator: " · "))
             .font(.caption)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Theme.inkSecondary)
         Text(leg.toName)
             .font(.subheadline.weight(.medium))
         if let door = entrances?.alighting {
@@ -669,19 +674,19 @@ private struct LegRow: View {
         case .cancelled:
             Label("Cancelled", systemImage: "xmark.circle.fill")
                 .font(.caption.bold())
-                .foregroundStyle(.red)
+                .foregroundStyle(Theme.danger)
         case .late(let minutes):
             Label("\(minutes) min late", systemImage: "dot.radiowaves.left.and.right")
                 .font(.caption.bold())
-                .foregroundStyle(.red)
+                .foregroundStyle(Theme.danger)
         case .early(let minutes):
             Label("\(minutes) min early", systemImage: "dot.radiowaves.left.and.right")
                 .font(.caption.bold())
-                .foregroundStyle(.orange)
+                .foregroundStyle(Theme.warning)
         case .onTime:
             Label("On time · live", systemImage: "dot.radiowaves.left.and.right")
                 .font(.caption.bold())
-                .foregroundStyle(.green)
+                .foregroundStyle(Theme.success)
         case .scheduled:
             EmptyView()
         }
@@ -700,11 +705,11 @@ struct LiveTime: View {
             HStack(spacing: 3) {
                 Text(TransitTime.timeText(date, in: zone))
                     .strikethrough(cancelled)
-                    .foregroundStyle(cancelled ? Color.red : Color.primary)
+                    .foregroundStyle(cancelled ? Theme.danger : Theme.ink)
                 if let delay, delay != 0, !cancelled {
                     Text(delay > 0 ? "+\(delay)" : "\(delay)")
                         .font(.caption2.bold())
-                        .foregroundStyle(delay > 0 ? Color.red : Color.green)
+                        .foregroundStyle(delay > 0 ? Theme.danger : Theme.success)
                 }
             }
         }
@@ -722,18 +727,18 @@ struct DepartureLine: View {
                 HStack(spacing: Spacing.xs) {
                     if leg.isCancelled {
                         Label("Cancelled", systemImage: "xmark.circle.fill")
-                            .foregroundStyle(.red)
+                            .foregroundStyle(Theme.danger)
                     } else {
                         Text("leaves")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.inkSecondary)
                         LiveTime(date: departure, delay: leg.departureDelayMinutes, zone: zone)
                         if LivePolicy.isLive(departure: departure, now: context.date) {
                             Text("· " + TransitLive.countdownText(until: departure, now: context.date))
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Theme.inkSecondary)
                         }
                         if leg.isLive {
                             Image(systemName: "dot.radiowaves.left.and.right")
-                                .foregroundStyle(.green)
+                                .foregroundStyle(Theme.success)
                         }
                     }
                 }
@@ -795,39 +800,38 @@ private struct RouteMap: View {
                 if !leg.isWalking {
                     // Where the vehicle is boarded and left.
                     Annotation(leg.fromName, coordinate: leg.from.coordinate, anchor: .center) {
-                        StationDot(color: leg.color, symbol: leg.mode.symbol, large: true)
+                        Pin(kind: .station(symbol: leg.mode.symbol, large: true), tint: leg.color)
                     }
                     Annotation(leg.toName, coordinate: leg.to.coordinate, anchor: .center) {
-                        StationDot(color: leg.color, symbol: nil, large: false)
+                        Pin(kind: .station(symbol: nil, large: false), tint: leg.color)
                     }
                     // The line's name on the line itself.
                     if let middle = leg.coordinates[safe: leg.coordinates.count / 2] {
                         Annotation("", coordinate: middle, anchor: .center) {
                             TransitBadge(leg: leg)
                                 .scaleEffect(0.85)
-                                .shadow(color: .black.opacity(0.25), radius: 2, y: 1)
                         }
                     }
                 }
                 if let choice = entrances[index] {
                     if let door = choice.boarding {
                         Annotation(door.name, coordinate: door.coordinate, anchor: .center) {
-                            EntrancePin(color: leg.color, boarding: true)
+                            Pin(kind: .entrance(boarding: true), tint: leg.color)
                         }
                     }
                     if let door = choice.alighting {
                         Annotation(door.name, coordinate: door.coordinate, anchor: .center) {
-                            EntrancePin(color: leg.color, boarding: false)
+                            Pin(kind: .entrance(boarding: false), tint: leg.color)
                         }
                     }
                 }
             }
 
             Annotation("Start", coordinate: from, anchor: .center) {
-                EndPin(symbol: "figure.walk", color: .green)
+                Pin(kind: .start)
             }
             Annotation("Destination", coordinate: to, anchor: .center) {
-                EndPin(symbol: "flag.fill", color: .red)
+                Pin(kind: .end)
             }
         }
         .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .including([.publicTransport])))
@@ -847,58 +851,6 @@ private struct RouteMap: View {
 private extension Array {
     subscript(safe index: Int) -> Element? {
         indices.contains(index) ? self[index] : nil
-    }
-}
-
-/// A stop on the line: a big one with the vehicle where you get on, a small one where you get off.
-private struct StationDot: View {
-    let color: Color
-    let symbol: String?
-    let large: Bool
-
-    var body: some View {
-        ZStack {
-            Circle().fill(.white)
-            Circle().stroke(color, lineWidth: large ? 4 : 3)
-            if let symbol {
-                Image(systemName: symbol)
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(color)
-            }
-        }
-        .frame(width: large ? 24 : 14, height: large ? 24 : 14)
-        .shadow(color: .black.opacity(0.25), radius: 2, y: 1)
-    }
-}
-
-/// Where you walk into or out of a station.
-private struct EntrancePin: View {
-    let color: Color
-    let boarding: Bool
-
-    var body: some View {
-        Image(systemName: boarding ? "door.left.hand.open" : "door.right.hand.open")
-            .font(.system(size: 11, weight: .bold))
-            .foregroundStyle(.white)
-            .frame(width: 24, height: 24)
-            .background(color, in: Radius.shape(Radius.small))
-            .overlay(Radius.shape(Radius.small).stroke(.white, lineWidth: 2))
-            .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
-    }
-}
-
-private struct EndPin: View {
-    let symbol: String
-    let color: Color
-
-    var body: some View {
-        Image(systemName: symbol)
-            .font(.system(size: 12, weight: .bold))
-            .foregroundStyle(.white)
-            .frame(width: 28, height: 28)
-            .background(color, in: Circle())
-            .overlay(Circle().stroke(.white, lineWidth: 2.5))
-            .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
     }
 }
 
@@ -934,7 +886,7 @@ struct TransitGuideCard: View {
                 if notes == nil || expanded {
                     Text(trip.transitGuide)
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                         .lineLimit(expanded ? nil : 8)
                 }
                 if notes != nil || trip.transitGuide.count > 400 {
@@ -950,18 +902,18 @@ struct TransitGuideCard: View {
                     }
                 }
                 .font(.caption2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.inkSecondary)
             } else if loading {
                 HStack(spacing: Spacing.s) {
                     ProgressView()
                     Text("Loading the travel guide…")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                 }
             } else if missing {
                 Text("No travel guide with public transport information was found for this destination.")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
             }
         }
         .card()
@@ -980,7 +932,7 @@ struct TransitGuideCard: View {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(title.uppercased())
                     .font(.caption.bold())
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.inkSecondary)
                 ForEach(items, id: \.self) { item in
                     Label(item, systemImage: symbol)
                         .font(.subheadline)

@@ -21,7 +21,7 @@ struct DepartureBoardView: View {
                     Section {
                         Label(failure, systemImage: "wifi.slash")
                             .font(.subheadline)
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(Theme.warning)
                     }
                 }
                 Section {
@@ -75,15 +75,15 @@ struct DepartureBoardView: View {
                 if departure.cancelled {
                     Label("Cancelled", systemImage: "xmark.circle.fill")
                         .font(.caption.bold())
-                        .foregroundStyle(.red)
+                        .foregroundStyle(Theme.danger)
                 } else if departure.realTime {
                     Label("Live", systemImage: "dot.radiowaves.left.and.right")
                         .font(.caption)
-                        .foregroundStyle(.green)
+                        .foregroundStyle(Theme.success)
                 } else {
                     Text("Timetable")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                 }
             }
             Spacer()
@@ -93,7 +93,7 @@ struct DepartureBoardView: View {
                 TimelineView(.periodic(from: .now, by: 30)) { context in
                     Text(TransitLive.countdownText(until: departure.departure, now: context.date))
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSecondary)
                 }
             }
         }

@@ -99,11 +99,11 @@ struct TravelLegView: View {
                 Text(text)
                 if leg.isLongWalk {
                     Text("· long walk")
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Theme.warning)
                 }
             }
             .font(.caption)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Theme.inkSecondary)
             .padding(.leading, inset)
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityElement(children: .combine)

@@ -63,8 +63,10 @@ struct DesignSystemGallery: View {
                     Pin(kind: .stop(number: 4, day: 3), isDone: true)
                     Pin(kind: .hotel)
                     Pin(kind: .end)
-                    Pin(kind: .entrance)
-                    Pin(kind: .station)
+                    Pin(kind: .start)
+                    Pin(kind: .entrance(boarding: true))
+                    Pin(kind: .station(symbol: "tram.fill", large: true), tint: Theme.day(1))
+                    Pin(kind: .station(symbol: nil, large: false), tint: Theme.day(1))
                 }
 
                 SectionHeader(title: "Days", eyebrow: "Solid fills")
