@@ -1,7 +1,6 @@
 import SwiftUI
 import PhotosUI
 import SwiftData
-import Charts
 
 struct BudgetView: View {
     @Bindable var trip: Trip
@@ -65,57 +64,32 @@ struct BudgetView: View {
     // MARK: Body
 
     var body: some View {
-        List {
-            summarySection
+        ScrollView {
+            VStack(alignment: .leading, spacing: Spacing.xl) {
+                summaryCard
 
-            if !categoryTotals.isEmpty {
-                Section("By category") {
-                    Chart(categoryTotals) { item in
-                        BarMark(x: .value("Amount", item.amount),
-                                y: .value("Category", item.category.title))
-                            .foregroundStyle(item.category.color)
-                    }
-                    .frame(height: CGFloat(categoryTotals.count) * 36 + 24)
+                if !categoryTotals.isEmpty {
+                    categoryCard
                 }
-            }
 
-            if trip.expenses.isEmpty {
-                Section {
-                    ContentUnavailableView("No expenses yet", systemImage: "creditcard",
-                                           description: Text("Add what you spend during the trip and see it against your budget."))
-                        .listRowBackground(Color.clear)
-                }
-            }
-
-            ForEach(groups) { group in
-                Section {
-                    ForEach(group.expenses) { expense in
-                        Button {
-                            editing = expense
-                        } label: {
-                            ExpenseRow(expense: expense, tripCurrency: trip.currencyCode, converted: converted(expense))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .onDelete { offsets in
-                        for index in offsets {
-                            context.delete(group.expenses[index])
-                        }
-                    }
-                } header: {
-                    let total = group.expenses.reduce(0) { $0 + converted($1) }
-                    HStack {
-                        Text(group.date.formatted(date: .abbreviated, time: .omitted))
-                        Spacer()
-                        Text(money(total))
+                if trip.expenses.isEmpty {
+                    EmptyState(title: "No expenses yet", systemImage: "creditcard",
+                               message: "Add what you spend during the trip and see it against your budget.",
+                               actionTitle: "Add expense") { showAdd = true }
+                } else {
+                    ForEach(groups) { group in
+                        dayGroup(group)
                     }
                 }
             }
+            .padding(.horizontal, Spacing.l)
+            .padding(.bottom, Spacing.xl)
         }
+        .background(Theme.background)
         .navigationTitle("Budget")
-        .navigationBarTitleDisplayMode(.inline)
-        .safeAreaInset(edge: .top, spacing: 0) {
-            TabHeader(title: "Budget") {
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItemGroup(placement: .topBarTrailing) {
                 Button { showBudget = true } label: { Image(systemName: "slider.horizontal.3") }
                     .accessibilityLabel("Budget settings")
                 Button { showAdd = true } label: { Image(systemName: "plus.circle.fill") }
@@ -141,37 +115,140 @@ struct BudgetView: View {
         trip.isActiveToday ? Date() : trip.startDate
     }
 
-    private var summarySection: some View {
-        Section {
+    // MARK: Summary
+
+    private var summaryCard: some View {
+        let left = trip.budget - spent
+        let isOver = trip.budget > 0 && left < 0
+
+        return Card(elevation: .raised) {
             VStack(alignment: .leading, spacing: Spacing.m) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(money(spent))
-                        .font(.title.bold())
-                    Text(trip.budget > 0 ? "of \(money(trip.budget))" : "spent")
-                        .foregroundStyle(Theme.inkSecondary)
+                HStack(alignment: .center, spacing: Spacing.l) {
+                    if trip.budget > 0 {
+                        ProgressRing(progress: spent / trip.budget, lineWidth: 10, tint: isOver ? Theme.danger : Theme.accent)
+                            .frame(width: 88, height: 88)
+                            .overlay {
+                                Text("\(Int(min(spent / trip.budget, 9.99) * 100))%")
+                                    .font(Typography.label)
+                                    .monospacedDigit()
+                                    .foregroundStyle(Theme.ink)
+                                    .accessibilityHidden(true)
+                            }
+                    }
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                        Text(trip.budget > 0 ? "Spent" : "Spent so far").eyebrow()
+                        Text(money(spent))
+                            .font(Typography.display)
+                            .monospacedDigit()
+                            .foregroundStyle(Theme.ink)
+                            .minimumScaleFactor(0.6)
+                            .lineLimit(1)
+                        if trip.budget > 0 {
+                            Text("of \(money(trip.budget))")
+                                .font(Typography.label)
+                                .foregroundStyle(Theme.inkSecondary)
+                        }
+                    }
                 }
+
                 if trip.budget > 0 {
-                    ProgressView(value: min(spent, trip.budget), total: trip.budget)
-                        .tint(spent > trip.budget ? Theme.danger : Theme.accent)
-                    let left = trip.budget - spent
-                    Text(left >= 0 ? "\(money(left)) left" : "\(money(-left)) over budget")
-                        .font(.subheadline)
-                        .foregroundStyle(left >= 0 ? Theme.inkSecondary : Theme.danger)
+                    Label(isOver ? "\(money(-left)) over budget" : "\(money(left)) left",
+                          systemImage: isOver ? "exclamationmark.triangle.fill" : "checkmark.circle")
+                        .font(Typography.headline)
+                        .foregroundStyle(isOver ? Theme.danger : Theme.success)
                 } else {
                     Button("Set a budget") { showBudget = true }
-                        .font(.subheadline)
+                        .buttonStyle(.secondary(fullWidth: false))
+                }
+
+                if planned > 0 {
+                    InfoRow(symbol: "mappin.and.ellipse", title: "Planned in stops", detail: money(planned))
+                }
+                if hasUnconverted {
+                    Banner(kind: .warning, title: "Some currencies couldn't be converted",
+                           message: "Offline or unsupported. They're counted at face value.")
                 }
             }
-            .padding(.vertical, Spacing.xs)
+        }
+    }
 
-            if planned > 0 {
-                LabeledContent("Planned in stops", value: money(planned))
+    // MARK: Categories
+
+    private var categoryCard: some View {
+        let largest = categoryTotals.map(\.amount).max() ?? 1
+
+        return VStack(alignment: .leading, spacing: Spacing.s) {
+            SectionHeader(title: "By category")
+            Card {
+                VStack(alignment: .leading, spacing: Spacing.m) {
+                    ForEach(categoryTotals) { item in
+                        VStack(alignment: .leading, spacing: Spacing.xs) {
+                            HStack(spacing: Spacing.s) {
+                                Label(item.category.title, systemImage: item.category.symbol)
+                                    .font(Typography.label)
+                                    .foregroundStyle(Theme.ink)
+                                Spacer(minLength: Spacing.s)
+                                Text(money(item.amount))
+                                    .font(Typography.label)
+                                    .monospacedDigit()
+                                    .foregroundStyle(Theme.ink)
+                            }
+                            Capsule()
+                                .fill(Theme.separator)
+                                .frame(height: 8)
+                                .overlay(alignment: .leading) {
+                                    GeometryReader { proxy in
+                                        Capsule()
+                                            .fill(Theme.accent)
+                                            .frame(width: max(8, proxy.size.width * item.amount / largest))
+                                    }
+                                }
+                        }
+                        .accessibilityElement(children: .combine)
+                    }
+                }
             }
-            if hasUnconverted {
-                Label("Some currencies couldn't be converted (offline or unsupported). They're counted at face value.",
-                      systemImage: "exclamationmark.triangle")
-                    .font(.footnote)
-                    .foregroundStyle(Theme.warning)
+        }
+    }
+
+    // MARK: Expenses by day
+
+    private func dayGroup(_ group: DayGroup) -> some View {
+        let total = group.expenses.reduce(0) { $0 + converted($1) }
+
+        return VStack(alignment: .leading, spacing: Spacing.s) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(group.date.formatted(date: .complete, time: .omitted))
+                    .font(Typography.headline)
+                    .foregroundStyle(Theme.ink)
+                    .accessibilityAddTraits(.isHeader)
+                Spacer(minLength: Spacing.s)
+                Text(money(total))
+                    .font(Typography.label)
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.inkSecondary)
+            }
+            Card(padding: Spacing.m) {
+                VStack(spacing: 0) {
+                    ForEach(Array(group.expenses.enumerated()), id: \.element.persistentModelID) { index, expense in
+                        Button {
+                            editing = expense
+                        } label: {
+                            ExpenseRow(expense: expense, tripCurrency: trip.currencyCode, converted: converted(expense))
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            Button("Edit", systemImage: "pencil") { editing = expense }
+                            Button("Delete", systemImage: "trash", role: .destructive) {
+                                Haptics.warning()
+                                Motion.perform { context.delete(expense) }
+                            }
+                        }
+                        if index < group.expenses.count - 1 {
+                            Divider()
+                        }
+                    }
+                }
             }
         }
     }
@@ -185,26 +262,35 @@ private struct ExpenseRow: View {
     var body: some View {
         HStack(spacing: Spacing.m) {
             Image(systemName: expense.category.symbol)
-                .frame(width: 32, height: 32)
-                .background(expense.category.color.opacity(0.15), in: Circle())
+                .font(.title3)
                 .foregroundStyle(expense.category.color)
+                .frame(width: 28)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(expense.title.isEmpty ? expense.category.title : expense.title)
+                    .font(Typography.body)
+                    .foregroundStyle(Theme.ink)
                 Text(expense.category.title)
-                    .font(.caption)
+                    .font(Typography.caption)
                     .foregroundStyle(Theme.inkSecondary)
             }
-            Spacer()
+            Spacer(minLength: Spacing.s)
             VStack(alignment: .trailing, spacing: 2) {
                 Text(expense.amount.formatted(.currency(code: expense.currencyCode)))
+                    .font(Typography.body)
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.ink)
                 if expense.currencyCode != tripCurrency {
                     Text("≈ " + converted.formatted(.currency(code: tripCurrency)))
-                        .font(.caption)
+                        .font(Typography.caption)
+                        .monospacedDigit()
                         .foregroundStyle(Theme.inkSecondary)
                 }
             }
         }
+        .frame(minHeight: 44)
         .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
     }
 }
 

@@ -5,6 +5,8 @@ struct ProgressRing: View {
     /// 0...1
     let progress: Double
     var lineWidth: CGFloat = 5
+    /// The filled part. Use `Theme.danger` when the ring means "over the limit" and say so in words too.
+    var tint: Color = Theme.accent
 
     private var clamped: Double { min(max(progress, 0), 1) }
 
@@ -14,7 +16,7 @@ struct ProgressRing: View {
             if clamped > 0 {
                 Circle()
                     .trim(from: 0, to: clamped)
-                    .stroke(Theme.accent, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                    .stroke(tint, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                     .rotationEffect(.degrees(-90))
             }
         }
