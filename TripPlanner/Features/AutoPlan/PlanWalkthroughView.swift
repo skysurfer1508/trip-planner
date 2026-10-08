@@ -172,6 +172,8 @@ struct PlanWalkthroughView: View {
                     } label: {
                         Image(systemName: "ellipsis.circle")
                             .font(.title3)
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(Rectangle())
                     }
                     .accessibilityLabel("Day actions")
                 }
@@ -302,7 +304,7 @@ struct PlanWalkthroughView: View {
                 }
             } label: {
                 Image(systemName: "ellipsis")
-                    .frame(width: 32, height: 32)
+                    .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }
             .accessibilityLabel("Options for \(candidate.name)")
@@ -367,6 +369,8 @@ struct PlanWalkthroughView: View {
                     } label: {
                         Image(systemName: "arrow.up.circle.fill")
                             .font(.title)
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
                     }
                     .disabled(engine == nil || prompt.trimmingCharacters(in: .whitespaces).isEmpty)
                     .accessibilityLabel("Send")

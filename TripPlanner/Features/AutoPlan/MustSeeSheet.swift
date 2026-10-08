@@ -316,7 +316,10 @@ struct MustSeeSheet: View {
         } label: {
             Image(systemName: "ellipsis.circle")
                 .font(.title3)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
         }
+        .accessibilityLabel("Options")
     }
 
     private func timeMenuSection(_ id: UUID) -> some View {

@@ -186,9 +186,10 @@ private struct HotelRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: Spacing.m) {
             Image(systemName: hotel.isLodging ? "bed.double.fill" : "mappin.and.ellipse")
-                .frame(width: 34, height: 34)
-                .background(Theme.accent.opacity(0.12), in: Radius.shape(Radius.small))
+                .font(.title3)
+                .frame(width: 34)
                 .foregroundStyle(Theme.accent)
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(hotel.name)

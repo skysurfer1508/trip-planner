@@ -158,6 +158,8 @@ struct PlanChatView: View {
                 } label: {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.title)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
                 }
                 .disabled(engine == nil || busy || prompt.trimmingCharacters(in: .whitespaces).isEmpty)
                 .accessibilityLabel("Send")

@@ -138,6 +138,7 @@ struct ChecklistView: View {
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
+                .accessibilityLabel("List actions")
             }
         }
         .sheet(isPresented: $showGenerator) {

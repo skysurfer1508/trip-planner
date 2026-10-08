@@ -351,6 +351,7 @@ struct TodayView: View {
             } label: {
                 Image(systemName: "ellipsis.circle")
             }
+            .accessibilityLabel("Trip Mode options")
         }
     }
 

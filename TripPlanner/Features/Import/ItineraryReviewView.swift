@@ -266,8 +266,11 @@ private struct DraftStopRow: View {
 
             Button(action: onChangePlace) {
                 Image(systemName: "magnifyingglass")
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.borderless)
+            .accessibilityLabel("Search for another place")
         }
         .modifier(PreviewLoader(stop: stop))
     }

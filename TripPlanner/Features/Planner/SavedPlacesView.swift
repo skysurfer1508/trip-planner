@@ -18,9 +18,10 @@ struct SavedPlacesView: View {
                 ForEach(places) { place in
                     HStack(spacing: Spacing.m) {
                         Image(systemName: place.category.symbol)
-                            .frame(width: 32, height: 32)
-                            .background(place.category.color.opacity(0.15), in: Circle())
+                            .font(.title3)
+                            .frame(width: 32)
                             .foregroundStyle(place.category.color)
+                            .accessibilityHidden(true)
 
                         VStack(alignment: .leading, spacing: 2) {
                             Text(place.name)
