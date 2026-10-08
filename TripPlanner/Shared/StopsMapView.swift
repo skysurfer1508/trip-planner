@@ -8,6 +8,10 @@ struct StopsMapView: View {
     var highlighted: Stop?
     /// Index of the day being shown; picks the pin and route colour (`Theme.day`).
     var dayIndex = 0
+    /// Called when a pin is tapped.
+    var onSelect: ((Stop) -> Void)?
+    /// Move the camera to the highlighted stop when it changes (used by the planner, not Trip Mode).
+    var recenterOnHighlight = false
     /// The hotel the day starts from; the route line begins here.
     var start: CLLocationCoordinate2D?
     var startName: String?
@@ -26,6 +30,8 @@ struct StopsMapView: View {
                             isDone: stop.isDone,
                             isHighlighted: highlighted?.persistentModelID == stop.persistentModelID,
                             dayIndex: dayIndex)
+                        .onTapGesture { onSelect?(stop) }
+                        .accessibilityAddTraits(.isButton)
                 }
             }
             if let start {
@@ -37,6 +43,13 @@ struct StopsMapView: View {
             if path.count > 1 {
                 MapPolyline(coordinates: path)
                     .stroke(Theme.day(dayIndex).opacity(0.7), lineWidth: 3)
+            }
+        }
+        .onChange(of: highlighted?.persistentModelID) { _, _ in
+            guard recenterOnHighlight, let highlighted else { return }
+            Motion.perform {
+                camera = .region(MKCoordinateRegion(center: highlighted.coordinate,
+                                                    span: MKCoordinateSpan(latitudeDelta: 0.012, longitudeDelta: 0.012)))
             }
         }
         .mapControls {

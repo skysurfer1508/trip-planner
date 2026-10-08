@@ -43,6 +43,7 @@ struct Pin: View {
                             .font(.system(size: size * 0.46, weight: .bold, design: .rounded))
                             .monospacedDigit()
                             .minimumScaleFactor(0.6)
+                            .contentTransition(.numericText())
                     }
                 }
             case .hotel:
