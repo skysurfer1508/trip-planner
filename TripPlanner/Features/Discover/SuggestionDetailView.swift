@@ -19,13 +19,18 @@ struct SuggestionDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.l) {
                     if let url = detail?.imageURL {
-                        AsyncImage(url: url) { image in
-                            image.resizable().scaledToFill()
-                        } placeholder: {
-                            Rectangle().fill(Theme.surface)
-                        }
-                        .frame(height: 200)
-                        .clipShape(Radius.shape(Radius.card))
+                        // In an overlay so the aspect-fill photo can't make the page wider than the screen.
+                        Color.clear
+                            .frame(height: 200)
+                            .frame(maxWidth: .infinity)
+                            .overlay {
+                                AsyncImage(url: url) { image in
+                                    image.resizable().scaledToFill()
+                                } placeholder: {
+                                    Rectangle().fill(Theme.surface)
+                                }
+                            }
+                            .clipShape(Radius.shape(Radius.card))
                     }
 
                     Text(place.name)
