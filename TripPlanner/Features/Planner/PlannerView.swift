@@ -5,6 +5,8 @@ struct PlannerView: View {
     @Bindable var trip: Trip
 
     @State private var selectedIndex = 0
+    @State private var selectedStop: Stop?
+    @State private var mapDetent: MapDetent = .half
     @State private var showAddPlace = false
     @State private var showImport = false
     @State private var showAutoPlan = false
@@ -15,7 +17,6 @@ struct PlannerView: View {
     @State private var showTimes = false
     @State private var editingStop: Stop?
     @State private var feedback = 0
-    @State private var editMode: EditMode = .inactive
 
     private var days: [Day] { trip.sortedDays }
 
@@ -24,57 +25,34 @@ struct PlannerView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            dayPicker
-
-            if let day = selectedDay {
-                let window = trip.window(for: day.date)
-                StopsMapView(stops: day.sortedStops, dayIndex: selectedIndex, start: window.anchor, startName: window.anchorName)
-                    .id(day.persistentModelID)
-                    .frame(height: 220)
-                    .overlay(alignment: .topTrailing) {
-                        Button {
-                            showMap = true
-                        } label: {
-                            Image(systemName: "arrow.up.left.and.arrow.down.right")
-                                .font(.subheadline.bold())
-                                .padding(Spacing.s)
-                                .background(.thinMaterial, in: Circle())
-                        }
-                        .padding(Spacing.m)
-                        .accessibilityLabel("Open full-screen map")
+        GeometryReader { geometry in
+            ScrollViewReader { proxy in
+                ScrollView {
+                    if let day = selectedDay {
+                        DayTimelineView(trip: trip, day: day, dayIndex: selectedIndex, selected: $selectedStop,
+                                        onOpen: { editingStop = $0 },
+                                        onAddPlace: { showAddPlace = true })
+                            .id(day.persistentModelID)
+                    } else {
+                        EmptyState(title: "No days", systemImage: "calendar",
+                                   message: "Edit the trip dates to add days.")
                     }
-
-                WeatherChip(date: day.date,
-                            coordinate: day.sortedStops.first?.coordinate ?? trip.anyCoordinate,
-                            outdoorStops: day.stops.filter { $0.category.isOutdoor }.count)
-                    .padding(.horizontal)
-                    .padding(.top, Spacing.s)
-
-                DayAlertsView(trip: trip, day: day)
-                    .padding(.horizontal)
-                    .padding(.top, Spacing.xs)
-
-                DayStopListView(day: day) { editingStop = $0 }
-                    .id(day.persistentModelID)
-            } else {
-                ContentUnavailableView("No days", systemImage: "calendar",
-                                       description: Text("Edit the trip dates to add days."))
+                }
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    topPanel(availableHeight: geometry.size.height)
+                }
+                // Tapping a pin brings its card into view; tapping a card highlights its pin.
+                .onChange(of: selectedStop?.persistentModelID) { _, id in
+                    guard let id else { return }
+                    Motion.perform { proxy.scrollTo(id, anchor: .center) }
+                }
             }
         }
-        .navigationTitle(trip.name)
-        .navigationBarTitleDisplayMode(.inline)
-        .safeAreaInset(edge: .top, spacing: 0) {
-            TabHeader(title: trip.name) {
-                if editMode.isEditing {
-                    Button("Adjust times") { showTimes = true }
-                        .font(.body)
-                        .disabled((selectedDay?.stops.count ?? 0) < 1)
-                }
-                Button(editMode.isEditing ? "Done" : "Edit") {
-                    withAnimation { editMode = editMode.isEditing ? .inactive : .active }
-                }
-                .font(.body)
+        .background(Theme.background)
+        .navigationTitle("Plan")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItemGroup(placement: .topBarTrailing) {
                 Button {
                     showChat = true
                 } label: {
@@ -84,7 +62,6 @@ struct PlannerView: View {
                 actionsMenu
             }
         }
-        .environment(\.editMode, $editMode)
         .sheet(isPresented: $showAddPlace) {
             if let day = selectedDay {
                 AddPlaceView(day: day)
@@ -117,7 +94,45 @@ struct PlannerView: View {
             StopDetailView(stop: stop)
         }
         .sensoryFeedback(.success, trigger: feedback)
+        .onChange(of: selectedIndex) { _, _ in selectedStop = nil }
         .onAppear(perform: jumpToToday)
+    }
+
+    /// The sticky part: the day strip and, under it, the map that can be dragged between three heights.
+    @ViewBuilder
+    private func topPanel(availableHeight: CGFloat) -> some View {
+        VStack(spacing: 0) {
+            DayStrip(days: days, selectedIndex: $selectedIndex)
+
+            if let day = selectedDay {
+                let window = trip.window(for: day.date)
+                DetentMapPanel(detent: $mapDetent, availableHeight: availableHeight) {
+                    StopsMapView(stops: day.sortedStops,
+                                 highlighted: selectedStop,
+                                 dayIndex: selectedIndex,
+                                 onSelect: { selectedStop = $0 },
+                                 recenterOnHighlight: true,
+                                 start: window.anchor,
+                                 startName: window.anchorName)
+                        .id(day.persistentModelID)
+                        .overlay(alignment: .topTrailing) {
+                            Button {
+                                showMap = true
+                            } label: {
+                                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                                    .font(.subheadline.bold())
+                                    .foregroundStyle(Theme.ink)
+                                    .frame(width: 44, height: 44)
+                                    .floatingChrome(in: Circle())
+                            }
+                            .buttonStyle(.plain)
+                            .padding(Spacing.s)
+                            .accessibilityLabel("Open full-screen map")
+                        }
+                }
+            }
+        }
+        .background(Theme.background)
     }
 
     /// Add places, Auto plan, import, and the actions for the selected day.
@@ -161,37 +176,6 @@ struct PlannerView: View {
             Image(systemName: "plus.circle.fill")
         }
         .accessibilityLabel("Plan actions")
-    }
-
-    private var dayPicker: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Spacing.s) {
-                ForEach(Array(days.enumerated()), id: \.element.persistentModelID) { index, day in
-                    Button {
-                        selectedIndex = index
-                    } label: {
-                        VStack(spacing: 2) {
-                            Text("Day \(index + 1)")
-                                .font(.caption.bold())
-                            Text(Format.dayChip(day.date))
-                                .font(.caption)
-                            Circle()
-                                .fill(day.stops.isEmpty ? Color.clear : (index == selectedIndex ? Color.white : Theme.accent))
-                                .frame(width: 5, height: 5)
-                        }
-                        .padding(.horizontal, Spacing.l)
-                        .padding(.vertical, Spacing.s)
-                        .background(index == selectedIndex ? Theme.accent : Color(.secondarySystemBackground),
-                                    in: Radius.shape(Radius.small))
-                        .foregroundStyle(index == selectedIndex ? Color.white : Theme.ink)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Day \(index + 1), \(day.stops.count) stops")
-                }
-            }
-            .padding(.horizontal)
-            .padding(.vertical, Spacing.s)
-        }
     }
 
     private func jumpToToday() {
