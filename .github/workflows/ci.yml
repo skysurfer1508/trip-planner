@@ -48,13 +48,15 @@ jobs:
             2>&1 | tee build.log
 
       # Compiler errors and failed tests become annotations, which can be read without downloading logs.
+      # Only real errors: lines that start with a file path ("/path/File.swift:12:3: error: ..."). The
+      # simulator's own CoreData chatter ("[error] CoreData: ...") is left out.
       - name: Report errors
         if: failure()
         run: |
-          grep -E "error:" build.log | sort -u | head -40 | while IFS= read -r line; do
-            file=$(echo "$line" | sed -nE 's|^(/[^:]+):([0-9]+):([0-9]+): error: (.*)$|\1|p')
-            ln=$(echo "$line" | sed -nE 's|^(/[^:]+):([0-9]+):([0-9]+): error: (.*)$|\2|p')
-            msg=$(echo "$line" | sed -nE 's|^(/[^:]+):([0-9]+):([0-9]+): error: (.*)$|\4|p')
+          grep -E '^/.*: error:' build.log | sort -u | head -40 | while IFS= read -r line; do
+            file=$(echo "$line" | sed -nE 's|^(/[^:]+):([0-9]+):?([0-9]*): error: (.*)$|\1|p')
+            ln=$(echo "$line" | sed -nE 's|^(/[^:]+):([0-9]+):?([0-9]*): error: (.*)$|\2|p')
+            msg=$(echo "$line" | sed -nE 's|^(/[^:]+):([0-9]+):?([0-9]*): error: (.*)$|\4|p')
             if [ -n "$file" ]; then
               rel=${file#$GITHUB_WORKSPACE/}
               echo "::error file=$rel,line=$ln::$msg"
@@ -62,9 +64,13 @@ jobs:
               echo "::error::$line"
             fi
           done
-          grep -E "Test Case .* failed|XCTAssert.*failed" build.log | sort -u | head -20 | while IFS= read -r line; do
-            echo "::error::$line"
+          # The summary xcodebuild prints at the end: which tests failed.
+          awk '/^Failing tests:/{f=1;next} f&&NF{print}' build.log | sort -u | head -30 | while IFS= read -r line; do
+            echo "::error::FAILED $line"
           done
+          if ! grep -qE '^/.*: error:' build.log; then
+            echo "::error::No file-level error found. Last lines: $(tail -5 build.log | tr '\n' ' ')"
+          fi
 
       - name: Keep the logs when something failed
         if: failure()
