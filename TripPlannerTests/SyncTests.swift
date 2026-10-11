@@ -12,6 +12,14 @@ final class SyncTests: XCTestCase {
 
     /// The device's calendar, like the app uses it: the trip's days are built with it too.
     private let codec = SyncCodec()
+    /// A model context only lives as long as its container, so the containers are kept until the test ends.
+    private var containers: [ModelContainer] = []
+
+    private func makeContext() throws -> ModelContext {
+        let container = try makeContainer()
+        containers.append(container)
+        return container.mainContext
+    }
 
     private func makeTrip(in context: ModelContext) -> Trip {
         let start = codec.parseDay("2026-11-05")!
@@ -61,8 +69,7 @@ final class SyncTests: XCTestCase {
     }
 
     func testCodecSendsOnlyWhatTheWebsiteAccepts() throws {
-        let container = try makeContainer()
-        let context = container.mainContext
+        let context = try makeContext()
         let trip = makeTrip(in: context)
         let stop = Stop(name: "Old Town", latitude: 999, longitude: 21, address: "")
         stop.website = "not a link"
@@ -88,7 +95,7 @@ final class SyncTests: XCTestCase {
     // MARK: What the phone sends
 
     func testSnapshotGivesEveryItemAnIDOnce() throws {
-        let context = try makeContainer().mainContext
+        let context = try makeContext()
         let trip = makeTrip(in: context)
         let stop = Stop(name: "Old Town", latitude: 52.25, longitude: 21.01)
         trip.sortedDays[0].append(stop)
@@ -103,7 +110,7 @@ final class SyncTests: XCTestCase {
     }
 
     func testNothingChangedMeansNothingToSend() throws {
-        let context = try makeContainer().mainContext
+        let context = try makeContext()
         let trip = makeTrip(in: context)
         trip.sortedDays[0].append(Stop(name: "Old Town", latitude: 52.25, longitude: 21.01))
         let snapshot = SyncEngine.snapshot(of: trip, codec: codec)
@@ -111,7 +118,7 @@ final class SyncTests: XCTestCase {
     }
 
     func testChangesAreSentPerFieldWithTheStartingValue() throws {
-        let context = try makeContainer().mainContext
+        let context = try makeContext()
         let trip = makeTrip(in: context)
         let stop = Stop(name: "Old Town", latitude: 52.25, longitude: 21.01)
         trip.sortedDays[0].append(stop)
@@ -135,7 +142,7 @@ final class SyncTests: XCTestCase {
     }
 
     func testADeletedItemIsSentAsDeletion() throws {
-        let context = try makeContainer().mainContext
+        let context = try makeContext()
         let trip = makeTrip(in: context)
         let stop = Stop(name: "Old Town", latitude: 52.25, longitude: 21.01)
         trip.sortedDays[0].append(stop)
@@ -149,7 +156,7 @@ final class SyncTests: XCTestCase {
     // MARK: What the server sends
 
     func testNewThingsFromTheServerAppearOnThePhone() throws {
-        let context = try makeContainer().mainContext
+        let context = try makeContext()
         let trip = makeTrip(in: context)
         let pushed = SyncEngine.snapshot(of: trip, codec: codec)
         var tripFields = SyncFields()
@@ -180,7 +187,7 @@ final class SyncTests: XCTestCase {
     }
 
     func testAStopMovedToAnotherDayOnTheServerMovesOnThePhone() throws {
-        let context = try makeContainer().mainContext
+        let context = try makeContext()
         let trip = makeTrip(in: context)
         let stop = Stop(name: "Castle", latitude: 52.24, longitude: 21.01)
         trip.sortedDays[0].append(stop)
@@ -193,7 +200,7 @@ final class SyncTests: XCTestCase {
     }
 
     func testServerDeletionRemovesTheItem() throws {
-        let context = try makeContainer().mainContext
+        let context = try makeContext()
         let trip = makeTrip(in: context)
         let stop = Stop(name: "Castle", latitude: 52.24, longitude: 21.01)
         trip.sortedDays[0].append(stop)
@@ -206,7 +213,7 @@ final class SyncTests: XCTestCase {
     }
 
     func testAConflictTakesTheServersValue() throws {
-        let context = try makeContainer().mainContext
+        let context = try makeContext()
         let trip = makeTrip(in: context)
         let stop = Stop(name: "Castle", latitude: 52.24, longitude: 21.01)
         trip.sortedDays[0].append(stop)
@@ -219,7 +226,7 @@ final class SyncTests: XCTestCase {
     }
 
     func testSomethingChangedDuringTheRequestIsKeptAndSentNextTime() throws {
-        let context = try makeContainer().mainContext
+        let context = try makeContext()
         let trip = makeTrip(in: context)
         let stop = Stop(name: "Castle", latitude: 52.24, longitude: 21.01)
         trip.sortedDays[0].append(stop)
@@ -236,7 +243,7 @@ final class SyncTests: XCTestCase {
     }
 
     func testAnItemCreatedDuringTheRequestIsNotMarkedAsKnown() throws {
-        let context = try makeContainer().mainContext
+        let context = try makeContext()
         let trip = makeTrip(in: context)
         let pushed = SyncEngine.snapshot(of: trip, codec: codec)
         let late = Stop(name: "Late", latitude: 52.2, longitude: 21.0)
