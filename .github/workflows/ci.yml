@@ -73,22 +73,25 @@ jobs:
             echo "::error::WHY ${line:0:400}"
           done
           # The failure messages themselves live in the result bundle.
-          xcrun xcresulttool get test-results tests --path TestResults.xcresult 2>/dev/null | python3 -c '
-import json, sys
-def walk(node, trail):
-    if isinstance(node, dict):
-        if node.get("nodeType") == "Failure Message":
-            print("::error::WHY " + trail + " -> " + str(node.get("name", ""))[:350])
-        for child in node.get("children", []) or []:
-            walk(child, node.get("name", trail) if node.get("nodeType") == "Test Case" else trail)
-    elif isinstance(node, list):
-        for child in node:
-            walk(child, trail)
-try:
-    walk(json.load(sys.stdin).get("testNodes", []), "")
-except Exception as error:
-    print("::error::WHY could not read the result bundle: " + str(error))
-' || true
+          xcrun xcresulttool get test-results tests --path TestResults.xcresult > results.json 2>/dev/null || true
+          python3 - <<'PY' || true
+          import json
+
+          def walk(node, trail):
+              if isinstance(node, dict):
+                  if node.get("nodeType") == "Failure Message":
+                      print("::error::WHY " + trail + " -> " + str(node.get("name", ""))[:350])
+                  for child in node.get("children", []) or []:
+                      walk(child, node.get("name", trail) if node.get("nodeType") == "Test Case" else trail)
+              elif isinstance(node, list):
+                  for child in node:
+                      walk(child, trail)
+
+          try:
+              walk(json.load(open("results.json")).get("testNodes", []), "")
+          except Exception as error:
+              print("::error::WHY could not read the result bundle: " + str(error))
+          PY
           if ! grep -E ': error:' build.log | grep -vq 'CoreData'; then
             echo "::error::No file-level error found. Last lines: $(tail -5 build.log | tr '\n' ' ')"
           fi
