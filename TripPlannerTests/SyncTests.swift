@@ -10,11 +10,8 @@ final class SyncTests: XCTestCase {
                            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
     }
 
-    private let codec = SyncCodec(calendar: {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: "Europe/Warsaw")!
-        return calendar
-    }())
+    /// The device's calendar, like the app uses it: the trip's days are built with it too.
+    private let codec = SyncCodec()
 
     private func makeTrip(in context: ModelContext) -> Trip {
         let start = codec.parseDay("2026-11-05")!
