@@ -68,6 +68,10 @@ jobs:
           awk '/^Failing tests:/{f=1;next} f&&NF{print}' build.log | sort -u | head -30 | while IFS= read -r line; do
             echo "::error::FAILED $line"
           done
+          # Why a test failed: the assertion lines (their format differs between Xcode versions, so match loosely).
+          grep -E "XCTAssert|XCTFail|recorded an issue|caught error|Expectation failed" build.log | grep -v CoreData | sort -u | head -30 | while IFS= read -r line; do
+            echo "::error::WHY ${line:0:400}"
+          done
           if ! grep -E ': error:' build.log | grep -vq 'CoreData'; then
             echo "::error::No file-level error found. Last lines: $(tail -5 build.log | tr '\n' ' ')"
           fi
