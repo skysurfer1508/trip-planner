@@ -72,6 +72,23 @@ jobs:
           grep -E "XCTAssert|XCTFail|recorded an issue|caught error|Expectation failed" build.log | grep -v CoreData | sort -u | head -30 | while IFS= read -r line; do
             echo "::error::WHY ${line:0:400}"
           done
+          # The failure messages themselves live in the result bundle.
+          xcrun xcresulttool get test-results tests --path TestResults.xcresult 2>/dev/null | python3 -c '
+import json, sys
+def walk(node, trail):
+    if isinstance(node, dict):
+        if node.get("nodeType") == "Failure Message":
+            print("::error::WHY " + trail + " -> " + str(node.get("name", ""))[:350])
+        for child in node.get("children", []) or []:
+            walk(child, node.get("name", trail) if node.get("nodeType") == "Test Case" else trail)
+    elif isinstance(node, list):
+        for child in node:
+            walk(child, trail)
+try:
+    walk(json.load(sys.stdin).get("testNodes", []), "")
+except Exception as error:
+    print("::error::WHY could not read the result bundle: " + str(error))
+' || true
           if ! grep -E ': error:' build.log | grep -vq 'CoreData'; then
             echo "::error::No file-level error found. Last lines: $(tail -5 build.log | tr '\n' ' ')"
           fi
