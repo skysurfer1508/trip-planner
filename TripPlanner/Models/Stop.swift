@@ -39,6 +39,8 @@ final class Stop {
     /// The place's Wikidata item, found with its Wikipedia article: opening hours are matched by it.
     var wikidataID: String = ""
     var day: Day?
+    /// Identity for the sync with the website (empty until the trip is first synced).
+    var syncID: String = ""
 
     init(name: String,
          latitude: Double,

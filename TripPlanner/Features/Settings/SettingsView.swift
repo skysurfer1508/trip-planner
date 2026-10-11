@@ -119,6 +119,19 @@ struct SettingsView: View {
                 Section {
                     Group {
                         NavigationLink {
+                            SyncView()
+                        } label: {
+                            Label("Website sync", systemImage: "arrow.triangle.2.circlepath")
+                        }
+                    }
+                    .listRowBackground(Theme.surface)
+                } footer: {
+                    Text("Keep a trip in step with the family website, where Claude and the family plan too.")
+                }
+
+                Section {
+                    Group {
+                        NavigationLink {
                             DiagnosticsView()
                         } label: {
                             Label("Diagnostics", systemImage: "stethoscope")

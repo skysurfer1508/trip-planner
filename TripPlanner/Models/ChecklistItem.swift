@@ -8,6 +8,8 @@ final class ChecklistItem {
     var section: String = ""
     var isDone: Bool = false
     var order: Int = 0
+    /// Identity for the sync with the website (empty until the trip is first synced).
+    var syncID: String = ""
     var trip: Trip?
 
     init(title: String, section: String, order: Int = 0) {

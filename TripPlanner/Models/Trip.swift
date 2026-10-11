@@ -35,6 +35,12 @@ final class Trip {
     /// When "Prepare for offline" last finished, and how it went.
     var offlinePreparedAt: Date?
     var offlineNote: String = ""
+    /// The sync with the website: the trip's id there (empty = not synced), the server revision seen at the last sync,
+    /// the state both sides had then (JSON, see SyncEngine), and when that was.
+    var syncTripID: String = ""
+    var syncRevision: Int = 0
+    var syncBase: Data?
+    var syncedAt: Date?
     @Relationship(deleteRule: .cascade, inverse: \Day.trip) var days: [Day] = []
     @Relationship(deleteRule: .cascade, inverse: \Expense.trip) var expenses: [Expense] = []
     @Relationship(deleteRule: .cascade, inverse: \ChecklistItem.trip) var checklist: [ChecklistItem] = []

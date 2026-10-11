@@ -5,6 +5,7 @@ import SwiftData
 struct TripPlannerApp: App {
     @State private var location = LocationService()
     @State private var secrets = Secrets()
+    @State private var sync = SyncService()
     @AppStorage("onboardingDone") private var onboardingDone = false
 
     @ViewBuilder
@@ -33,8 +34,10 @@ struct TripPlannerApp: App {
     var body: some Scene {
         WindowGroup {
             root
+                .syncsWithWebsite()
                 .environment(location)
                 .environment(secrets)
+                .environment(sync)
         }
         .modelContainer(for: [Trip.self, Day.self, Stop.self, Expense.self, ChecklistItem.self, TripDocument.self, SavedPlace.self, Booking.self])
     }

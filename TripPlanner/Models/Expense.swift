@@ -48,6 +48,8 @@ final class Expense {
     var currencyCode: String = "EUR"
     var categoryRaw: String = ExpenseCategory.other.rawValue
     var date: Date = Date()
+    /// Identity for the sync with the website (empty until the trip is first synced).
+    var syncID: String = ""
     var trip: Trip?
 
     init(title: String, amount: Double, currencyCode: String, category: ExpenseCategory, date: Date) {

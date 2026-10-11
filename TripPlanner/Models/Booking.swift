@@ -60,6 +60,8 @@ final class Booking {
     var phone: String = ""
     var website: String = ""
     var trip: Trip?
+    /// Identity for the sync with the website (empty until the trip is first synced).
+    var syncID: String = ""
 
     init(kind: BookingKind, title: String = "", startDate: Date, endDate: Date) {
         self.kindRaw = kind.rawValue
