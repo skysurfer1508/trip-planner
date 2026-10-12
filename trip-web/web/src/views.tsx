@@ -9,6 +9,8 @@ export interface ViewProps {
   data: TripData
   canEdit: boolean
   reload: () => Promise<void>
+  /** Shows a change on screen at once; the server call follows and `reload` puts things right if it fails. */
+  mutate: (change: (data: TripData) => TripData) => void
 }
 
 // MARK: Read-only lists (editing follows in the next steps)

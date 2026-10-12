@@ -89,3 +89,14 @@ export function Skeleton({ lines = 3 }: { lines?: number }) {
     </div>
   )
 }
+
+/** A destructive button that asks once: the first tap turns it into "Wirklich …?", the second does it. It relaxes again after a few seconds. */
+export function ConfirmButton(props: { label: string; confirmLabel?: string; onConfirm: () => void; disabled?: boolean; class?: string }) {
+  const [armed, setArmed] = useState(false)
+  useEffect(() => { if (!armed) return; const timer = window.setTimeout(() => setArmed(false), 4000); return () => window.clearTimeout(timer) }, [armed])
+  return (
+    <button type="button" class={armed ? 'btn danger' : (props.class ?? 'btn quiet')} disabled={props.disabled} onClick={() => (armed ? props.onConfirm() : setArmed(true))}>
+      {armed ? (props.confirmLabel ?? 'Wirklich löschen?') : props.label}
+    </button>
+  )
+}

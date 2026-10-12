@@ -58,7 +58,7 @@ export function Plan(props: ViewProps) {
         </div>
       )}
       {days.map((day, index) => (
-        <DayCard key={day.id} data={data} day={day} number={index + 1} canEdit={canEdit} run={run} setDialog={setDialog} />
+        <DayCard key={day.id} data={data} day={day} number={index + 1} canEdit={canEdit} run={run} mutate={props.mutate} setDialog={setDialog} />
       ))}
       {dialog?.kind === 'add' && <AddStopDialog data={data} day={dialog.day} run={run} onClose={() => setDialog(null)} />}
       {dialog?.kind === 'edit' && <StopDialog data={data} stop={dialog.stop} reload={reload} onClose={() => setDialog(null)} />}
@@ -71,7 +71,7 @@ export function Plan(props: ViewProps) {
 
 type Operation = ReturnType<typeof useOperation>
 
-function DayCard(props: { data: TripData; day: Day; number: number; canEdit: boolean; run: Operation; setDialog: (d: never) => void }) {
+function DayCard(props: { data: TripData; day: Day; number: number; canEdit: boolean; run: Operation; mutate: ViewProps['mutate']; setDialog: (d: never) => void }) {
   const { data, day, run, canEdit } = props
   const { trip } = data
   const list = data.stops.filter((s) => s.day_id === day.id).sort((a, b) => a.sort_order - b.sort_order)
@@ -104,7 +104,7 @@ function DayCard(props: { data: TripData; day: Day; number: number; canEdit: boo
         {day.notes && <p class="note">{day.notes}</p>}
         {list.length === 0 && <p class="empty">Noch keine Stopps.</p>}
         {list.map((stop, i) => (
-          <StopRow key={stop.id} stop={stop} dayId={day.id} position={i} first={i === 0} last={i === list.length - 1} currency={trip.currency_code} canEdit={canEdit} run={run} open={open} />
+          <StopRow key={stop.id} stop={stop} dayId={day.id} position={i} first={i === 0} last={i === list.length - 1} currency={trip.currency_code} canEdit={canEdit} run={run} mutate={props.mutate} open={open} />
         ))}
         {cost > 0 && <div class="row total"><div class="body meta">Geplant an diesem Tag</div><div class="end">{money(cost, trip.currency_code)}</div></div>}
         {canEdit && <div class="actions"><button class="btn secondary" onClick={() => open({ kind: 'add', day })}>Stopp hinzufügen</button></div>}
@@ -113,13 +113,14 @@ function DayCard(props: { data: TripData; day: Day; number: number; canEdit: boo
   )
 }
 
-function StopRow(props: { stop: Stop; dayId: string; position: number; first: boolean; last: boolean; currency: string; canEdit: boolean; run: Operation; open: (d: object) => void }) {
+function StopRow(props: { stop: Stop; dayId: string; position: number; first: boolean; last: boolean; currency: string; canEdit: boolean; run: Operation; mutate: ViewProps['mutate']; open: (d: object) => void }) {
   const { stop: s, run, canEdit } = props
   const notify = useNotify()
   const link = safeUrl(s.website)
   const index = (delta: number) => run('Stopp verschoben', () => api.moveStop(s.id, { index: Math.max(0, s.sort_order + delta) }))
   const toggle = async (done: boolean) => {
-    try { await api.patch('stop', s.id, { is_done: done }); await run.reload() } catch (error) { notify(messageOf(error), true) }
+    props.mutate((d) => ({ ...d, stops: d.stops.map((x) => (x.id === s.id ? { ...x, is_done: done } : x)) }))
+    try { await api.patch('stop', s.id, { is_done: done }); await run.reload() } catch (error) { notify(messageOf(error), true); await run.reload() }
   }
   return (
     <div class={`row${s.is_done ? ' done' : ''}`} data-drag-item={s.id} data-drag-group={props.dayId} data-drag-index={props.position}>

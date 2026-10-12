@@ -8,7 +8,7 @@ import { MODES, duration, modeColor, modeLabel } from './modes'
 import { useOperation } from './plan'
 import { categoryLabel } from './categories'
 import type { FoundPlace, Leg, LegView, PassComparison, Place as IdeaPlace, RouteSummary, TripData } from './types'
-import { Field, Modal, Skeleton, messageOf, useNotify } from './ui'
+import { Field, Modal, Skeleton, messageOf, useNotify, ConfirmButton } from './ui'
 import type { ViewProps } from './views'
 
 const STATUS_LABEL = { option: 'Option', chosen: 'Gewählt', booked: 'Gebucht' } as const
@@ -404,7 +404,7 @@ function LegDialog(props: { data: TripData; editing: Editing; reload: () => Prom
         <div class="actions">
           <button class="btn" type="submit" disabled={busy}>{leg ? 'Speichern' : 'Hinzufügen'}</button>
           <button class="btn quiet" type="button" onClick={props.onClose}>Abbrechen</button>
-          {leg && <button class="btn quiet" type="button" onClick={remove} disabled={busy}>Löschen</button>}
+          {leg && <ConfirmButton label="Löschen" onConfirm={remove} disabled={busy} />}
         </div>
       </form>
     </Modal>

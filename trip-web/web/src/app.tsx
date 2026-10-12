@@ -102,12 +102,16 @@ function TripScreen(props: { tripId: string; tab: Tab | null; userName: string; 
     }
   }, [props.tripId])
 
+  const mutate = useCallback((change: (data: TripData) => TripData) => setData((current) => (current ? change(current) : current)), [])
+
   useEffect(() => { void load() }, [load])
 
   // The server counts every change; asking for that one number every few seconds is enough to notice what Claude or the family did.
   useEffect(() => {
     const check = async () => {
       if (document.hidden) return
+      // Do not swap the data under someone who is typing or has a dialog open; the next check catches up.
+      if (document.querySelector('dialog[open]') || document.activeElement?.matches('input:not([type=checkbox]), textarea, select')) return
       try { const { revision: latest } = await api.revision(); if (latest !== revision.current) await load() } catch { /* offline: next time */ }
     }
     const interval = window.setInterval(check, 4000)
@@ -122,7 +126,7 @@ function TripScreen(props: { tripId: string; tab: Tab | null; userName: string; 
   const { trip } = data
   const canEdit = data.role !== 'viewer'
   const isOwner = data.role === 'owner'
-  const view: ViewProps = { data, canEdit, reload: load }
+  const view: ViewProps = { data, canEdit, reload: load, mutate }
   const tabs = TABS_FOR[trip.phase]
   const tab = props.tab && tabs.includes(props.tab) ? props.tab : tabs[0]
   const otherPhase: Phase = trip.phase === 'planning' ? 'building' : 'planning'

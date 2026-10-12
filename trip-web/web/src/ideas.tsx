@@ -114,7 +114,12 @@ export function Ideas(props: ViewProps & { filter: IdeaFilter; setFilter: (f: Id
   const votesOf = (id: string) => data.votes.filter((v) => v.place_id === id)
   const score: Record<string, number> = {}
   for (const p of places) { const seen = new Map<string, number>(); for (const v of votesOf(p.id)) if (!seen.has(v.name.toLowerCase())) seen.set(v.name.toLowerCase(), v.value); score[p.id] = [...seen.values()].reduce((a, b) => a + b, 0) }
-  const vote = async (place: Place, value: -1 | 0 | 1) => { try { await api.vote(place.id, value); await props.reload() } catch (error) { notify(messageOf(error), true) } }
+  const vote = async (place: Place, value: -1 | 0 | 1) => {
+    const mine = data.votes.find((v) => v.place_id === place.id && v.voter === data.me)
+    props.mutate((d) => ({ ...d, votes: [...d.votes.filter((v) => !(v.place_id === place.id && v.voter === d.me)),
+      ...(value === 0 ? [] : [{ place_id: place.id, voter: d.me, name: mine?.name ?? d.members.find((m) => m.sub === d.me)?.name ?? '', value }])] }))
+    try { await api.vote(place.id, value); await props.reload() } catch (error) { notify(messageOf(error), true); await props.reload() }
+  }
   const shown = sortPlaces(filterPlaces(places, filter), filter.sort, score)
   const groups = filter.group ? groupByRegion(shown) : [{ region: '', places: shown }]
   const active = activeCount(filter)

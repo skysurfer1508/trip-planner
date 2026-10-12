@@ -4,7 +4,7 @@ import { biasOf, PlaceSearch } from './edit'
 import { dateTimeLabel, dayLabel, money } from './format'
 import { useOperation } from './plan'
 import type { Booking, BudgetSummary, ChecklistItem, Expense, FoundPlace, TripData } from './types'
-import { Field, Modal, messageOf, useNotify } from './ui'
+import { Field, Modal, Skeleton, messageOf, useNotify, ConfirmButton } from './ui'
 import type { ViewProps } from './views'
 
 const text = (set: (v: string) => void) => (e: Event) => set((e.target as HTMLInputElement | HTMLTextAreaElement).value)
@@ -32,6 +32,7 @@ export function Budget({ data, canEdit, reload }: ViewProps) {
   return (
     <>
       {canEdit && <div class="actions"><button class="btn" onClick={() => setEditing('new')}>Ausgabe hinzufügen</button></div>}
+      {!summary && <Skeleton lines={3} />}
       {summary && (
         <div class="card">
           <div class="row"><div class="body">
@@ -125,7 +126,7 @@ function ExpenseDialog(props: { data: TripData; expense?: Expense; reload: () =>
         <div class="actions">
           <button class="btn" type="submit" disabled={busy}>{e ? 'Speichern' : 'Hinzufügen'}</button>
           <button class="btn quiet" type="button" onClick={props.onClose}>Abbrechen</button>
-          {e && <button class="btn quiet" type="button" onClick={remove} disabled={busy}>Löschen</button>}
+          {e && <ConfirmButton label="Löschen" onConfirm={remove} disabled={busy} />}
         </div>
       </form>
     </Modal>
@@ -239,7 +240,7 @@ function BookingDialog(props: { data: TripData; booking?: Booking; reload: () =>
         <div class="actions">
           <button class="btn" type="submit" disabled={busy}>{b ? 'Speichern' : 'Hinzufügen'}</button>
           <button class="btn quiet" type="button" onClick={props.onClose}>Abbrechen</button>
-          {b && <button class="btn quiet" type="button" onClick={remove} disabled={busy}>Löschen</button>}
+          {b && <ConfirmButton label="Löschen" onConfirm={remove} disabled={busy} />}
         </div>
       </form>
     </Modal>
@@ -248,7 +249,7 @@ function BookingDialog(props: { data: TripData; booking?: Booking; reload: () =>
 
 // MARK: Packing list
 
-export function Packing({ data, canEdit, reload }: ViewProps) {
+export function Packing({ data, canEdit, reload, mutate }: ViewProps) {
   const notify = useNotify()
   const run = useOperation(reload)
   const [title, setTitle] = useState('')
@@ -257,6 +258,7 @@ export function Packing({ data, canEdit, reload }: ViewProps) {
   const sections = [...new Set(data.checklist.map((c) => c.section))]
 
   const tick = async (id: string, checked: boolean) => {
+    mutate((d) => ({ ...d, checklist: d.checklist.map((c) => (c.id === id ? { ...c, is_done: checked } : c)) }))
     try { await api.patch('checklist_item', id, { is_done: checked }) } catch (error) { notify(messageOf(error), true) }
     await reload()
   }
@@ -283,7 +285,7 @@ export function Packing({ data, canEdit, reload }: ViewProps) {
           </div>
         </>
       )}
-      {data.checklist.length === 0 ? <p class="empty">Die Packliste ist leer.</p> : <p class="note">{done} von {data.checklist.length} erledigt</p>}
+      {data.checklist.length === 0 ? <div class="empty"><p>Die Packliste ist leer.</p>{canEdit && <button class="btn secondary" onClick={() => setDialog(true)}>Vorschläge hinzufügen</button>}</div> : <p class="note">{done} von {data.checklist.length} erledigt</p>}
       {sections.map((name) => (
         <>
           {name && <h2>{name}</h2>}

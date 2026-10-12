@@ -4,7 +4,7 @@ import { safeUrl } from './format'
 import { CATEGORIES } from './categories'
 import { PRIOS, VERDICTS } from './filters'
 import type { Decision, FoundPlace, Place, Prio, TripData, Verdict } from './types'
-import { Field, Modal, messageOf, useNotify } from './ui'
+import { Field, Modal, messageOf, useNotify, ConfirmButton } from './ui'
 
 const input = (set: (value: string) => void) => (event: Event) => set((event.target as HTMLInputElement | HTMLTextAreaElement).value)
 
@@ -177,7 +177,7 @@ export function DecisionDialog(props: { tripId: string; decision?: Decision; onC
         <div class="actions">
           <button class="btn" type="submit" disabled={busy}>{d ? 'Speichern' : 'Hinzufügen'}</button>
           <button class="btn quiet" type="button" onClick={props.onClose}>Abbrechen</button>
-          {d && <button class="btn quiet" type="button" onClick={remove} disabled={busy}>Löschen</button>}
+          {d && <ConfirmButton label="Löschen" onConfirm={remove} disabled={busy} />}
         </div>
       </form>
     </Modal>
