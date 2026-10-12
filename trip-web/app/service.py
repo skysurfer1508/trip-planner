@@ -630,6 +630,32 @@ def list_votes(conn: sqlite3.Connection, trip_id: str) -> list[dict[str, Any]]:
     return [{"place_id": r["place_id"], "voter": r["voter"], "name": r["name"], "value": r["value"]} for r in rows]
 
 
+async def trip_checks(conn: sqlite3.Connection, user: User, trip_id: str) -> dict[str, Any]:
+    """The smart checks for one trip, split into open warnings and the ones the family chose to ignore."""
+    from . import checks, holidays
+    data = trip_data(conn, user, trip_id)
+    trip = data["trip"]
+    years = sorted({int(trip["start_date"][:4]), int(trip["end_date"][:4])})
+    found = checks.check_trip(data, await holidays.for_years(trip.get("country_code", ""), years))
+    ignored = {r["key"] for r in conn.execute("SELECT key FROM check_dismissals WHERE trip_id = ?", (trip_id,)).fetchall()}
+    return {"checks": [c for c in found if c["key"] not in ignored], "ignored": [c for c in found if c["key"] in ignored],
+            "holidays_checked": bool(trip.get("country_code"))}
+
+
+def dismiss_check(conn: sqlite3.Connection, user: User, trip_id: str, key: str, ignore: bool = True) -> dict[str, Any]:
+    """Ignore a warning for good (or take that back). Editors only, since the whole family sees the same list."""
+    _need(conn, user, trip_id, "editor")
+    key = key.strip()[:200]
+    if not key:
+        raise ServiceError("Es fehlt der Schlüssel der Warnung.")
+    with transaction(conn):
+        if ignore:
+            conn.execute("INSERT OR IGNORE INTO check_dismissals (trip_id, key, created_at) VALUES (?,?,?)", (trip_id, key, now()))
+        else:
+            conn.execute("DELETE FROM check_dismissals WHERE trip_id = ? AND key = ?", (trip_id, key))
+    return {"ok": True}
+
+
 def photo_target(conn: sqlite3.Connection, user: User, place_id: str) -> dict[str, Any]:
     """What the picture lookup needs about an idea; anyone who can see the trip may ask."""
     place = conn.execute("SELECT trip_id, name, region, latitude, longitude, has_coordinate FROM places WHERE id = ? AND deleted_at IS NULL", (place_id,)).fetchone()

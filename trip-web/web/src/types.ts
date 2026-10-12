@@ -326,3 +326,20 @@ export interface Timeline {
   warnings: string[]
   travel_days: string[]
 }
+
+export interface CheckItem {
+  key: string
+  kind: string
+  severity: 'warn' | 'info'
+  day: string | null
+  stop_id: string | null
+  leg_id: string | null
+  title: string
+  text: string
+}
+
+export interface CheckResult {
+  checks: CheckItem[]
+  ignored: CheckItem[]
+  holidays_checked: boolean
+}

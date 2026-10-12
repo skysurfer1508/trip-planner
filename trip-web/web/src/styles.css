@@ -373,3 +373,21 @@ img, svg, video { max-width: 100%; }
 .place-photo.small + .body { flex: 1 1 0; }
 .photo-credit { position: absolute; right: 2px; bottom: 2px; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; background: rgba(0, 0, 0, 0.55); color: #fff; font-size: 0.7rem; text-decoration: none; }
 @media (max-width: 520px) { .place-photo.large { aspect-ratio: 16 / 9; } .place-photo.small { width: 72px; height: 72px; } }
+
+/* Smart checks */
+.check-panel { padding-bottom: 12px; }
+.check-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.check-head h2 { margin: 16px 0 8px; }
+.badge.warn-badge { background: var(--warn-soft); color: var(--warn-text); }
+.check-row { align-items: center; justify-content: space-between; }
+.check-line { display: flex; gap: 10px; align-items: flex-start; flex: 1 1 14rem; min-width: 0; }
+.check-icon { flex: none; margin-top: 2px; color: var(--warn-text); }
+.check-line.info .check-icon { color: var(--muted); }
+.check-actions { display: flex; gap: 4px; flex-wrap: wrap; }
+.check-ignored { margin-top: 8px; }
+.inline-checks { display: grid; gap: 2px; margin-top: 4px; }
+.inline-check { display: flex; gap: 6px; align-items: flex-start; font-size: 0.85rem; color: var(--warn-text); }
+.inline-check.info { color: var(--muted); }
+.inline-check svg { flex: none; margin-top: 2px; }
+:root { --warn-soft: #fdf0d5; --warn-text: #8a4b00; }
+@media (prefers-color-scheme: dark) { :root { --warn-soft: #3a2f12; --warn-text: #f0c674; } }

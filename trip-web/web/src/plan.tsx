@@ -6,6 +6,8 @@ import { dayLabel, money, safeUrl, timeLabel } from './format'
 import type { Day, FoundPlace, Place, Stop, TripData } from './types'
 import { Field, Menu, Modal, messageOf, useNotify } from './ui'
 import type { ViewProps } from './views'
+import { CheckPanel, InlineChecks, useChecks } from './checks'
+import type { CheckItem } from './types'
 
 export const CATEGORY_LABEL: Record<string, string> = {
   sight: 'Sehenswürdigkeit', food: 'Essen', cafe: 'Café', hotel: 'Hotel', transport: 'Transport', nightlife: 'Nachtleben', other: 'Sonstiges',
@@ -47,6 +49,7 @@ export function Plan(props: ViewProps) {
     { kind: 'add'; day: Day } | { kind: 'edit'; stop: Stop } | { kind: 'move'; stop: Stop } | { kind: 'copy'; day: Day } | { kind: 'retime'; day: Day } | null
   >(null)
   const { trip, days, bookings } = data
+  const { result: checks, reload: reloadChecks } = useChecks(trip.id, data.revision)
 
   if (days.length === 0) return <p class="empty">Keine Tage. Ändere die Reisedaten, damit Tage entstehen.</p>
 
@@ -57,8 +60,9 @@ export function Plan(props: ViewProps) {
           <button class="btn secondary" onClick={() => run('Flüge und Hotels in den Plan gelegt', () => api.bookingStops(trip.id))}>Flüge und Hotels in den Plan legen</button>
         </div>
       )}
+      <CheckPanel tripId={trip.id} result={checks} canEdit={canEdit} reload={reloadChecks} />
       {days.map((day, index) => (
-        <DayCard key={day.id} data={data} day={day} number={index + 1} canEdit={canEdit} run={run} mutate={props.mutate} setDialog={setDialog} />
+        <DayCard key={day.id} checks={checks?.checks ?? []} data={data} day={day} number={index + 1} canEdit={canEdit} run={run} mutate={props.mutate} setDialog={setDialog} />
       ))}
       {dialog?.kind === 'add' && <AddStopDialog data={data} day={dialog.day} run={run} onClose={() => setDialog(null)} />}
       {dialog?.kind === 'edit' && <StopDialog data={data} stop={dialog.stop} reload={reload} onClose={() => setDialog(null)} />}
@@ -71,7 +75,7 @@ export function Plan(props: ViewProps) {
 
 type Operation = ReturnType<typeof useOperation>
 
-function DayCard(props: { data: TripData; day: Day; number: number; canEdit: boolean; run: Operation; mutate: ViewProps['mutate']; setDialog: (d: never) => void }) {
+function DayCard(props: { checks: CheckItem[]; data: TripData; day: Day; number: number; canEdit: boolean; run: Operation; mutate: ViewProps['mutate']; setDialog: (d: never) => void }) {
   const { data, day, run, canEdit } = props
   const { trip } = data
   const list = data.stops.filter((s) => s.day_id === day.id).sort((a, b) => a.sort_order - b.sort_order)
@@ -87,7 +91,7 @@ function DayCard(props: { data: TripData; day: Day; number: number; canEdit: boo
   ]
 
   return (
-    <section aria-label={`Tag ${props.number}`}>
+    <section aria-label={`Tag ${props.number}`} data-day={day.date}>
       <div class="day-head">
         <h2>Tag {props.number} · {dayLabel(day.date)}</h2>
         {canEdit && list.length > 0 && <Menu label="Tag" items={dayMenu} />}
@@ -101,10 +105,11 @@ function DayCard(props: { data: TripData; day: Day; number: number; canEdit: boo
             {window.items.map((i) => <div>{i.time} · {i.text}</div>)}
           </div>
         )}
+        <InlineChecks items={props.checks.filter((c) => c.day === day.date && !c.stop_id && !c.leg_id)} />
         {day.notes && <p class="note">{day.notes}</p>}
         {list.length === 0 && <p class="empty">Noch keine Stopps.</p>}
         {list.map((stop, i) => (
-          <StopRow key={stop.id} stop={stop} dayId={day.id} position={i} first={i === 0} last={i === list.length - 1} currency={trip.currency_code} canEdit={canEdit} run={run} mutate={props.mutate} open={open} />
+          <StopRow key={stop.id} stop={stop} dayId={day.id} position={i} first={i === 0} last={i === list.length - 1} currency={trip.currency_code} canEdit={canEdit} run={run} mutate={props.mutate} open={open} checks={props.checks.filter((c) => c.stop_id === stop.id)} />
         ))}
         {cost > 0 && <div class="row total"><div class="body meta">Geplant an diesem Tag</div><div class="end">{money(cost, trip.currency_code)}</div></div>}
         {canEdit && <div class="actions"><button class="btn secondary" onClick={() => open({ kind: 'add', day })}>Stopp hinzufügen</button></div>}
@@ -113,7 +118,7 @@ function DayCard(props: { data: TripData; day: Day; number: number; canEdit: boo
   )
 }
 
-function StopRow(props: { stop: Stop; dayId: string; position: number; first: boolean; last: boolean; currency: string; canEdit: boolean; run: Operation; mutate: ViewProps['mutate']; open: (d: object) => void }) {
+function StopRow(props: { checks: CheckItem[]; stop: Stop; dayId: string; position: number; first: boolean; last: boolean; currency: string; canEdit: boolean; run: Operation; mutate: ViewProps['mutate']; open: (d: object) => void }) {
   const { stop: s, run, canEdit } = props
   const notify = useNotify()
   const link = safeUrl(s.website)
@@ -138,6 +143,7 @@ function StopRow(props: { stop: Stop; dayId: string; position: number; first: bo
         <div class="title">{s.name}</div>
         <div class="meta">{[CATEGORY_LABEL[s.category_raw], s.address, s.duration_minutes ? `${s.duration_minutes} Min.` : '', s.opening_hours].filter(Boolean).join(' · ')}</div>
         {s.notes && <div class="meta">{s.notes}</div>}
+        <InlineChecks items={props.checks} />
         {link && <div class="meta"><a href={link} target="_blank" rel="noopener noreferrer">Webseite</a></div>}
       </div>
       {s.estimated_cost > 0 && <div class="end meta">{money(s.estimated_cost, props.currency)}</div>}

@@ -1,4 +1,4 @@
-import type { BudgetSummary, Timeline, FoundPlace, ImportPreview, Person, Role, RouteSummary, Trip, TripData, TripSummary } from './types'
+import type { BudgetSummary, CheckResult, Timeline, FoundPlace, ImportPreview, Person, Role, RouteSummary, Trip, TripData, TripSummary } from './types'
 
 export class ApiError extends Error {}
 
@@ -29,6 +29,8 @@ export const api = {
   trips: () => request<TripSummary[]>('/api/trips'),
   data: (tripId: string) => request<TripData>(`/api/trips/${encodeURIComponent(tripId)}/data`),
   revision: () => request<{ revision: number }>('/api/revision'),
+  checks: (tripId: string) => request<CheckResult>(`/api/trips/${encodeURIComponent(tripId)}/checks`),
+  ignoreCheck: (tripId: string, key: string, ignore = true) => request<{ ok: boolean }>(`/api/trips/${encodeURIComponent(tripId)}/checks/ignore`, send('PUT', { key, ignore })),
 
   createTrip: (fields: TripFields) => request<{ trip_id: string }>('/api/trips', send('POST', fields)),
   updateTrip: (tripId: string, data: TripFields) => request<Trip>(`/api/trips/${tripId}`, send('PATCH', { data })),

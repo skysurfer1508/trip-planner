@@ -39,11 +39,19 @@ adds places by search and keeps a list of decisions and open questions. When fli
 * **Plan**: add stops (place search, from the ideas, or by hand), edit, reorder, move to another day, duplicate, copy a day, sort by time,
   optimise the route, lay the times out again (with the way between stops), put flights and hotels on the plan. Flights and the hotel
   show what they mean for each day (earliest start after landing, latest end before the airport trip, start from the hotel).
+* **Prüfungen** (smart checks, top of the Plan tab and next to the affected stop): opening hours (only for stops that have them, same parser as the
+  iOS app, `app/openinghours.py`), stops that overlap or are too close together for the way, stops before landing or after the airport trip,
+  days that are too full, public holidays (Nager.Date, needs the trip's country code), tight or impossible connections between route legs,
+  very early or late rides. Ways are estimates and there are no timetables, so "last train" is a reminder. A warning can be ignored for the whole
+  family and brought back. Claude can run the same checks with `check_trip`.
 * **Buchungen**, **Budget** (expenses in any currency, converted with open.er-api.com, per category and day, planned in stops),
   **Packliste** (with starter lists).
 * **Export**: `.tripplanner` file for the app, calendar (`.ics`), text. **Import** of a `.tripplanner` file asks for the phone's time
   zone, because the file does not contain one, and shows the first converted times before anything is created.
 * Everything is one entry in the history and can be undone; Claude can do the same things through the connector.
+
+Ideas show a picture: the lead image of the Wikipedia article about the place (`app/photos.py`), found by name and position, fetched once and kept in
+`data/photos/` so the browser never talks to Wikipedia. Size (large, small on the side, off) is a setting on the Ideen tab.
 
 The planning rules are ported from the iOS app (`app/planning.py`); their tests use the expected values of the app's own unit tests.
 

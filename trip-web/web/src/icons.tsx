@@ -10,6 +10,8 @@ const PATHS = {
   packing: 'M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M5 7h14a1 1 0 0 1 1 1v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a1 1 0 0 1 1-1ZM9 12h6',
   log: 'M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2',
   more: 'M5 12h.01M12 12h.01M19 12h.01',
+  warn: 'M12 4 3 19h18L12 4ZM12 10v4M12 17h.01',
+  info: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM12 11v5M12 8h.01',
 } as const
 
 export type IconName = keyof typeof PATHS

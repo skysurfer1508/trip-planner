@@ -231,6 +231,17 @@ def build_mcp(secured: bool) -> FastMCP:
             summary = route.summarize(data["trip"], data["legs"], await rates.rates(data["trip"]["currency_code"]))
             return timeline.build(data["trip"], data["stays"], summary["hops"], data["places"], service.tally(data["votes"]))
 
+    @mcp.tool(title="Reise prüfen", annotations=READ)
+    @guarded
+    async def check_trip(trip_id: str | None = None) -> dict[str, Any]:
+        """Prüft den Plan auf Dinge, die auf dem Papier gehen, aber am Tag nicht: Öffnungszeiten (nur Stopps mit opening_hours), zu knappe Wege und
+        Überschneidungen zwischen Stopps, Zeiten vor der Landung oder nach dem Weg zum Flughafen, zu volle Tage, Feiertage, knappe oder unmögliche
+        Anschlüsse in der Route und sehr frühe oder späte Fahrten. checks sind offene Warnungen (severity warn oder info), ignored die, welche die Familie
+        ausgeblendet hat. Fahrpläne gibt es nicht: Wege sind Schätzungen, "letzter Zug" ist nur ein Hinweis. Behebe Warnungen nicht ungefragt."""
+        with db() as conn:
+            user = current_user()
+            return await service.trip_checks(conn, user, service.resolve_trip(conn, user, trip_id))
+
     @mcp.tool(title="Stimmen zu Ideen", annotations=READ)
     @guarded
     def votes_summary(trip_id: str | None = None) -> dict[str, Any]:

@@ -554,3 +554,22 @@ def test_idea_picture_says_busy_instead_of_none_when_wikipedia_rate_limits(clien
         place = service.create_item(conn, "dev", "place", {"name": "Kinkaku-ji"}, "Dev", "web", trip_id)
     reply = client.get(f"/api/places/{place['id']}/photo")
     assert reply.status_code == 503 and reply.headers["retry-after"] == "42"      # the page tries again; "none" would hide it for good
+
+
+def test_smart_checks_list_warnings_and_remember_what_was_ignored(client, trip_id):
+    H = {"X-Trip-Client": "1"}
+    logged_in(client)
+    with db() as conn:
+        day = next(d for d in service.trip_data(conn, "dev", trip_id)["days"] if d["date"] == "2027-07-20")
+        stop_ = service.create_item(conn, "dev", "stop", {"day_id": day["id"], "name": "Museum", "planned_time": "2027-07-20T10:00", "opening_hours": "Mo,We-Su 10:00-17:00"}, "Dev", "web", trip_id)
+    assert TestClient(app, base_url="https://trip.example.org").get(f"/api/trips/{trip_id}/checks").status_code == 401
+    found = client.get(f"/api/trips/{trip_id}/checks").json()
+    warning = next(c for c in found["checks"] if c["stop_id"] == stop_["id"])
+    assert warning["kind"] == "opening_hours" and "geschlossen" in warning["text"] and found["ignored"] == []
+    assert client.put(f"/api/trips/{trip_id}/checks/ignore", json={"key": warning["key"]}, headers=H).status_code == 200
+    after = client.get(f"/api/trips/{trip_id}/checks").json()
+    assert all(c["key"] != warning["key"] for c in after["checks"]) and [c["key"] for c in after["ignored"]] == [warning["key"]]
+    client.put(f"/api/trips/{trip_id}/checks/ignore", json={"key": warning["key"], "ignore": False}, headers=H)
+    assert any(c["key"] == warning["key"] for c in client.get(f"/api/trips/{trip_id}/checks").json()["checks"])
+    assert client.put(f"/api/trips/{trip_id}/checks/ignore", json={"key": ""}, headers=H).status_code == 400
+    assert client.get("/api/trips/gibtesnicht/checks").status_code == 404

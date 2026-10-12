@@ -315,6 +315,25 @@ def _plan_call(request: Request, conn, function, *args, **kwargs):
 _WRITE = [Depends(require_api_login), Depends(require_api_client)]
 
 
+@api.get("/api/trips/{trip_id}/checks", dependencies=[Depends(require_api_login)])
+async def trip_checks(trip_id: str, request: Request, conn=Depends(get_conn)):
+    """Smart checks: opening hours, tight ways and connections, days that are too full, holidays. `ignored` holds what the family dismissed."""
+    try:
+        return await service.trip_checks(conn, current_sub(request), trip_id)
+    except ServiceError as error:
+        raise _fail(error, 404) from None
+
+
+@api.put("/api/trips/{trip_id}/checks/ignore", dependencies=_WRITE)
+async def ignore_check(trip_id: str, request: Request, conn=Depends(get_conn)):
+    """Ignore a warning (or `ignore: false` to bring it back). The key is the one the check list gives."""
+    body = await _body(request)
+    try:
+        return service.dismiss_check(conn, current_sub(request), trip_id, str(body.get("key", "")), bool(body.get("ignore", True)))
+    except ServiceError as error:
+        raise _fail(error) from None
+
+
 @api.post("/api/stops/{stop_id}/move", dependencies=_WRITE)
 async def move_stop(stop_id: str, request: Request, conn=Depends(get_conn)):
     body = await _body(request)

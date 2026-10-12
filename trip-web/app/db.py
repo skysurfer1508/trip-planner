@@ -257,6 +257,14 @@ CREATE TABLE IF NOT EXISTS votes (
 -- Real rail and road paths for the map (a picture only; not part of the trip data, not in the history).
 CREATE TABLE IF NOT EXISTS route_paths (key TEXT PRIMARY KEY, points_json TEXT NOT NULL, source TEXT NOT NULL DEFAULT '', created_at REAL NOT NULL);
 
+-- Warnings from the smart checks that the family decided to ignore (a screen preference, not trip data and not in the history).
+CREATE TABLE IF NOT EXISTS check_dismissals (
+  trip_id TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+  key TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (trip_id, key)
+);
+
 -- One counter, bumped on every change, that the website polls to know when to reload.
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value INTEGER NOT NULL);
 INSERT OR IGNORE INTO meta (key, value) VALUES ('revision', 0);
