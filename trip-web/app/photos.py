@@ -16,14 +16,52 @@ import httpx
 from .config import settings
 
 API = "https://en.wikipedia.org/w/api.php"
-USER_AGENT = "trip-web/1.0 (family trip planner; contact: see site owner)"
+USER_AGENT = f"trip-web/1.0 ({settings.public_base_url}; family trip planner)"
 THUMB_WIDTH = 640
 RETRY_AFTER = 7 * 24 * 3600  # a place without a picture is looked up again after a week
 GEO_RADIUS = 2000  # metres around the place
 MAX_DISTANCE_KM = 150  # a name search result must be somewhere near the place, if both have a position
-STOP_WORDS = {"the", "and", "mit", "und", "von", "der", "die", "das", "im", "in", "am", "an", "zum", "zur", "bei", "ein", "eine", "of", "at", "to", "by"}
+STOP_WORDS = {"the", "and", "mit", "und", "von", "der", "die", "das", "im", "in", "am", "an", "zum", "zur", "bei", "ein", "eine", "of", "at", "to", "by", "oder", "flughafen"}
 
-_slots = asyncio.Semaphore(2)  # Wikipedia asks for polite use: at most two requests at a time
+MIN_INTERVAL = 0.4  # seconds between two requests to Wikipedia
+COOLDOWN = 30  # seconds to leave Wikipedia alone after it said "too many requests"
+
+_lock = asyncio.Lock()
+_last_request = 0.0
+_cooldown_until = 0.0
+
+
+class PhotoBusy(Exception):
+    """Wikipedia is rate-limiting or unreachable right now. The page tries again a little later; nothing is remembered as "no picture"."""
+
+    def __init__(self, retry_after: int = COOLDOWN):
+        super().__init__("busy")
+        self.retry_after = retry_after
+
+
+async def _get(client: httpx.AsyncClient, url: str, **params: Any) -> httpx.Response:
+    """One polite request: one at a time, spaced out, and a pause when Wikipedia asks for one."""
+    global _last_request, _cooldown_until
+    async with _lock:
+        now = time.monotonic()
+        if now < _cooldown_until:
+            raise PhotoBusy(int(_cooldown_until - now) + 1)
+        wait = MIN_INTERVAL - (now - _last_request)
+        if wait > 0:
+            await asyncio.sleep(wait)
+        try:
+            reply = await client.get(url, params=params or None)
+        except httpx.HTTPError:
+            raise PhotoBusy(10) from None
+        finally:
+            _last_request = time.monotonic()
+        if reply.status_code in (429, 503):
+            pause = min(max(int(reply.headers.get("retry-after", COOLDOWN) or COOLDOWN), 5), 120)
+            _cooldown_until = time.monotonic() + pause
+            raise PhotoBusy(pause)
+        if reply.status_code >= 400:
+            raise PhotoBusy(30)
+        return reply
 
 
 def cache_dir() -> Path:
@@ -43,13 +81,18 @@ def words(text: str) -> set[str]:
     return {w for w in re.split(r"[^a-z0-9]+", plain) if len(w) > 1 and w not in STOP_WORDS}
 
 
+# Articles about something else that merely contains the place's name ("Battle of Miyajima", "Higashi-Narita Station").
+OFF_TOPIC = {"battle", "station", "railway", "disambiguation", "list", "history", "incident", "siege", "line"}
+
+
 def score(name: str, title: str) -> float:
     """How much of the idea's name shows up in the article title (0 to 1), with a bonus for a whole-name match."""
     wanted, found = words(name), words(title)
     if not wanted or not found:
         return 0.0
     share = len(wanted & found) / len(wanted)
-    return share + (0.5 if wanted == found else 0.0) + 0.1 * len(wanted & found) / len(found)
+    off_topic = 1.0 if (found & OFF_TOPIC) - wanted else 0.0
+    return share + (0.5 if wanted == found else 0.0) + 0.1 * len(wanted & found) / len(found) - off_topic
 
 
 def kilometres(a: tuple[float, float], b: tuple[float, float]) -> float:
@@ -61,9 +104,7 @@ def kilometres(a: tuple[float, float], b: tuple[float, float]) -> float:
 async def _query(client: httpx.AsyncClient, **params: Any) -> list[dict[str, Any]]:
     base = {"action": "query", "format": "json", "formatversion": 2, "prop": "pageimages|coordinates", "piprop": "thumbnail",
             "pithumbsize": THUMB_WIDTH, "pilimit": 20, "coprimary": "primary"}
-    async with _slots:
-        reply = await client.get(API, params={**base, **params})
-    reply.raise_for_status()
+    reply = await _get(client, API, **base, **params)
     return reply.json().get("query", {}).get("pages", [])
 
 
@@ -71,26 +112,39 @@ def _thumb(page: dict[str, Any]) -> str | None:
     return (page.get("thumbnail") or {}).get("source")
 
 
+def candidates(name: str) -> list[str]:
+    """The whole name first, then its parts: "Harajuku und Meiji-Schrein" is two places, "teamLab (Planets oder Borderless)" is one with a note."""
+    parts = [part.strip(" -,") for part in re.split(r"\s+(?:und|oder)\s+|\(|\)|/|,", name)]
+    out = [name.strip()]
+    for part in parts:
+        if len(part) >= 4 and part.lower() not in {c.lower() for c in out} and words(part):
+            out.append(part)
+    return out[:3]
+
+
 async def find(name: str, region: str, latitude: float | None, longitude: float | None) -> dict[str, str] | None:
     """The best article with a picture: first near the position (matching the name), then by searching the name."""
+    names = candidates(name)
     async with httpx.AsyncClient(timeout=12, headers={"User-Agent": USER_AGENT}) as client:
-        around: list[dict[str, Any]] = []
         if latitude is not None and longitude is not None:
             around = await _query(client, generator="geosearch", ggscoord=f"{latitude}|{longitude}", ggsradius=GEO_RADIUS, ggslimit=20)
-            ranked = sorted((p for p in around if _thumb(p)), key=lambda p: -score(name, p.get("title", "")))
-            if ranked and score(name, ranked[0].get("title", "")) >= 0.5:
-                best = ranked[0]
-                return {"url": _thumb(best) or "", "title": best["title"]}
-        query = " ".join(part for part in (name, region) if part)
-        found = await _query(client, generator="search", gsrsearch=query, gsrlimit=8, gsrnamespace=0)
-        for page in sorted(found, key=lambda p: p.get("index", 99)):
-            if not _thumb(page) or score(name, page.get("title", "")) < 0.34:
-                continue
-            where = (page.get("coordinates") or [None])[0]
-            if where and latitude is not None and longitude is not None \
-                    and kilometres((latitude, longitude), (where["lat"], where["lon"])) > MAX_DISTANCE_KM:
-                continue
-            return {"url": _thumb(page) or "", "title": page["title"]}
+            with_picture = [p for p in around if _thumb(p)]
+            for candidate in names:
+                ranked = sorted(with_picture, key=lambda p: -score(candidate, p.get("title", "")))
+                if ranked and score(candidate, ranked[0].get("title", "")) >= 0.5:
+                    return {"url": _thumb(ranked[0]) or "", "title": ranked[0]["title"]}
+        for candidate in names:
+            located = latitude is not None and longitude is not None
+            query = candidate if located else " ".join(part for part in (candidate, region) if part)
+            found = await _query(client, generator="search", gsrsearch=query, gsrlimit=8, gsrnamespace=0)
+            for page in sorted(found, key=lambda p: p.get("index", 99)):
+                if not _thumb(page) or score(candidate, page.get("title", "")) < 0.34:
+                    continue
+                where = (page.get("coordinates") or [None])[0]
+                if where and latitude is not None and longitude is not None \
+                        and kilometres((latitude, longitude), (where["lat"], where["lon"])) > MAX_DISTANCE_KM:
+                    continue
+                return {"url": _thumb(page) or "", "title": page["title"]}
     return None
 
 
@@ -103,20 +157,16 @@ async def photo(name: str, region: str, latitude: float | None, longitude: float
         return image, json.loads(meta.read_text())
     if none.exists() and time.time() - none.stat().st_mtime < RETRY_AFTER:
         return None
-    try:
-        hit = await find(name, region, latitude, longitude)
-        if hit:
-            async with _slots, httpx.AsyncClient(timeout=15, headers={"User-Agent": USER_AGENT}) as client:
-                reply = await client.get(hit["url"])
-            reply.raise_for_status()
-            if reply.headers.get("content-type", "").startswith("image/") and len(reply.content) < 3_000_000:
-                source = {"title": hit["title"], "page": "https://en.wikipedia.org/wiki/" + hit["title"].replace(" ", "_"),
-                          "type": reply.headers["content-type"].split(";")[0]}
-                image.write_bytes(reply.content)
-                meta.write_text(json.dumps(source))
-                none.unlink(missing_ok=True)
-                return image, source
-    except (httpx.HTTPError, KeyError, ValueError):
-        return None  # Wikipedia is slow or down: try again next time, do not remember it as "no picture"
+    hit = await find(name, region, latitude, longitude)  # may raise PhotoBusy: not remembered, tried again later
+    if hit:
+        async with httpx.AsyncClient(timeout=15, headers={"User-Agent": USER_AGENT}) as client:
+            reply = await _get(client, hit["url"])
+        if reply.headers.get("content-type", "").startswith("image/") and len(reply.content) < 3_000_000:
+            source = {"title": hit["title"], "page": "https://en.wikipedia.org/wiki/" + hit["title"].replace(" ", "_"),
+                      "type": reply.headers["content-type"].split(";")[0]}
+            image.write_bytes(reply.content)
+            meta.write_text(json.dumps(source))
+            none.unlink(missing_ok=True)
+            return image, source
     none.write_text("")
     return None

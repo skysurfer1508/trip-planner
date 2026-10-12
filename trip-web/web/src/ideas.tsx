@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'preact/hooks'
+import { useEffect, useRef, useState } from 'preact/hooks'
 import { api } from './api'
 import { CATEGORIES, categoryColor, categoryLabel } from './categories'
 import { biasOf, PlaceDialog } from './edit'
@@ -74,20 +74,64 @@ function VoteBar(props: { place: Place; votes: Vote[]; me: string; onVote: (valu
   return <div class="votes" role="group" aria-label={`Abstimmung für ${props.place.name}`}>{button(1, '👍', yes)}{button(-1, '👎', no)}</div>
 }
 
-/** The picture of a place, found on the server (Wikipedia). It stays out of the way when there is none, and credits its source once loaded. */
-function PlacePhoto({ place }: { place: Place }) {
-  const [state, setState] = useState<'loading' | 'ok' | 'none'>('loading')
-  const [source, setSource] = useState<{ title: string; page: string } | null>(null)
-  const url = `/api/places/${encodeURIComponent(place.id)}/photo`
+export type PhotoSize = 'large' | 'small' | 'off'
+
+/** Pictures are looked up one at a time on the server, so the page asks for at most two at once and tries again when the server says "busy". */
+const queue: (() => void)[] = []
+let running = 0
+const schedule = <T,>(job: () => Promise<T>): Promise<T> => new Promise((resolve, reject) => {
+  const start = () => { running++; job().then(resolve, reject).finally(() => { running--; queue.shift()?.() }) }
+  if (running < 2) start(); else queue.push(start)
+})
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+async function loadPhoto(url: string): Promise<{ blob: Blob; source: { title: string; page: string } | null } | null> {
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const reply = await fetch(url)
+    if (reply.ok) {
+      const source = await fetch(`${url}/source`).then((r) => (r.ok ? r.json() : null)).catch(() => null)
+      return { blob: await reply.blob(), source }
+    }
+    if (reply.status !== 503) return null // 404: there is no picture for this place
+    await wait(Math.min(Number(reply.headers.get('retry-after')) || 5, 30) * 1000)
+  }
+  return null
+}
+
+/** The picture of a place, found on the server (Wikipedia). It loads once the place scrolls into view, stays out of the way when there is none, and credits its source. */
+function PlacePhoto({ place, size }: { place: Place; size: PhotoSize }) {
+  const [shot, setShot] = useState<{ src: string; source: { title: string; page: string } | null } | 'none' | null>(null)
+  const box = useRef<HTMLElement>(null)
+  const [seen, setSeen] = useState(false)
+  useEffect(() => {
+    const element = box.current
+    if (!element || size === 'off' || seen) return
+    if (!('IntersectionObserver' in window)) { setSeen(true); return }
+    const observer = new IntersectionObserver((entries) => { if (entries.some((e) => e.isIntersecting)) { setSeen(true); observer.disconnect() } }, { rootMargin: '300px' })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [size, seen])
   // A rename or a new position means a new picture lookup, so start over.
-  useEffect(() => { setState('loading'); setSource(null) }, [place.name, place.region, place.latitude, place.longitude])
-  if (state === 'none') return null
+  useEffect(() => { setShot(null) }, [place.name, place.region, place.latitude, place.longitude])
+  useEffect(() => {
+    if (size === 'off' || !seen || shot !== null) return
+    let cancelled = false
+    let objectUrl = ''
+    schedule(() => loadPhoto(`/api/places/${encodeURIComponent(place.id)}/photo`)).then((found) => {
+      if (cancelled) return
+      if (!found) { setShot('none'); return }
+      objectUrl = URL.createObjectURL(found.blob)
+      setShot({ src: objectUrl, source: found.source })
+    }).catch(() => { if (!cancelled) setShot('none') })
+    return () => { cancelled = true }
+  }, [size, seen, shot, place.id, place.name, place.region, place.latitude, place.longitude])
+  if (size === 'off' || shot === 'none') return null
+  const ready = shot !== null
   return (
-    <figure class={`place-photo${state === 'ok' ? ' ready' : ''}`}>
-      <img src={`${url}?n=${encodeURIComponent(place.name)}`} alt="" loading="lazy" decoding="async"
-        onLoad={() => { setState('ok'); fetch(`${url}/source`).then((r) => (r.ok ? r.json() : null)).then(setSource).catch(() => {}) }}
-        onError={() => setState('none')} />
-      {source && <figcaption><a href={source.page} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>Foto: {source.title} (Wikipedia)</a></figcaption>}
+    <figure ref={box} class={`place-photo ${size}${ready ? ' ready' : ''}`}>
+      {ready && <img src={shot.src} alt="" decoding="async" />}
+      {ready && shot.source && size === 'large' && <figcaption><a href={shot.source.page} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>Foto: {shot.source.title} (Wikipedia)</a></figcaption>}
+      {ready && shot.source && size === 'small' && <a class="photo-credit" href={shot.source.page} target="_blank" rel="noopener noreferrer" title={`Foto: ${shot.source.title} (Wikipedia)`} aria-label={`Fotoquelle: ${shot.source.title} (Wikipedia)`} onClick={(e) => e.stopPropagation()}>©</a>}
     </figure>
   )
 }
@@ -109,6 +153,8 @@ export function Ideas(props: ViewProps & { filter: IdeaFilter; setFilter: (f: Id
   const [panel, setPanel] = useState(remembered('ideas-panel') === '1')
   const [expanded, setExpanded] = useState(false)
   const [colorBy, setColorBy] = useState<ColorBy>(remembered('ideas-color') === 'category' ? 'category' : 'prio')
+  const [photoSize, setPhotoSize] = useState<PhotoSize>(() => { const saved = remembered('ideas-photos'); return saved === 'small' || saved === 'off' ? saved : 'large' })
+  useEffect(() => remember('ideas-photos', photoSize), [photoSize])
   const [folded, setFolded] = useState<Set<string>>(new Set())
 
   useEffect(() => remember('ideas-panel', panel ? '1' : '0'), [panel])
@@ -153,7 +199,7 @@ export function Ideas(props: ViewProps & { filter: IdeaFilter; setFilter: (f: Id
   const row = (p: Place) => (
     <div class={`row place${p.decision === 'Nein' ? ' dim' : ''}${p.id === focused ? ' focus' : ''}`} data-place={p.id} tabIndex={0} role="button" onClick={() => setFocused(p.id)}
       onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setFocused(p.id) } }}>
-      <PlacePhoto place={p} />
+      <PlacePhoto place={p} size={photoSize} />
       <div class="body">
         <div class="title">{p.name}</div>
         <div class="meta"><i class="chip-dot" style={{ background: categoryColor(p.category || 'other') }} />{[categoryLabel(p.category || 'other'), !filter.group && p.region, p.duration, p.heat].filter(Boolean).join(' · ')}</div>
@@ -219,6 +265,9 @@ export function Ideas(props: ViewProps & { filter: IdeaFilter; setFilter: (f: Id
             {SORTS.map(([key, label]) => <option value={key}>{label}</option>)}
           </select>
         </label>
+        <div class="seg" role="group" aria-label="Bilder">
+          {([['large', 'Gross'], ['small', 'Klein'], ['off', 'Aus']] as const).map(([id, label]) => <button type="button" aria-pressed={photoSize === id} onClick={() => setPhotoSize(id)}>{label}</button>)}
+        </div>
         <label class="check"><input type="checkbox" checked={filter.group} onChange={(e) => props.setFilter({ ...filter, group: (e.target as HTMLInputElement).checked })} /> Nach Region gruppieren</label>
       </div>
       <p class="note">

@@ -540,3 +540,17 @@ def test_picture_matching_prefers_the_article_that_fits_the_name():
     assert photos.score("Asakusa mit Senso-ji", "Sensō-ji") >= 0.5
     assert photos.score("Shibuya Crossing", "Shibuya Crossing") > photos.score("Shibuya Crossing", "Shibuya Station")
     assert photos.score("Fushimi Inari", "Tokyo Tower") == 0
+
+
+def test_idea_picture_says_busy_instead_of_none_when_wikipedia_rate_limits(client, trip_id, monkeypatch):
+    from app import photos
+
+    async def busy(name, region, latitude, longitude):
+        raise photos.PhotoBusy(42)
+
+    monkeypatch.setattr(photos, "photo", busy)
+    logged_in(client)
+    with db() as conn:
+        place = service.create_item(conn, "dev", "place", {"name": "Kinkaku-ji"}, "Dev", "web", trip_id)
+    reply = client.get(f"/api/places/{place['id']}/photo")
+    assert reply.status_code == 503 and reply.headers["retry-after"] == "42"      # the page tries again; "none" would hide it for good

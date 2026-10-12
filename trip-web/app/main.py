@@ -272,7 +272,10 @@ async def _photo_of(place_id: str, request: Request, conn):
         target = service.photo_target(conn, current_sub(request), place_id)
     except ServiceError as error:
         raise HTTPException(status_code=404, detail=str(error)) from None
-    found = await photos.photo(**target)
+    try:
+        found = await photos.photo(**target)
+    except photos.PhotoBusy as busy:
+        raise HTTPException(status_code=503, detail="Bilder werden gerade gesucht.", headers={"Retry-After": str(busy.retry_after)}) from None
     if not found:
         raise HTTPException(status_code=404, detail="Kein Bild gefunden.")
     return found
