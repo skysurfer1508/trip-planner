@@ -141,7 +141,7 @@ function StopRow(props: { stop: Stop; dayId: string; position: number; first: bo
       </div>
       {s.estimated_cost > 0 && <div class="end meta">{money(s.estimated_cost, props.currency)}</div>}
       {canEdit && (
-        <Menu label="…" items={[
+        <Menu label="…" ariaLabel="Weitere Aktionen für diesen Stopp" items={[
           { label: 'Bearbeiten', onSelect: () => props.open({ kind: 'edit', stop: s }) },
           ...(props.first ? [] : [{ label: 'Nach oben', onSelect: () => index(-1) }]),
           ...(props.last ? [] : [{ label: 'Nach unten', onSelect: () => index(1) }]),

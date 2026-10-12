@@ -46,20 +46,30 @@ export function messageOf(error: unknown): string {
 }
 
 /** A small menu for the less common actions. It closes after a choice, on Escape and when you click elsewhere. */
-export function Menu(props: { label: string; items: { label: string; onSelect: () => void; danger?: boolean }[] }) {
+export function Menu(props: { label: string; ariaLabel?: string; items: { label: string; onSelect: () => void; danger?: boolean }[] }) {
   const [open, setOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null)
+  const items = () => [...(root.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? [])]
   useEffect(() => {
     if (!open) return
+    items()[0]?.focus()
     const away = (event: Event) => { if (!root.current?.contains(event.target as Node)) setOpen(false) }
-    const key = (event: KeyboardEvent) => { if (event.key === 'Escape') setOpen(false) }
+    const key = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { setOpen(false); root.current?.querySelector<HTMLButtonElement>('[aria-haspopup]')?.focus(); return }
+      const list = items()
+      const at = list.indexOf(document.activeElement as HTMLButtonElement)
+      if (event.key === 'ArrowDown') { event.preventDefault(); list[(at + 1) % list.length]?.focus() }
+      if (event.key === 'ArrowUp') { event.preventDefault(); list[(at - 1 + list.length) % list.length]?.focus() }
+      if (event.key === 'Home') { event.preventDefault(); list[0]?.focus() }
+      if (event.key === 'End') { event.preventDefault(); list[list.length - 1]?.focus() }
+    }
     document.addEventListener('pointerdown', away)
     document.addEventListener('keydown', key)
     return () => { document.removeEventListener('pointerdown', away); document.removeEventListener('keydown', key) }
   }, [open])
   return (
     <div class="menu" ref={root}>
-      <button class="btn secondary" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>{props.label} ▾</button>
+      <button class="btn secondary" aria-label={props.ariaLabel} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>{props.label} ▾</button>
       {open && (
         <div class="menu-items" role="menu">
           {props.items.map((item) => (

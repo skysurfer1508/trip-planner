@@ -8,6 +8,8 @@
   --accent-text: #ffffff;
   --accent-soft: #e2f2ef;
   --danger: #b3261e;
+  --danger-fill: #b3261e;
+  --danger-text: #ffffff;
   --radius: 10px;
   --radius-lg: 20px;
 }
@@ -23,6 +25,8 @@
     --accent-text: #08201b;
     --accent-soft: #1c332f;
     --danger: #f2b8b5;
+    --danger-fill: #8c1d18;
+    --danger-text: #ffffff;
   }
 }
 
@@ -82,7 +86,7 @@ h3 { font-size: 1rem; }
 
 .meter { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; margin: 8px 0 4px; }
 .meter > span { display: block; height: 100%; background: var(--accent); }
-.meter.over > span { background: var(--danger); }
+.meter.over > span { background: var(--danger-fill); }
 
 form { display: grid; gap: 12px; }
 input, select {
@@ -119,7 +123,7 @@ a { color: var(--accent); }
 /* Buttons, forms, dialogs, messages */
 a.btn { display: inline-flex; align-items: center; text-decoration: none; }
 .btn.secondary { background: var(--accent-soft); color: var(--accent); }
-.btn.danger { background: var(--danger); color: #fff; }
+.btn.danger { background: var(--danger-fill); color: var(--danger-text); }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
 .header .actions { margin-bottom: 4px; }
 .back { display: inline-block; min-height: 44px; line-height: 44px; text-decoration: none; }
@@ -139,7 +143,7 @@ dialog.modal::backdrop { background: rgba(0, 0, 0, 0.45); }
 .modal-body h2 { margin: 0; }
 
 .toast { position: fixed; left: 16px; right: 16px; bottom: 76px; z-index: 30; max-width: 520px; margin: 0 auto; padding: 12px 16px; border-radius: var(--radius); background: var(--text); color: var(--bg); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25); }
-.toast.error { background: var(--danger); color: #fff; }
+.toast.error { background: var(--danger-fill); color: var(--danger-text); }
 .toast.hidden { display: none; }
 @media (max-width: 420px) { .two { grid-template-columns: 1fr; } }
 .modal .row { flex-wrap: wrap; align-items: center; }
@@ -239,7 +243,7 @@ button.link { padding: 0; border: 0; background: none; color: var(--accent); fon
 :root { --shadow: 0 1px 2px rgba(16, 24, 22, 0.06), 0 4px 14px rgba(16, 24, 22, 0.06); --accent-2: #14a38e; }
 @media (prefers-color-scheme: dark) { :root { --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.3); } }
 body { background: radial-gradient(1200px 400px at 50% -120px, var(--accent-soft), transparent 70%), var(--bg); background-repeat: no-repeat; }
-#app { max-width: 960px; }
+#app { max-width: 1120px; }
 @media (min-width: 900px) { #map { height: 460px; } }
 h1 { font-size: 1.9rem; letter-spacing: -0.02em; }
 .header { padding: 28px 0 12px; }
@@ -255,8 +259,7 @@ input, select, textarea { transition: border-color 0.12s, box-shadow 0.12s; }
 input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .tabs { justify-content: center; border-top: 0; box-shadow: 0 -4px 20px rgba(16, 24, 22, 0.1); }
 .tabs button { display: grid; justify-items: center; align-content: center; gap: 0; min-width: 72px; max-width: 120px; padding: 4px 10px; font-size: 0.72rem; line-height: 1.2; }
-.tab-icon { font-size: 1.25rem; line-height: 1.3; filter: grayscale(0.7); }
-.tabs button[aria-current='true'] .tab-icon { filter: none; }
+.tabs .icon { display: block; margin: 0 auto 2px; }
 .chip { transition: background 0.12s, border-color 0.12s; }
 .chip:hover { border-color: var(--accent); }
 .badge { font-weight: 600; letter-spacing: 0.01em; }
@@ -269,7 +272,6 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .hop.selected { border-color: var(--accent); }
 .leg .mode { padding: 2px 10px; }
 .toast { box-shadow: 0 8px 28px rgba(0, 0, 0, 0.3); }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 
 /* JR Pass and ideas along the way */
 .pass-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 10px 0; }
@@ -320,3 +322,37 @@ body.is-dragging { cursor: grabbing; user-select: none; -webkit-user-select: non
 .skeleton-line { height: 18px; border-radius: 8px; background: linear-gradient(90deg, var(--line) 25%, var(--surface) 50%, var(--line) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite linear; }
 @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 @media (prefers-reduced-motion: reduce) { .skeleton-line { animation: none; } }
+
+/* Dark mode: keep the OpenStreetMap tiles from glaring against the dark page */
+@media (prefers-color-scheme: dark) {
+  .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9); }
+  .leaflet-container { background: #1a2120; }
+}
+
+/* Wide screens: the map stays in view next to the list */
+@media (min-width: 1000px) {
+  main.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 24px; align-items: start; }
+  main.split .mapwrap { position: sticky; top: 16px; grid-column: 2; grid-row: 1 / span 20; }
+  main.split .mapwrap:not(.expanded) #map { height: calc(100vh - 140px); min-height: 420px; }
+  main.split > :not(.mapwrap) { grid-column: 1; }
+}
+
+/* Motion: dialogs and toasts ease in; everything stands still when asked to */
+dialog.modal[open] { animation: pop-in 0.18s ease-out; }
+dialog.modal[open]::backdrop { animation: fade-in 0.18s ease-out; }
+.toast:not(.hidden) { animation: rise-in 0.2s ease-out; }
+@keyframes pop-in { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rise-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+:root[data-motion='reduce'] *, :root[data-motion='reduce'] *::before, :root[data-motion='reduce'] *::after { animation: none !important; transition: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* Fade at the edges of the tab bar so it is clear that it scrolls */
+.tabs { scroll-snap-type: x proximity; -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%); }
+.tabs button { scroll-snap-align: center; }
+@media (min-width: 900px) { .tabs { -webkit-mask-image: none; mask-image: none; } }
+
+/* Empty states with a next step */
+.empty { display: grid; gap: 8px; justify-items: start; }

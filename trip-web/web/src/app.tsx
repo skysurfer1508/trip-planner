@@ -11,10 +11,9 @@ import { Timeline } from './timeline'
 import { deserialize, serialize, type IdeaFilter } from './filters'
 import { Ideas } from './ideas'
 import { Decisions, Log, type ViewProps } from './views'
+import { Icon } from './icons'
 
 type Tab = 'ideas' | 'route' | 'timeline' | 'decisions' | 'plan' | 'bookings' | 'budget' | 'packing' | 'log'
-
-const ICON: Record<Tab, string> = { ideas: '💡', route: '🚄', timeline: '📅', decisions: '⚖️', plan: '🗓️', bookings: '🎫', budget: '💴', packing: '🧳', log: '🕘' }
 
 const LABEL: Record<Tab, string> = {
   ideas: 'Ideen', route: 'Route', timeline: 'Zeitplan', decisions: 'Entscheide', plan: 'Plan', bookings: 'Buchungen', budget: 'Budget', packing: 'Packliste', log: 'Verlauf',
@@ -116,6 +115,9 @@ function TripScreen(props: { tripId: string; tab: Tab | null; userName: string; 
     return () => { window.clearInterval(interval); document.removeEventListener('visibilitychange', check) }
   }, [load])
 
+  // With nine tabs the bar scrolls sideways; keep the current one in view.
+  useEffect(() => { document.querySelector('.tabs [aria-current="true"]')?.scrollIntoView({ inline: 'center', block: 'nearest' }) }, [props.tab, data !== null])
+
   if (!data) return <Skeleton lines={5} />
   const { trip } = data
   const canEdit = data.role !== 'viewer'
@@ -147,9 +149,9 @@ function TripScreen(props: { tripId: string; tab: Tab | null; userName: string; 
         </div>
         {data.role === 'viewer' && <p class="note">Du kannst diese Reise nur ansehen.</p>}
       </header>
-      <main>{body}</main>
+      <main class={tab === 'ideas' || tab === 'route' ? 'split' : ''}>{body}</main>
       <nav class="tabs" aria-label="Bereiche">
-        {tabs.map((id) => <button aria-current={id === tab} onClick={() => { go(props.tripId, id); scrollTo(0, 0) }}><span class="tab-icon" aria-hidden="true">{ICON[id]}</span>{LABEL[id]}</button>)}
+        {tabs.map((id) => <button aria-current={id === tab} onClick={() => { go(props.tripId, id); scrollTo(0, 0) }}><Icon name={id} size={22} /><span>{LABEL[id]}</span></button>)}
       </nav>
       {dialog === 'edit' && <TripForm trip={trip} onClose={() => setDialog(null)} onSaved={async () => { setDialog(null); await load(); await props.onTripsChanged() }} />}
       {dialog === 'phase' && <PhaseDialog trip={trip} to={otherPhase} onClose={() => setDialog(null)} onSaved={async () => { await load(); await props.onTripsChanged(); go(props.tripId) }} />}
