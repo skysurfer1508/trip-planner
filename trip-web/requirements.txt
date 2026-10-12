@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+pydantic-settings
+itsdangerous
+authlib
+httpx
+mcp>=1.25,<2
+pyjwt[crypto]

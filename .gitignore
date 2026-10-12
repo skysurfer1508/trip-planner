@@ -5,3 +5,6 @@ build/
 xcuserdata/
 .DS_Store
 .build/
+
+# trip-web: leftover empty repo metadata from before the merge
+trip-web/.git-empty-old/

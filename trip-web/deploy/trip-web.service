@@ -1,0 +1,15 @@
+[Unit]
+Description=Trip Web (family trip planner + Claude connector)
+After=network.target
+
+[Service]
+Type=simple
+User=skysurfer1508
+WorkingDirectory=/home/skysurfer1508/trip-web
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/skysurfer1508/trip-web/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8095 --proxy-headers --forwarded-allow-ips=*
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
