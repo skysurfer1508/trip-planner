@@ -105,7 +105,7 @@ input, select {
 a { color: var(--accent); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-#map { height: 320px; border-radius: var(--radius-lg); border: 1px solid var(--line); margin: 16px 0 8px; z-index: 0; }
+#map { height: clamp(260px, 42dvh, 640px); border-radius: var(--radius-lg); border: 1px solid var(--line); margin: 16px 0 8px; z-index: 0; }
 .legends { display: flex; flex-wrap: wrap; gap: 4px 16px; color: var(--muted); font-size: 0.85rem; margin-bottom: 12px; }
 .legend i, .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; }
@@ -137,7 +137,7 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; }
 .trip-row:hover .title { color: var(--accent); }
 h3 { margin: 20px 0 6px; }
 
-dialog.modal { border: 0; border-radius: var(--radius-lg); padding: 0; width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 32px); background: var(--surface); color: var(--text); }
+dialog.modal { border: 0; border-radius: var(--radius-lg); padding: 0; width: min(560px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); background: var(--surface); color: var(--text); }
 dialog.modal::backdrop { background: rgba(0, 0, 0, 0.45); }
 .modal-body { padding: 20px; display: grid; gap: 12px; }
 .modal-body h2 { margin: 0; }
@@ -243,8 +243,7 @@ button.link { padding: 0; border: 0; background: none; color: var(--accent); fon
 :root { --shadow: 0 1px 2px rgba(16, 24, 22, 0.06), 0 4px 14px rgba(16, 24, 22, 0.06); --accent-2: #14a38e; }
 @media (prefers-color-scheme: dark) { :root { --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.3); } }
 body { background: radial-gradient(1200px 400px at 50% -120px, var(--accent-soft), transparent 70%), var(--bg); background-repeat: no-repeat; }
-#app { max-width: 1120px; }
-@media (min-width: 900px) { #map { height: 460px; } }
+#app { max-width: min(1120px, 100%); width: 100%; padding-inline: clamp(12px, 3vw, 32px); }
 h1 { font-size: 1.9rem; letter-spacing: -0.02em; }
 .header { padding: 28px 0 12px; }
 .header p { font-size: 0.95rem; }
@@ -331,9 +330,9 @@ body.is-dragging { cursor: grabbing; user-select: none; -webkit-user-select: non
 
 /* Wide screens: the map stays in view next to the list */
 @media (min-width: 1000px) {
-  main.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 24px; align-items: start; }
+  main.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); grid-auto-rows: min-content; align-content: start; column-gap: 24px; row-gap: 0; align-items: start; }
   main.split .mapwrap { position: sticky; top: 16px; grid-column: 2; grid-row: 1 / span 20; }
-  main.split .mapwrap:not(.expanded) #map { height: calc(100vh - 140px); min-height: 420px; }
+  main.split .mapwrap:not(.expanded) #map { height: calc(100dvh - 140px); min-height: 360px; }
   main.split > :not(.mapwrap) { grid-column: 1; }
 }
 
@@ -356,3 +355,10 @@ dialog.modal[open]::backdrop { animation: fade-in 0.18s ease-out; }
 
 /* Empty states with a next step */
 .empty { display: grid; gap: 8px; justify-items: start; }
+
+/* The window decides the layout: short windows give the map less height, narrow ones stack everything */
+@media (max-height: 560px) { #map { height: clamp(200px, 55dvh, 400px); } .header { padding: 12px 0 4px; } }
+@media (max-width: 520px) { .map-tools { top: 6px; right: 6px; } .map-btn { padding: 0 10px; font-size: 0.85rem; } .map-panel { left: 6px; right: 6px; bottom: 6px; } }
+.route-strip, .tl-bar, .filters { max-width: 100%; }
+img, svg, video { max-width: 100%; }
+@media (min-width: 1000px) and (max-width: 1180px) { main.split { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; } }
