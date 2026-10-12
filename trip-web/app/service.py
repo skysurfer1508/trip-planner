@@ -630,6 +630,17 @@ def list_votes(conn: sqlite3.Connection, trip_id: str) -> list[dict[str, Any]]:
     return [{"place_id": r["place_id"], "voter": r["voter"], "name": r["name"], "value": r["value"]} for r in rows]
 
 
+def photo_target(conn: sqlite3.Connection, user: User, place_id: str) -> dict[str, Any]:
+    """What the picture lookup needs about an idea; anyone who can see the trip may ask."""
+    place = conn.execute("SELECT trip_id, name, region, latitude, longitude, has_coordinate FROM places WHERE id = ? AND deleted_at IS NULL", (place_id,)).fetchone()
+    if not place:
+        raise ServiceError("Eintrag nicht gefunden.")
+    _need(conn, user, place["trip_id"], "viewer")
+    located = bool(place["has_coordinate"])
+    return {"name": place["name"], "region": place["region"],
+            "latitude": place["latitude"] if located else None, "longitude": place["longitude"] if located else None}
+
+
 def vote(conn: sqlite3.Connection, user: User, place_id: str, value: int, member: str | None = None) -> dict[str, Any]:
     """+1, -1 or 0 (take back). Everyone who can see the trip may vote, also viewers. `member` is for Claude writing down what a named family member said."""
     if value not in (-1, 0, 1):

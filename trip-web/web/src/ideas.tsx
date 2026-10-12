@@ -74,6 +74,24 @@ function VoteBar(props: { place: Place; votes: Vote[]; me: string; onVote: (valu
   return <div class="votes" role="group" aria-label={`Abstimmung für ${props.place.name}`}>{button(1, '👍', yes)}{button(-1, '👎', no)}</div>
 }
 
+/** The picture of a place, found on the server (Wikipedia). It stays out of the way when there is none, and credits its source once loaded. */
+function PlacePhoto({ place }: { place: Place }) {
+  const [state, setState] = useState<'loading' | 'ok' | 'none'>('loading')
+  const [source, setSource] = useState<{ title: string; page: string } | null>(null)
+  const url = `/api/places/${encodeURIComponent(place.id)}/photo`
+  // A rename or a new position means a new picture lookup, so start over.
+  useEffect(() => { setState('loading'); setSource(null) }, [place.name, place.region, place.latitude, place.longitude])
+  if (state === 'none') return null
+  return (
+    <figure class={`place-photo${state === 'ok' ? ' ready' : ''}`}>
+      <img src={`${url}?n=${encodeURIComponent(place.name)}`} alt="" loading="lazy" decoding="async"
+        onLoad={() => { setState('ok'); fetch(`${url}/source`).then((r) => (r.ok ? r.json() : null)).then(setSource).catch(() => {}) }}
+        onError={() => setState('none')} />
+      {source && <figcaption><a href={source.page} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>Foto: {source.title} (Wikipedia)</a></figcaption>}
+    </figure>
+  )
+}
+
 function Rating(props: { place: Place; onChange: (v: Verdict) => void }) {
   return (
     <div class="seg" role="group" aria-label={`Entscheid für ${props.place.name}`}>
@@ -135,6 +153,7 @@ export function Ideas(props: ViewProps & { filter: IdeaFilter; setFilter: (f: Id
   const row = (p: Place) => (
     <div class={`row place${p.decision === 'Nein' ? ' dim' : ''}${p.id === focused ? ' focus' : ''}`} data-place={p.id} tabIndex={0} role="button" onClick={() => setFocused(p.id)}
       onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setFocused(p.id) } }}>
+      <PlacePhoto place={p} />
       <div class="body">
         <div class="title">{p.name}</div>
         <div class="meta"><i class="chip-dot" style={{ background: categoryColor(p.category || 'other') }} />{[categoryLabel(p.category || 'other'), !filter.group && p.region, p.duration, p.heat].filter(Boolean).join(' · ')}</div>

@@ -362,3 +362,11 @@ dialog.modal[open]::backdrop { animation: fade-in 0.18s ease-out; }
 .route-strip, .tl-bar, .filters { max-width: 100%; }
 img, svg, video { max-width: 100%; }
 @media (min-width: 1000px) and (max-width: 1180px) { main.split { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; } }
+
+/* A picture on each idea */
+.place-photo { flex: 1 1 100%; margin: 0 0 4px; position: relative; border-radius: var(--radius); overflow: hidden; background: var(--line); aspect-ratio: 16 / 7; }
+.place-photo img { display: block; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.25s; }
+.place-photo.ready img { opacity: 1; }
+.place-photo figcaption { position: absolute; right: 0; bottom: 0; max-width: 100%; padding: 2px 8px; border-top-left-radius: 8px; background: rgba(0, 0, 0, 0.55); font-size: 0.7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.place-photo figcaption a { color: #fff; text-decoration: none; }
+@media (max-width: 520px) { .place-photo { aspect-ratio: 16 / 9; } }

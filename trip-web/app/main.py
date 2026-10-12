@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from . import archive, budget, native_auth, sync, dayplan, exports, geometry, packing, timeline, places, rates, route, service
+from . import archive, budget, native_auth, sync, dayplan, exports, geometry, packing, photos, timeline, places, rates, route, service
 from .auth import (NotAuthenticated, current_name, current_sub, oauth, require_api_client, require_api_login, require_login, safe_next)
 from .config import settings
 from .db import db, init_db
@@ -265,6 +265,31 @@ async def search_places(q: str = "", near: str = "", lang: str = "de"):
         return await places.search(q, point, lang)
     except Exception:  # Photon down or slow: say so instead of breaking the page
         raise HTTPException(status_code=502, detail="Die Ortssuche ist gerade nicht erreichbar. Bitte später noch einmal.") from None
+
+
+async def _photo_of(place_id: str, request: Request, conn):
+    try:
+        target = service.photo_target(conn, current_sub(request), place_id)
+    except ServiceError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from None
+    found = await photos.photo(**target)
+    if not found:
+        raise HTTPException(status_code=404, detail="Kein Bild gefunden.")
+    return found
+
+
+@api.get("/api/places/{place_id}/photo", dependencies=[Depends(require_api_login)])
+async def place_photo(place_id: str, request: Request, conn=Depends(get_conn)):
+    """The picture for an idea (Wikipedia, cached on this server). 404 when there is none."""
+    image, source = await _photo_of(place_id, request, conn)
+    return FileResponse(image, media_type=source.get("type", "image/jpeg"), headers={"Cache-Control": "private, max-age=604800"})
+
+
+@api.get("/api/places/{place_id}/photo/source", dependencies=[Depends(require_api_login)])
+async def place_photo_source(place_id: str, request: Request, conn=Depends(get_conn)):
+    """Where the picture comes from, for the credit line."""
+    _, source = await _photo_of(place_id, request, conn)
+    return {"title": source["title"], "page": source["page"]}
 
 
 # The day plan: the app's operations on stops and days. Each one is a single entry in the history and can be undone.

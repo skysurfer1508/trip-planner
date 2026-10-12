@@ -507,3 +507,36 @@ def test_the_sync_endpoint(client):
     assert again.status_code == 200 and again.json()["changes"][0]["kind"] == "trip"
     assert client.post("/api/sync", json={"trip_id": trip_id, "since": -1, "changes": []}, headers=H).status_code == 400
     assert client.post("/api/sync", json={"trip_id": "nope", "since": 0, "changes": []}, headers=H).status_code == 400
+
+
+def test_idea_pictures_need_login_and_trip_membership(client, trip_id, monkeypatch, tmp_path):
+    from app import photos
+    image = tmp_path / "x.jpg"
+    image.write_bytes(b"\xff\xd8fake")
+    looked_up = []
+
+    async def fake(name, region, latitude, longitude):
+        looked_up.append((name, region, latitude, longitude))
+        return (image, {"title": "Sensō-ji", "page": "https://en.wikipedia.org/wiki/Sens%C5%8D-ji", "type": "image/jpeg"}) if name == "Senso-ji" else None
+
+    monkeypatch.setattr(photos, "photo", fake)
+    logged_in(client)
+    with db() as conn:
+        shown = service.create_item(conn, "dev", "place", {"name": "Senso-ji", "region": "Tokyo", "latitude": 35.7, "longitude": 139.8}, "Dev", "web", trip_id)
+        plain = service.create_item(conn, "dev", "place", {"name": "Kein Bild"}, "Dev", "web", trip_id)
+    place_id, other_id = shown["id"], plain["id"]
+    assert TestClient(app, base_url="https://trip.example.org").get(f"/api/places/{place_id}/photo").status_code == 401
+    reply = client.get(f"/api/places/{place_id}/photo")
+    assert reply.status_code == 200 and reply.content == b"\xff\xd8fake" and reply.headers["content-type"] == "image/jpeg"
+    assert looked_up[-1] == ("Senso-ji", "Tokyo", 35.7, 139.8)
+    assert client.get(f"/api/places/{place_id}/photo/source").json()["title"] == "Sensō-ji"
+    assert client.get(f"/api/places/{other_id}/photo").status_code == 404
+    assert looked_up[-1] == ("Kein Bild", "", None, None)          # no position set: nothing to search around
+    assert client.get("/api/places/gibtesnicht/photo").status_code == 404
+
+
+def test_picture_matching_prefers_the_article_that_fits_the_name():
+    from app import photos
+    assert photos.score("Asakusa mit Senso-ji", "Sensō-ji") >= 0.5
+    assert photos.score("Shibuya Crossing", "Shibuya Crossing") > photos.score("Shibuya Crossing", "Shibuya Station")
+    assert photos.score("Fushimi Inari", "Tokyo Tower") == 0
