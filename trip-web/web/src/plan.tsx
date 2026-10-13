@@ -2,7 +2,7 @@ import { useState } from 'preact/hooks'
 import { api, type Done } from './api'
 import { finalIndex, startDrag } from './dnd'
 import { biasOf, PlaceSearch } from './edit'
-import { dayLabel, money, safeUrl, timeLabel } from './format'
+import { dayLabel, mapsUrl, money, safeUrl, timeLabel } from './format'
 import type { Day, FoundPlace, Place, Stop, TripData } from './types'
 import { Field, Menu, Modal, messageOf, useNotify } from './ui'
 import type { ViewProps } from './views'
@@ -144,7 +144,10 @@ function StopRow(props: { checks: CheckItem[]; stop: Stop; dayId: string; positi
         <div class="meta">{[CATEGORY_LABEL[s.category_raw], s.address, s.duration_minutes ? `${s.duration_minutes} Min.` : '', s.opening_hours].filter(Boolean).join(' · ')}</div>
         {s.notes && <div class="meta">{s.notes}</div>}
         <InlineChecks items={props.checks} />
-        {link && <div class="meta"><a href={link} target="_blank" rel="noopener noreferrer">Webseite</a></div>}
+        <div class="meta links">
+          <a href={mapsUrl(s)} target="_blank" rel="noopener noreferrer">Google Maps</a>
+          {link && <a href={link} target="_blank" rel="noopener noreferrer">Webseite</a>}
+        </div>
       </div>
       {s.estimated_cost > 0 && <div class="end meta">{money(s.estimated_cost, props.currency)}</div>}
       {canEdit && (

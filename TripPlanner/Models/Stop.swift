@@ -63,6 +63,21 @@ final class Stop {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
     }
 
+    /// The place's page on Google Maps. With a position the search is centred there, so a common name
+    /// ("Park") finds the right one; a stop made by hand without one is searched by name and address.
+    var googleMapsURL: URL? {
+        if latitude != 0 || longitude != 0 {
+            var allowed = CharacterSet.urlPathAllowed
+            allowed.remove(charactersIn: "/")
+            guard let encoded = name.addingPercentEncoding(withAllowedCharacters: allowed) else { return nil }
+            return URL(string: "https://www.google.com/maps/search/\(encoded)/@\(String(format: "%.6f", latitude)),\(String(format: "%.6f", longitude)),17z")
+        }
+        var components = URLComponents(string: "https://www.google.com/maps/search/")
+        let query = [name, address].filter { !$0.isEmpty }.joined(separator: " ")
+        components?.queryItems = [URLQueryItem(name: "api", value: "1"), URLQueryItem(name: "query", value: query)]
+        return components?.url
+    }
+
     /// A copy that is not attached to any day yet.
     func clone() -> Stop {
         let copy = Stop(name: name, latitude: latitude, longitude: longitude, address: address, category: category)

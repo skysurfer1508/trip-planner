@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks'
+import { mapsUrl } from './format'
 import { api } from './api'
 import { CATEGORIES, categoryColor, categoryLabel } from './categories'
 import { biasOf, PlaceDialog } from './edit'
@@ -206,6 +207,7 @@ export function Ideas(props: ViewProps & { filter: IdeaFilter; setFilter: (f: Id
         {p.description && <div class="meta">{p.description}</div>}
         {p.notes && <div class="meta">{p.notes}</div>}
         {(p.for_whom || p.wished_by) && <div class="meta">{[p.for_whom && `Für wen: ${p.for_whom}`, p.wished_by && `Wunsch von: ${p.wished_by}`].filter(Boolean).join(' · ')}</div>}
+        <div class="meta links" onClick={(e) => e.stopPropagation()}><a href={mapsUrl({ name: p.name, latitude: p.has_coordinate ? p.latitude : undefined, longitude: p.has_coordinate ? p.longitude : undefined })} target="_blank" rel="noopener noreferrer">Google Maps</a></div>
       </div>
       <div class="end"><span class="dot" style={{ background: PRIO_COLOR[p.prio] }} /> {p.prio}<br /><span class="meta">{p.decision}</span></div>
       <div class="place-actions" onClick={(e) => e.stopPropagation()}>

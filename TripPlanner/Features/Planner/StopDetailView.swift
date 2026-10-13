@@ -280,10 +280,15 @@ struct StopDetailView: View {
         let phoneURL = stop.phone.isEmpty ? nil : URL(string: "tel:" + stop.phone.filter { $0.isNumber || $0 == "+" })
         let siteURL = stop.website.isEmpty ? nil : URL(string: stop.website)
 
-        if !stop.address.isEmpty || phoneURL != nil || siteURL != nil {
+        if !stop.address.isEmpty || phoneURL != nil || siteURL != nil || stop.googleMapsURL != nil {
             VStack(alignment: .leading, spacing: 0) {
                 if !stop.address.isEmpty {
                     InfoRow(symbol: "mappin.and.ellipse", title: stop.address)
+                }
+                if let mapsURL = stop.googleMapsURL {
+                    Link(destination: mapsURL) {
+                        InfoRow(symbol: "map", title: "Open in Google Maps")
+                    }
                 }
                 if let phoneURL {
                     Link(destination: phoneURL) {

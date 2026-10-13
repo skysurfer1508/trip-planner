@@ -15,6 +15,13 @@ export function safeUrl(value: string): string {
   }
 }
 
+/** The Google Maps page of a place. With a position, the search is centred there so a common name ("Park") finds the right one; without, name and address do. */
+export function mapsUrl(place: { name: string; address?: string; latitude?: number; longitude?: number }): string {
+  const located = !!(place.latitude || place.longitude)
+  if (located) return `https://www.google.com/maps/search/${encodeURIComponent(place.name)}/@${place.latitude},${place.longitude},17z`
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([place.name, place.address].filter(Boolean).join(' '))}`
+}
+
 // Dates and times are the local wall-clock time of the place ("2027-07-20T09:30"), so nothing is converted between time zones.
 function parts(local: string): Date {
   const [y, m, d] = local.slice(0, 10).split('-').map(Number)

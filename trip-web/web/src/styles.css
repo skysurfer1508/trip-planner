@@ -391,3 +391,5 @@ img, svg, video { max-width: 100%; }
 .inline-check svg { flex: none; margin-top: 2px; }
 :root { --warn-soft: #fdf0d5; --warn-text: #8a4b00; }
 @media (prefers-color-scheme: dark) { :root { --warn-soft: #3a2f12; --warn-text: #f0c674; } }
+
+.links { display: flex; flex-wrap: wrap; gap: 4px 16px; }
